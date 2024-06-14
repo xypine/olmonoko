@@ -1,0 +1,11 @@
+<form id="source-persist-form-{{ source.id }}" autocomplete="off" hx-patch="/api/source/{{ source.id }}/persist_events"
+	hx-swap="outerHTML" hx-target="#source-persist-form-{{ source.id }}" hx-disabled-elt="#source-persist-{{ source.id }}"
+	hx-trigger="change">
+	<label>
+		<span>
+			Persist events locally, this may cause duplicates
+		</span>
+		<input type="checkbox" name="persist" id="source-persist-{{ source.id }}"
+			{% if source.persist_events %}checked{% endif %}>
+	</label>
+</form>

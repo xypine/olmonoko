@@ -1,0 +1,1 @@
+ALTER TABLE ics_sources ADD COLUMN persist_events BOOLEAN DEFAULT FALSE NOT NULL;

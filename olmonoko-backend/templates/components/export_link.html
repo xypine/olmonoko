@@ -1,0 +1,40 @@
+<div id="export-link" style="display: flex; flex-direction: column; gap: .5em;">
+	<h3>Public links to your calendar</h3>
+	<span>You can use a public link in your calendar of choice. </span>
+	<span>
+		Note that <i>anyone</i> with the link can see all of your calendar events.
+	</span>
+	<form hx-post="/api/export" hx-swap="outerHTML" hx-target="#export-link"
+		hx-disabled-elt="#new-link">
+		<button id="new-link" class="btn" type="submit">
+			Generate new link
+		</button>
+	</form>
+	{% if export_links %}
+		{% for export_link in export_links %}
+			{% set id = export_link.id %}
+			<div id="export-link-{{ id }}" style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; margin-bottom: 1em;">
+				<a href="{{ export_link.url|replace(from='http://', to='https://')|replace(from='https://', to='webcal://') }}" target="_blank">
+					<code>
+						{{ export_link.url }}
+					</code>
+				</a>
+				<button id="copy-export-link-{{ id }}" class="btn" onclick="navigator.clipboard.writeText('{{ export_link.url }}');document.querySelector('#copy-export-link-{{ id }}').innerHTML = 'Copied!';">
+					Copy
+				</button>
+				<form
+					hx-delete="{{ export_link.url }}"
+					hx-target="#export-link-{{ id }}"
+					hx-swap="innerHTML"
+					hx-disabled-elt="#remove-export-link-{{ id }}"
+					hx-confirm="Are you sure you want to remove this export link? Any calendar applications reading from it will stop functioning."
+				>
+					<button id="remove-export-link-{{ id }}" class="btn variant-danger" type="submit">
+						Remove
+					</button>
+				</form>
+				{% include 'components/export_link_filter.html' %}
+			</div>
+		{% endfor %}
+	{% endif %}
+</div>

@@ -1,0 +1,44 @@
+<form id="new-data-source-ics" action="/api/source" method="POST" hx-disabled-elt="#add-ics-source">
+	<fieldset>
+		<legend>New ICS source</legend>
+		<label>
+			<span>
+				Name:
+			</span>
+			<input type="text" name="name">
+		</label>
+		<label>
+			<span>
+				URL:
+			</span>
+			<input type="text" name="url">
+		</label>
+		<label>
+			<span>
+				Is public:
+			</span>
+			<input type="checkbox" name="is_public">
+		</label>
+		<label>
+			<span>
+				Import Template:
+			</span>
+			<textarea name="import_template"></textarea>
+		</label>
+		<p>
+			See <a href="https://keats.github.io/tera/docs/#introduction">Tera Documentation</a> for
+			templating documentation.
+		</p>
+		<button id="add-ics-source" type="submit" class="btn">Add</button>
+	</fieldset>
+</form>
+<style>
+	#new-data-source-ics {
+		& textarea {
+			flex: 1;
+			min-height: 100px;
+			resize: vertical;
+			min-width: min(250px, 50vw);
+		}
+	}
+</style>

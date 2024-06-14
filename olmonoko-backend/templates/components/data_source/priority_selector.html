@@ -1,0 +1,29 @@
+<form id="source-p-form-{{ source.id }}" autocomplete="off" hx-patch="/api/source/{{ source.id }}/priority"
+	hx-swap="outerHTML" hx-target="#source-p-form-{{ source.id }}" hx-disabled-elt="#source-p-{{ source.id }}"
+	hx-trigger="change">
+	<select name="priority" id="source-p-{{ source.id }}">
+		<option value="" {% if not source.chosen_priority %}selected{% endif %}>Don't include in calendar
+		</option>
+		<option value="0" {% if source.chosen_priority==0 %}selected{% endif %}>Include with default priority
+		</option>
+		<optgroup label="Include with priority">
+			{% for i in event_priority_options %}
+			{% if i == 1 %}
+			{% set plabel = 'HIGH' %}
+			{% endif %}
+			{% if i == 5 %}
+			{% set plabel = 'NORMAL' %}
+			{% endif %}
+			{% if i == 9 %}
+			{% set plabel = 'LOW' %}
+			{% endif %}
+			<option value="{{ i }}" {% if source.chosen_priority==i %}selected{% endif %}>
+				{{ i }}
+				{% if plabel %}
+				- {{ plabel }}
+				{% endif %}
+			</option>
+			{% endfor %}
+		</optgroup>
+	</select>
+</form>

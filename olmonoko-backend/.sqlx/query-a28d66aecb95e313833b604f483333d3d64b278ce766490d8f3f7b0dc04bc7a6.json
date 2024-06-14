@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE ics_sources SET last_fetched_at = $1 WHERE id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "a28d66aecb95e313833b604f483333d3d64b278ce766490d8f3f7b0dc04bc7a6"
+}

@@ -1,0 +1,5 @@
+CREATE TABLE event_occurrences (
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    event_id INTEGER REFERENCES events(id) ON DELETE CASCADE NOT NULL,
+    starts_at INTEGER NOT NULL
+);

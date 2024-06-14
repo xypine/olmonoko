@@ -1,0 +1,29 @@
+<fieldset id="admin-user-list">
+    <legend>Users</legend>
+    <table>
+        <tr>
+            <th>Id</th>
+            <th>Email</th>
+            <th>Admin</th>
+            <th>Actions</th>
+        </tr>
+        {% for user in users %}
+        <tr>
+            <td>{{ user.id }}</td>
+            <td id="user-{{ user.id }}">{{ user.email }}</td>
+            <td>{{ user.admin }}</td>
+            <td>
+                <form 
+                    hx-delete="{{ site_url }}/api/user/{{ user.id }}"
+                    hx-swap="outerHTML"
+                    hx-target="#admin-user-list"
+                    hx-disabled-elt="#admin-user-list"
+                    hx-confirm="Are you sure you want to delete this user?"
+                >
+                    <button type="submit">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</fieldset>

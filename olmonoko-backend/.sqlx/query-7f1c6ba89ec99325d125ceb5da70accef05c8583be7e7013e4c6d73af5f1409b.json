@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT * FROM public_calendar_links WHERE user_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "user_id",
+        "ordinal": 1,
+        "type_info": "Int64"
+      },
+      {
+        "name": "created_at",
+        "ordinal": 2,
+        "type_info": "Int64"
+      },
+      {
+        "name": "min_priority",
+        "ordinal": 3,
+        "type_info": "Int64"
+      },
+      {
+        "name": "max_priority",
+        "ordinal": 4,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "7f1c6ba89ec99325d125ceb5da70accef05c8583be7e7013e4c6d73af5f1409b"
+}

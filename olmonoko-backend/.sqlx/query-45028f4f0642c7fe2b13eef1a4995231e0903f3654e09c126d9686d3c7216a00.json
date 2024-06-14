@@ -1,0 +1,86 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                DELETE FROM local_events\n                WHERE user_id = $2\n                    AND ($1 IS NULL OR id = $1) \n                    AND ($3 IS NULL OR starts_at > $3) \n                    AND ($4 IS NULL OR starts_at < $4) \n                    AND (COALESCE(NULLIF(priority, 0), $7) >= $5 OR $5 IS NULL)\n                    AND (COALESCE(NULLIF(priority, 0), $7) <= $6 OR $6 IS NULL)\n                    AND ($8 IS NULL OR summary LIKE $8)\n                    AND ($9 IS NULL OR (\n                        SELECT tag.tag\n                        FROM event_tags AS tag\n                        WHERE tag.local_event_id = id\n                        AND tag.tag IN ($9)\n                    ) IS NOT NULL)\n                    AND ($10 IS NULL OR (\n                        SELECT tag.tag\n                        FROM event_tags AS tag\n                        WHERE tag.local_event_id = id\n                        AND tag.tag IN ($10)\n                    ) IS NULL)\n                RETURNING *\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "user_id",
+        "ordinal": 1,
+        "type_info": "Int64"
+      },
+      {
+        "name": "created_at",
+        "ordinal": 2,
+        "type_info": "Int64"
+      },
+      {
+        "name": "updated_at",
+        "ordinal": 3,
+        "type_info": "Int64"
+      },
+      {
+        "name": "starts_at",
+        "ordinal": 4,
+        "type_info": "Int64"
+      },
+      {
+        "name": "duration",
+        "ordinal": 5,
+        "type_info": "Int64"
+      },
+      {
+        "name": "summary",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "description",
+        "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "location",
+        "ordinal": 8,
+        "type_info": "Text"
+      },
+      {
+        "name": "uid",
+        "ordinal": 9,
+        "type_info": "Text"
+      },
+      {
+        "name": "all_day",
+        "ordinal": 10,
+        "type_info": "Bool"
+      },
+      {
+        "name": "priority",
+        "ordinal": 11,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 10
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "45028f4f0642c7fe2b13eef1a4995231e0903f3654e09c126d9686d3c7216a00"
+}

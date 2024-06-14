@@ -1,0 +1,142 @@
+{% if selected %}
+	{% set container_id = 'local-event-edit-' ~ selected_id %}
+	{% set action = '/api/event/local/' ~ selected_id ~ '/update' %}
+	{% set method = 'POST' %}
+	{% set title = 'Update Event' %}
+	{% set action_id = 'update-event-' ~ selected_id %}
+	{% set action_name = 'Update' %}
+{% else %}
+	{% set container_id = 'create-local-event' %}
+	{% set action = '/api/event/local' %}
+	{% set method = 'POST' %}
+	{% set title = 'New Event' %}
+	{% set action_id = 'create-event' %}
+	{% set action_name = 'Create' %}
+{% endif %}
+<div id="{{ container_id }}">
+	{% if selected %}
+		<form action="{{ site_url }}/api/event/local/delete?id={{ selected_id }}" method="POST" style="align-items: end;">
+			<button class="btn variant-danger border-only" type="submit" id="delete-{{ selected_id }}">Delete {{ selected.summary }}</button>
+		</form>
+	{% endif %}
+	<form id="local-event-form" action="{{ site_url }}{{ action }}" method="{{ method }}" hx-disabled-elt="#{{ action_id }}">
+		<fieldset>
+			<legend>{{ title }}</legend>
+			<label>
+				<span>
+					Summary:
+				</span>
+				<input type="text" name="summary" value="{{ selected.summary|default(value='') }}">
+			</label>
+			<label>
+				<span>
+					Description:
+				</span>
+				<textarea type="text" name="description">{{ selected.description|default(value='') }}</textarea>
+			</label>
+			<label>
+				<span>
+					Starts at:
+				</span>
+				<input type="datetime-local" name="starts_at"  value="{{ selected.starts_at|default(value='') }}">
+			</label>
+			<label>
+				<span>
+					All day:
+				</span>
+				<input type="checkbox" name="all_day" 
+					{% if selected.all_day and selected.all_day == "on" %}
+						checked
+					{% endif %}
+				>
+			</label>
+			<label>
+				<span>
+					Timezone offset (hours):
+				</span>
+				<input type="number" name="starts_at_tz" value="{{ selected.starts_at_tz|default(value=3) }}">
+			</label>
+			<label>
+				<span>
+					Duration (seconds):
+				</span>
+				<input type="number" name="duration" value="{{ selected.duration|default(value='') }}">
+			</label>
+			<label>
+				<span>
+					Location:
+				</span>
+				<input type="text" name="location" value="{{ selected.location|default(value='') }}">
+			</label>
+			{% if selected %}
+				{% set priority = selected.priority | as_str %}
+			{% else %}
+				{% set priority = '' %}
+			{% endif %}
+			<label>
+				<span>
+					Priority:
+				</span>
+				<select name="priority" autocomplete="off">
+					<option value="" {% if not priority %}selected{% endif %}>Default
+					</option>
+					<optgroup label="Custom">
+						{% for i in event_priority_options %}
+						{% if i == 1 %}
+						{% set plabel = 'HIGH' %}
+						{% endif %}
+						{% if i == 5 %}
+						{% set plabel = 'NORMAL' %}
+						{% endif %}
+						{% if i == 9 %}
+						{% set plabel = 'LOW' %}
+						{% endif %}
+						{% if priority | as_str == i | as_str %}
+						{% set selected = 'selected' %}
+						<!-- selected -->
+						{% else %}
+						<!-- not selected -->
+						<!-- i != priority -->
+						<!-- {{ i }} != {{ priority }} -->
+						{% set selected = '' %}
+						{% endif %}
+						<option value="{{ i }}" {{ selected }}>
+							{{ i }}
+							{% if plabel %}
+							- {{ plabel }}
+							{% endif %}
+						</option>
+						{% endfor %}
+					</optgroup>
+				</select>
+			</label>
+			<label>
+				<span>
+					Tags:
+				</span>
+				<input type="text" name="tags" value="{{ selected.tags|default(value='') }}">
+			</label>
+			<div style="display: flex; gap: 1rem;">
+				{% if selected %}
+					<a href="{{ site_url }}/local" class="btn variant-plain" style="flex: 1;">Back</a>
+				{% endif %}
+				<button id="{{ action_id }}" type="submit" class="btn" style="flex: 1;">{{ action_name }}</button>
+			</div>
+		</fieldset>
+	</form>
+</div>
+<style>
+	#local-event-form {
+		& label {
+
+			& input, & textarea {
+				flex: 1;
+			}
+
+			& textarea {
+				min-height: 100px;
+				resize: vertical;
+			}
+		}
+	}
+</style>

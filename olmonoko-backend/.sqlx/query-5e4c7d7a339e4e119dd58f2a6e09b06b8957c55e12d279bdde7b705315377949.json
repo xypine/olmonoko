@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM ics_source_priorities WHERE user_id = $1 AND ics_source_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "5e4c7d7a339e4e119dd58f2a6e09b06b8957c55e12d279bdde7b705315377949"
+}

@@ -1,0 +1,73 @@
+<button id="mobile-menu-open" class="btn">☰</button>
+<dialog id="mobile-menu">
+	<div>
+		<button id="mobile-menu-close" class="btn" autofocus>☰</button>
+		{% include "components/auth/status.html" %}
+		{% include "components/nav-content.html" %}
+	</div>
+</dialog>
+
+<script>
+	(() => {
+		const mobileMenu = document.getElementById('mobile-menu');
+		const alreadyRegistered = mobileMenu.getAttribute('data-menu-registered');
+		if (alreadyRegistered === 'true') {
+			return;
+		}
+		mobileMenu.setAttribute('data-menu-registered', 'true');
+		const mobileMenuOpen = document.getElementById('mobile-menu-open');
+		const mobileMenuClose = document.getElementById('mobile-menu-close');
+
+		mobileMenuOpen.addEventListener('click', () => {
+			mobileMenu.showModal();
+		});
+		mobileMenuClose.addEventListener('click', () => {
+			mobileMenu.close();
+		});
+	})();
+</script>
+
+<style>
+	#mobile-menu-open, #mobile-menu-close {
+		padding: 0.75rem 1rem;
+	}
+	#mobile-menu {
+		border: none;
+		margin-left: auto;
+
+		background: var(--surface);
+		border: 1px solid var(--surface-variant);
+		translate: 1px -1px;
+	}
+	#mobile-menu > div {
+		display: flex;
+		flex-direction: column;
+		align-items: end;
+		gap: 1.5rem;
+		padding: 1rem;
+		& > ul {
+			display: flex;
+			flex-direction: column;
+
+			width: 100%;
+			text-align: center;
+
+			border: 1px solid var(--primary);
+			border-radius: .25rem;
+			background: var(--surface-variant);
+			overflow: hidden;
+
+			& > li {
+				& > a {
+					display: inline-block;
+					width: 100%;
+					padding: .5rem;
+				}
+				&.active > a {
+					background: var(--primary);
+					color: var(--surface);
+				}
+			}
+		}
+	}
+</style>

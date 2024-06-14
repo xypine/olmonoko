@@ -1,0 +1,1 @@
+ALTER TABLE users ADD COLUMN interface_timezone TEXT DEFAULT 'UTC' NOT NULL;

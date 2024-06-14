@@ -1,0 +1,154 @@
+use actix_web::{delete, get, patch, post, web, HttpRequest, HttpResponse, Responder, Scope};
+use uuid::Uuid;
+
+use crate::models::public_link::{PublicLink, RawPublicLink};
+use crate::routes::ui::{get_session_context, get_visible_event_occurrences};
+use crate::routes::{api::user::get_user_from_request, AppState};
+
+#[get("/{id}.ics")]
+async fn get_calendar(data: web::Data<AppState>, path: web::Path<Uuid>) -> impl Responder {
+    let id = path.into_inner().to_string();
+    tracing::info!("Fetching calendar for id {id}");
+    let opt = sqlx::query_as!(
+        RawPublicLink,
+        "SELECT * FROM public_calendar_links WHERE id = $1",
+        id
+    )
+    .fetch_optional(&data.conn)
+    .await
+    .expect("Failed to fetch user from the database")
+    .map(PublicLink::from);
+    if let Some(public_link) = opt {
+        let events = get_visible_event_occurrences(
+            &data,
+            Some(public_link.user_id),
+            true,
+            None,
+            None,
+            public_link.min_priority,
+            public_link.max_priority,
+        )
+        .await;
+        let ics = crate::logic::compose_ics(events)
+            .await
+            .expect("Failed to compose ics");
+        return HttpResponse::Ok().content_type("text/calendar").body(ics);
+    } else {
+        HttpResponse::NotFound().body("link not found")
+    }
+}
+
+#[delete("/{id}.ics")]
+async fn delete_link(
+    data: web::Data<AppState>,
+    path: web::Path<Uuid>,
+    request: HttpRequest,
+) -> impl Responder {
+    let id = path.into_inner().to_string();
+    let user = get_user_from_request(&data, &request).await.unwrap();
+    sqlx::query!(
+        "DELETE FROM public_calendar_links WHERE id = $1 AND user_id = $2",
+        id,
+        user.id
+    )
+    .execute(&data.conn)
+    .await
+    .expect("Failed to delete public link");
+    HttpResponse::Ok().body("link deleted")
+}
+
+use serde_with::As;
+use serde_with::NoneAsEmptyString;
+#[derive(Debug, Clone, Copy, serde::Deserialize)]
+struct ChangePriorityFilterForm {
+    #[serde(default, with = "As::<NoneAsEmptyString>")]
+    min_priority: Option<i64>,
+    #[serde(default, with = "As::<NoneAsEmptyString>")]
+    max_priority: Option<i64>,
+}
+#[patch("/{id}.ics")]
+async fn change_filters(
+    data: web::Data<AppState>,
+    path: web::Path<Uuid>,
+    form: web::Form<ChangePriorityFilterForm>,
+    request: HttpRequest,
+) -> impl Responder {
+    let id = path.into_inner().to_string();
+    let (mut context, user_opt) = get_session_context(&data, &request).await;
+    if let Some(user) = user_opt {
+        sqlx::query!(
+            "UPDATE public_calendar_links SET min_priority = $1, max_priority = $2 WHERE id = $3 AND user_id = $4",
+            form.min_priority,
+            form.max_priority,
+            id,
+            user.id
+        )
+        .execute(&data.conn)
+        .await
+        .expect("Failed to update min priority");
+
+        context.insert("export_links", &get_user_export_links(&data, user.id).await);
+        let content = data
+            .templates
+            .render("components/export_link.html", &context)
+            .unwrap();
+        return HttpResponse::Ok().body(content);
+    }
+    crate::routes::api::user::deauth()
+}
+
+#[post("")]
+async fn new_link(data: web::Data<AppState>, request: HttpRequest) -> impl Responder {
+    let (mut context, user_opt) = get_session_context(&data, &request).await;
+    if let Some(user) = user_opt {
+        let new_id = Uuid::new_v4().to_string();
+        sqlx::query!(
+            "INSERT INTO public_calendar_links (id, user_id) VALUES ($1, $2)",
+            new_id,
+            user.id
+        )
+        .execute(&data.conn)
+        .await
+        .expect("Failed to insert new public link");
+
+        context.insert("export_links", &get_user_export_links(&data, user.id).await);
+        let content = data
+            .templates
+            .render("components/export_link.html", &context)
+            .unwrap();
+        return HttpResponse::Ok().body(content);
+    }
+    HttpResponse::Unauthorized().finish()
+}
+
+pub async fn get_user_export_links(data: &web::Data<AppState>, user_id: i64) -> Vec<PublicLink> {
+    sqlx::query_as!(
+        RawPublicLink,
+        "SELECT * FROM public_calendar_links WHERE user_id = $1",
+        user_id
+    )
+    .fetch_all(&data.conn)
+    .await
+    .expect("Failed to query export links from the database")
+    .into_iter()
+    .map(PublicLink::from)
+    .collect()
+}
+
+#[get("")]
+async fn get_mine(data: web::Data<AppState>, request: HttpRequest) -> impl Responder {
+    if let Some(user_id) = get_user_from_request(&data, &request).await.map(|u| u.id) {
+        let links = get_user_export_links(&data, user_id).await;
+        return HttpResponse::Ok().json(links);
+    }
+    HttpResponse::Unauthorized().finish()
+}
+
+pub fn routes() -> Scope {
+    web::scope("/export")
+        .service(new_link)
+        .service(delete_link)
+        .service(change_filters)
+        .service(get_mine)
+        .service(get_calendar)
+}

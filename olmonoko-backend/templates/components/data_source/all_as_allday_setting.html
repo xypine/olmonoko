@@ -1,0 +1,11 @@
+<form id="source-all-allday-form-{{ source.id }}" autocomplete="off" hx-patch="/api/source/{{ source.id }}/all_as_allday"
+	hx-swap="outerHTML" hx-target="#source-all-allday-form-{{ source.id }}" hx-disabled-elt="#source-all-allday-{{ source.id }}"
+	hx-trigger="change">
+	<label>
+		<span>
+			Import all events as all-day
+		</span>
+		<input type="checkbox" name="all_as_allday" id="source-all-allday-{{ source.id }}"
+			{% if source.all_as_allday %}checked{% endif %}>
+	</label>
+</form>

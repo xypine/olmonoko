@@ -1,0 +1,92 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT COUNT(DISTINCT e.id) AS event_count, COUNT(o.id) AS occurrence_count, s.*, p.priority FROM ics_sources AS s LEFT JOIN ics_source_priorities AS p ON p.ics_source_id = s.id AND p.user_id = $1 LEFT JOIN events AS e ON e.event_source_id = s.id LEFT JOIN event_occurrences AS o ON o.event_id = e.id WHERE s.is_public = true OR s.user_id = $1 GROUP BY s.id",
+  "describe": {
+    "columns": [
+      {
+        "name": "event_count",
+        "ordinal": 0,
+        "type_info": "Int"
+      },
+      {
+        "name": "occurrence_count",
+        "ordinal": 1,
+        "type_info": "Int"
+      },
+      {
+        "name": "id",
+        "ordinal": 2,
+        "type_info": "Int64"
+      },
+      {
+        "name": "user_id",
+        "ordinal": 3,
+        "type_info": "Int64"
+      },
+      {
+        "name": "is_public",
+        "ordinal": 4,
+        "type_info": "Bool"
+      },
+      {
+        "name": "name",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "url",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "created_at",
+        "ordinal": 7,
+        "type_info": "Int64"
+      },
+      {
+        "name": "last_fetched_at",
+        "ordinal": 8,
+        "type_info": "Int64"
+      },
+      {
+        "name": "persist_events",
+        "ordinal": 9,
+        "type_info": "Bool"
+      },
+      {
+        "name": "all_as_allday",
+        "ordinal": 10,
+        "type_info": "Bool"
+      },
+      {
+        "name": "import_template",
+        "ordinal": 11,
+        "type_info": "Text"
+      },
+      {
+        "name": "priority",
+        "ordinal": 12,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "5d4628d716025081f3f18c08e37d3664ed0131d5806df0edf164d146fef8d4a9"
+}

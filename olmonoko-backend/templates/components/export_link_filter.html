@@ -1,0 +1,44 @@
+{% set form_id = "export-link-filters" %}
+<form
+	id="{{ form_id }}"
+	autocomplete="off"
+	hx-patch="{{ export_link.url }}"
+	hx-swap="outerHTML"
+	hx-target="#export-link"
+	hx-disabled-elt="#{{ form_id }}"
+	hx-trigger="change">
+	{% for filter in ['min_priority', 'max_priority'] %}
+		{% set value_id = "export-link-filter-" ~ filter ~ "-value" %}
+		{% set value = export_link[filter] %}
+		<label>
+			{{ filter }}
+			<select name="{{ filter }}" id="{{ value_id }}">
+				<option value="" {% if not value %}selected{% endif %}>
+					none
+				</option>
+				<option value="0" {% if value==0 %}selected{% endif %}>
+					default priority
+				</option>
+				<optgroup label="filter">
+					{% for i in event_priority_options %}
+					{% if i == 1 %}
+					{% set plabel = 'HIGH' %}
+					{% endif %}
+					{% if i == 5 %}
+					{% set plabel = 'NORMAL' %}
+					{% endif %}
+					{% if i == 9 %}
+					{% set plabel = 'LOW' %}
+					{% endif %}
+					<option value="{{ i }}" {% if value==i %}selected{% endif %}>
+						{{ i }}
+						{% if plabel %}
+						- {{ plabel }}
+						{% endif %}
+					</option>
+					{% endfor %}
+				</optgroup>
+			</select>
+		</label>
+	{% endfor %}
+</form>

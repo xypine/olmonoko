@@ -1,0 +1,29 @@
+<form
+	id="source-import-template-form-{{ source.id }}"
+	autocomplete="off"
+	hx-patch="/api/source/{{ source.id }}/import_template"
+	hx-swap="outerHTML"
+	hx-target="#source-import-template-form-{{ source.id }}"
+	hx-disabled-elt="#source-import-template-form-{{ source.id }}"
+>
+	<label>
+		<span>
+			Import Template:
+		</span>
+		<textarea id="source-import-template-{{ source.id }}" name="import_template">{{ source.import_template }}</textarea>
+	</label>
+	<button type="submit" style="align-self: end;">Save Import Template</button>
+	<p>
+		See <a href="https://keats.github.io/tera/docs/#introduction">Tera Documentation</a> for templating documentation.
+	</p>
+</form>
+<style>
+	#source-import-template-form-{{ source.id }} {
+		& textarea {
+			flex: 1;
+			min-height: 100px;
+			resize: vertical;
+			min-width: min(250px, 50vw);
+		}
+	}
+</style>

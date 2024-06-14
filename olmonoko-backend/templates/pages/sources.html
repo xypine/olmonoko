@@ -1,0 +1,68 @@
+{% extends "layouts/base.html" %}
+{% if user %}
+    {% block title %}Remote Sources{% endblock title %}
+{% else %}
+    {% block title %}Public Sources{% endblock title %}
+{% endif %}
+{% block content %}
+<section id="partial-sources" style="">
+    <div style="display: flex; gap: 2.5rem; flex-wrap: wrap; justify-content: center;">
+        <div style="flex: 1;">
+            {% if user %}
+                <h1 style="margin-bottom:1rem; font-size:2em;">Available sources</h1>
+            {% else %}
+                <h1 style="margin-bottom:1rem; font-size:2em;">Public sources</h1>
+            {% endif %}
+            <ul class="source-list">
+                {% for tuple in sources %}
+                    {% set source = tuple[0] %}
+                    {% set event_count = tuple[1] %}
+                    {% set occurrence_count = tuple[2] %}
+                    <li style="display: flex; gap: 0.5em; flex-wrap: wrap;justify-content: end;" id="source-{{ source.id }}">
+                        <a href="/remote/sources/{{ source.id }}" style="flex: 1; min-width: 300px">{{ source.name }}</a>
+                        <div class="item-details">
+                            <span>{{ event_count }} events</span>
+                            <span>with {{ occurrence_count }} occurrences</span>
+                            {% if user %}
+                                {% include 'components/data_source/priority_selector.html' %}
+                                {% if source.user_id == user.id %}
+                                    <form hx-delete="/api/source/{{ source.id }}" hx-replace="innerHtml" hx-target="#source-{{ source.id }}" hx-disabled-elt="#delete-{{ source.id }}" hx-confirm="Delete source {{ source.name}}?">
+                                        <button type="submit" id="delete-{{ source.id }}">Delete</button>
+                                    </form>
+                                {% else %}
+                                    <p>public</p>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% if user %}
+            {% include 'components/data_source/new_ics.html' %}
+        {% endif %}
+    </div>
+</section>
+<style>
+    #partial-sources {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        padding: 1rem;
+
+        & .item-details {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: end;
+            align-items: center;
+            gap: .5em;
+        }
+        & .source-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+    }
+</style>
+{% endblock content %}

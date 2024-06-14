@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE ics_sources SET all_as_allday = $1 WHERE id = $2 AND user_id = $3 RETURNING all_as_allday",
+  "describe": {
+    "columns": [
+      {
+        "name": "all_as_allday",
+        "ordinal": 0,
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "226ddc7a45388ea85f0f41ee3da754710f17e1b909be262498008766aa9fcfad"
+}

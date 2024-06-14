@@ -1,0 +1,2 @@
+ALTER TABLE events DROP COLUMN IF EXISTS all_day;
+ALTER TABLE local_events DROP COLUMN IF EXISTS all_day;

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO ics_source_priorities (user_id, ics_source_id, priority) VALUES ($1, $2, $3) ON CONFLICT (user_id, ics_source_id) DO UPDATE SET priority = $3",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "2910e1cef30d0c08150ce319c811386cdceda8a66884deb73656eaf78e834586"
+}

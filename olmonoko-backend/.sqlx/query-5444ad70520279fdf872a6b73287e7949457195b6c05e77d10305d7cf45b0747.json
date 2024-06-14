@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE ics_sources SET persist_events = $1 WHERE id = $2 AND user_id = $3 RETURNING persist_events",
+  "describe": {
+    "columns": [
+      {
+        "name": "persist_events",
+        "ordinal": 0,
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "5444ad70520279fdf872a6b73287e7949457195b6c05e77d10305d7cf45b0747"
+}

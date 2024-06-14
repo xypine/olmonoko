@@ -1,0 +1,12 @@
+<form id="user-interface-timezone-form" autocomplete="off" hx-patch="/api/user/timezone" hx-swap="outerHTML"
+	hx-target="#user-interface-timezone-form" hx-disabled-elt="#user-interface-timezone" hx-trigger="change">
+	<label>
+		<span> Interface Timezone </span>
+		<select name="interface_timezone" id="user-interface-timezone" class="form-control">
+			{% for timezone in timezones %}
+			<option value="{{ timezone }}" {% if timezone==user.interface_timezone %}selected{% endif %}>{{
+				timezone }}</option>
+			{% endfor %}
+		</select>
+	</label>
+</form>

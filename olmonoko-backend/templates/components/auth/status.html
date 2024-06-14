@@ -1,0 +1,7 @@
+<a href="{{ site_url }}/me">
+	{% if user %}
+	<span>Logged in as {{ user.email }}</span>
+	{% else %}
+	<span>Not Signed In</span>
+	{% endif %}
+</a>

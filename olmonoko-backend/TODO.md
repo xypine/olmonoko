@@ -1,0 +1,46 @@
+- [x] fix RRULEs being escaped
+- [x] automatically sync calendars every X hours / days / ?
+- [x] manual events / inbuilt calendar source
+- [x] api for local events
+- [x] ui for creating local events
+- [x] ui for viewing local events
+- [x] ui for removing / updating local events
+- [x] bills
+- [-] barcode scanner for bills
+- [x] add all_day to events
+- [x] fix newlines in produced ics
+- [x] add date controls to default view
+- [x] inject attachment descriptions at runtime
+- [x] chrono cleanup / remove usage of any deprecated functions
+- [-] maybe remove payee fields from bills (bloat)
+- [ ] add dedicated ui for attachments (bills etc)
+- [x] priority for events, default from source
+- [x] allow users to filter which events they want to see in their calendar / integrate with priority system
+- [x] allow multiple export links
+- [x] add min_priority to export links
+- [-] keep track of uids so that we can present lately added / modified events
+- [-] import rules
+- [ ] change import templates to be per-user, don't modify original data
+- [ ] allow "pinning" of events / moving them to the local calendar
+    - [ ] show modifications since pinning
+- [-] more homepage views / week overview
+- [x] week overview: handle overlapping events
+- [-] allow users to set a default timezone for ui
+- [-] local event tags
+- [x] local event filters
+    - [ ] ui
+- [-] local event bulk delete
+    - [ ] make sure is safe
+- [ ] soft delete for local events
+- [ ] i18n
+- [ ] vim keybindings
+- [ ] add proper error handling to frontend
+- [ ] track user attendance of events / maybe automatically based on location?
+- [ ] turn persist_events automatically off / on based on source behaviour
+- [ ] try automatically caching internal links on current page
+- [ ] remind when to leave / maps integration
+- [ ] clock-in-n-out 
+    - [-] teamwork integration
+- [ ] more default themes, custom theme support
+    - maybe try #D0A657
+- [ ] automatically add events for all pictures in gallery / photos / photoprism integration

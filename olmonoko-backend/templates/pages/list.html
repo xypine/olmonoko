@@ -1,0 +1,154 @@
+{% extends "layouts/base.html" %}
+{% block content %}
+{% if user %}
+    <div id="top-menu">
+        <div id="top-menu-left">
+            <!-- year and month selectors as ribbons -->
+            <div class="ribbon" id="ribbon-year">
+                <ul>
+                    <li>
+                        <a href="{{ site_url }}{{ path }}" id="ribbon-reset">
+                            Reset
+                        </a>
+                    </li>
+                    {% for year in years %}
+                        <li class="
+                            {% if year == selected_year %}
+                                selected
+                            {% endif %}
+                        ">
+                            {% if year == selected_year %}
+                                <strong>{{ year }}</strong>
+                            {% else %}
+                            <a href="{{ site_url }}{{ path }}?year={{ year }}&month={{ selected_month }}">
+                                    {{ year }}
+                                </a>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="ribbon" id="ribbon-month">
+                <ul>
+                    {% for month in months %}
+                        <li class="
+                            {% if month == selected_month %}
+                                selected
+                            {% endif %}
+                        ">
+                            {% if month == selected_month %}
+                                <strong>{{ month }}</strong>
+                            {% else %}
+                                <a href="{{ site_url }}{{ path }}?year={{ selected_year }}&month={{ month }}">
+                                    {{ month }}
+                                </a>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        <div id="top-menu-right">
+            <a href="{{ site_url }}/">
+                Calendar view
+            </a>
+            <a href="{{ site_url }}{{ path }}">
+                List view
+            </a>
+        </div>
+    </div>
+{% endif %}
+<section id="page-home">
+    {% if user %}
+        {% if events %}
+            <table>
+            <tr>
+                <th>P</th>
+                <th>What</th>
+                <th>When</th>
+                <th>What</th>
+                <th>Where</th>
+            </tr>
+            {% for event in events %}
+            <tr>
+                <td>{{ event.priority|default(value=' ') }}</td>
+                <td>{{ event.summary }}</td>
+                <td>
+                    {{ event.starts_at_human }} 
+                    {% if event.duration_human %}
+                        for
+                        {{ event.duration_human }}
+                    {% endif %}
+                </td>
+                <td>
+                    <iframe class="escaped-content" srcdoc="{{ event.description | default(value="no description") | replace(from="\n", to="<br>") | linebreaksbr | escape | safe }}" width=600 allowtransparency="true"></iframe>
+                </td>
+                <td>{{ event.location }}</td>
+            </tr>
+            {% endfor %}
+            </table>
+        {% else %}
+            <p id="no-events-found">No events found</p>
+        {% endif %}
+    {% endif %}
+</section>
+<style>
+    :root {
+        --ribbon-i-padding-x:  1em;
+        --ribbon-i-padding-y: .5em;
+    }
+    #page-home {
+        overflow-x: auto;
+        flex: 1;
+
+        & #no-events-found {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 200px;
+        }
+
+    }
+    #top-menu {
+        display: flex;
+        flex-wrap: wrap;
+
+        & > #top-menu-left {
+            flex: 1;
+            min-width: min(100vw, 400px);
+        }
+
+        & > #top-menu-right {
+            display: flex;
+            gap: 1rem;
+            padding: .5rem;
+        }
+    }
+    .ribbon > ul {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+
+        & > li {
+            display: contents;
+
+            /* &.selected > * { */
+            /*     background-color: var(--primary); */
+            /*     color: var(--surface); */
+            /* } */
+
+            & > * {
+                flex: 1;
+                text-align: center;
+                padding: var(--ribbon-i-padding-y) var(--ribbon-i-padding-x);
+            }
+        }
+    }
+    #ribbon-reset {
+        background-color: var(--tertiary);
+        color: var(--surface);
+    }
+</style>
+{% endblock content %}

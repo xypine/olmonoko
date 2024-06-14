@@ -1,0 +1,1 @@
+ALTER TABLE ics_sources ADD COLUMN all_as_allday BOOLEAN DEFAULT FALSE NOT NULL;

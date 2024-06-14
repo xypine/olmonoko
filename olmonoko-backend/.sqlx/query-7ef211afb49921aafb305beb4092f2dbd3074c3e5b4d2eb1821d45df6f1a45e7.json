@@ -1,0 +1,74 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT * FROM ics_sources",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "user_id",
+        "ordinal": 1,
+        "type_info": "Int64"
+      },
+      {
+        "name": "is_public",
+        "ordinal": 2,
+        "type_info": "Bool"
+      },
+      {
+        "name": "name",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "url",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "created_at",
+        "ordinal": 5,
+        "type_info": "Int64"
+      },
+      {
+        "name": "last_fetched_at",
+        "ordinal": 6,
+        "type_info": "Int64"
+      },
+      {
+        "name": "persist_events",
+        "ordinal": 7,
+        "type_info": "Bool"
+      },
+      {
+        "name": "all_as_allday",
+        "ordinal": 8,
+        "type_info": "Bool"
+      },
+      {
+        "name": "import_template",
+        "ordinal": 9,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "7ef211afb49921aafb305beb4092f2dbd3074c3e5b4d2eb1821d45df6f1a45e7"
+}

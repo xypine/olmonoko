@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE ics_sources SET import_template = $1 WHERE id = $2 AND user_id = $3 RETURNING import_template",
+  "describe": {
+    "columns": [
+      {
+        "name": "import_template",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "28de7a034d318602c45953e857b60d3710f8342672658222e7754b9b762127b1"
+}

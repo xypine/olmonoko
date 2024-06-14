@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        INSERT INTO unverified_users (email, password_hash, admin, secret)\n        VALUES (?, ?, ?, ?)\n        ON CONFLICT (email) DO UPDATE SET secret = EXCLUDED.secret\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "1c6ed56674d82d4f4b73366729fcb8bd211feaf631d1e08f663b70c3424ae10b"
+}

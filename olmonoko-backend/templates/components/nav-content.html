@@ -1,0 +1,34 @@
+<ul>
+	<li class="
+		{% if root_path == '' %}
+			active
+		{% endif %}
+	">
+		<a href="{{ site_url }}/">Home</a>
+	</li>
+	<li class="
+		{% if root_path == 'remote' %}
+			active
+		{% endif %}
+	">
+		<a href="{{ site_url }}/remote">Sources</a>
+	</li>
+	{% if user %}
+		<li class="
+			{% if root_path == 'local' %}
+				active
+			{% endif %}
+		">
+			<a href="{{ site_url }}/local">Local</a>
+		</li>
+		{% if user.admin %}
+			<li class="
+				{% if root_path == 'admin' %}
+					active
+				{% endif %}
+			">
+				<a href="{{ site_url }}/admin">Admin</a>
+			</li>
+		{% endif %}
+	{% endif %}
+</ul>

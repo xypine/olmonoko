@@ -1,0 +1,16 @@
+{% extends "layouts/base.html" %}
+{% block content %}
+<section id="page-home">
+	<div style="display: flex;flex-direction: column;justify-content: center;align-items: center;min-height: 100%;">
+		<img src="{{ site_url }}/static/favicon_baked.svg" alt="olmonoko logo"
+			style="width: 10em; height: 10em; margin: 0 auto; display: block; padding: 10px;">
+		<p>A calendar multiplexer</p>
+	</div>
+</section>
+<style>
+	#page-home {
+		overflow-x: auto;
+		flex: 1;
+	}
+</style>
+{% endblock content %}

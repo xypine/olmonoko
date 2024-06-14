@@ -1,0 +1,114 @@
+{% block head_extra %}
+<script src="{{ site_url }}/static/thirdparty-js/quagga.min.js" type="text/javascript"></script>
+{% endblock head_extra %}
+<form id="new-bill-from-barcode" action="/api/event/bill/from_barcode" method="POST" hx-disabled-elt="#create-bill-from-barcode">
+	<fieldset>
+		<legend>New Bill from Barcode</legend>
+		<label>
+			<span>
+				Summary:
+			</span>
+			<input type="text" name="summary">
+		</label>
+		<label>
+			<span>
+				Barcode:
+			</span>
+			<input type="text" name="barcode">
+		</label>
+		<div id="reader"></div>
+		<div id="reader-actions"></div>
+		<label>
+			<span>
+				Payee Name:
+			</span>
+			<input type="text" name="payee_name">
+		</label>
+		<label>
+			<span>
+				Payee Email:
+			</span>
+			<input type="email" name="payee_email">
+		</label>
+		<label>
+			<span>
+				Payee Address:
+			</span>
+			<input type="text" name="payee_address">
+		</label>
+		<label>
+			<span>
+				Payee Phone:
+			</span>
+			<input type="tel" name="payee_phone">
+		</label>
+		<button id="create-bill-from-barcode" type="submit" class="btn">Create</button>
+	</fieldset>
+</form>
+<style>
+#reader {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+
+	& video {
+		width: 100%;
+	}
+
+	& canvas {
+		display: none;
+	}
+}
+</style>
+<script>
+function reset() {
+	document.querySelector('#reader').innerHTML = '';
+	document.querySelector('#reader-actions').innerHTML = '<button onclick="startScanner()">Scan Barcode with Camera (barely works)</button>';
+}
+function startScanner() {
+	document.querySelector('#reader').innerHTML = '';
+	function onDetected(result) {
+		console.log("detected", result);
+		var barcode = result.codeResult.code;
+		var format = result.codeResult.format;
+		if (format !== 'code_128') {
+			console.log("Ignoring barcode of format", format);
+			return;
+		}
+		// we only support finnish bank barcode versions 4 and 5
+		if (!barcode.startsWith('4') && !barcode.startsWith('5')) {
+			console.log("Unsupported barcode", barcode);
+			return;
+		}
+		document.querySelector('input[name="barcode"]').value = barcode;
+		stopScanner();
+	}
+	Quagga.init({
+		inputStream : {
+			name : "Live",
+			type : "LiveStream",
+			target: document.querySelector('#reader')    // Or '#yourElement' (optional)
+		},
+		decoder : {
+			readers : ["code_128_reader"]
+		},
+		locator: {
+			halfSample: false,
+		}
+	}, function(err) {
+		if (err) {
+		  console.log(err);
+		  return
+		}
+		console.log("Initialization finished. Ready to start");
+		Quagga.onDetected(onDetected);
+		Quagga.start();
+	});
+	document.querySelector('#reader-actions').innerHTML = '<button onclick="stopScanner()">Stop Scanning</button>';
+}
+function stopScanner() {
+	Quagga.stop();
+	reset();
+}
+reset();
+</script>
