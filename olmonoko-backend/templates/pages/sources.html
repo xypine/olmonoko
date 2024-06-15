@@ -1,9 +1,11 @@
 {% extends "layouts/base.html" %}
-{% if user %}
-    {% block title %}Remote Sources{% endblock title %}
-{% else %}
-    {% block title %}Public Sources{% endblock title %}
-{% endif %}
+{% block title %}
+    {% if user %}
+        Remote Sources
+    {% else %}
+        Public Sources
+    {% endif %}
+{% endblock title %}
 {% block content %}
 <section id="partial-sources" style="">
     <div style="display: flex; gap: 2.5rem; flex-wrap: wrap; justify-content: center;">

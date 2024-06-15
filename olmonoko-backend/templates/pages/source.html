@@ -1,5 +1,5 @@
 {% extends "layouts/base.html" %}
-{% block title %}Source{% endblock title %}
+{% block title %}Source {{ source.name }}{% endblock title %}
 {% block content %}
 <section style="flex: 1; display: flex; justify-content: center; align-items: center;padding: 1rem;">
 {% include "components/data_source/ics.html" %}

@@ -146,7 +146,7 @@ function vk_render() {
 			// add a slash after the year and month
 			let as_number = parseInt(oono_vk_buffer);
 			// check if valid number
-			if (oono_vk_buffer.length > 0 && oono_vk_buffer.length < 8 && !oono_vk_buffer.includes(" ") && as_number < 99991231 && as_number >= -99991231) {
+			if (oono_vk_buffer.length > 0 && oono_vk_buffer.length < 9 && !oono_vk_buffer.includes(" ") && as_number < 99991231 && as_number >= -99991231) {
 				let out = "";
 				let inp = oono_vk_buffer;
 				if (inp.startsWith("-")) {
@@ -210,7 +210,12 @@ function vk_handle_event(e) {
 		let content = document.getElementById("content");
 		content.appendChild(link);
 		link.href = url;
-		link.click();
+		// allow htmx to insert boosted behaviour
+		htmx.process(link);
+		// wait for htmx to finish
+		window.requestAnimationFrame(() => {
+			link.click();
+		});
 	}
 }
 

@@ -290,6 +290,7 @@ iframe.escaped-content {
 	left: 0;
 	right: 0;
 	padding-inline: 4px;
+	padding-block: 2px;
 	min-height: 5px;
 	z-index: 1000;
 	display: none;
