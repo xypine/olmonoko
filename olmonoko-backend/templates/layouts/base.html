@@ -87,6 +87,13 @@
 			{% endblock footer %}
 		</footer>
 	</div>
+	<!-- VIM keybindings -->
+	<script hx-preserve="true" src="{{ site_url }}/static/js/vim_keybinds.js?v={{ version }}"></script>
+	<div id="vk_overlay">
+		<span id="vk_mode">NORMAL</span>
+		<span id="vk_buffer"></span>
+		<span id="vk_help">Press <kbd>?</kbd> for help</span>
+	</div>
 	<!-- 100% privacy-first analytics -->
 	<script hx-preserve="true" async defer src="https://scripts.simpleanalyticscdn.com/latest.js"></script>
 	<noscript hx-preserve="true"><img src="https://queue.simpleanalyticscdn.com/noscript.gif" alt=""

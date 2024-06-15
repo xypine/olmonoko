@@ -282,3 +282,35 @@ iframe.escaped-content {
 	transition-duration: 2s;
 	transition-delay: 0.5s;
 }
+
+/* VIM keybindings */
+#vk_overlay {
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	padding-inline: 4px;
+	min-height: 5px;
+	z-index: 1000;
+	display: none;
+	gap: 1em;
+
+	font-family: monospace;
+	font-size: 20px;
+	white-space: preserve-spaces;
+
+	background: var(--secondary);
+	color: var(--surface);
+
+	&.open {
+		display: flex;
+	}
+}
+
+#vk_mode {
+	text-transform: uppercase;
+}
+
+#vk_buffer {
+	flex: 1;
+}
