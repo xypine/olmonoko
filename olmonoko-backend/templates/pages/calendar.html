@@ -7,7 +7,7 @@
             {% set reset_link = site_url ~ "/" %}
             {% if current_day %}
                 {# already current week #}
-                {% set reset_link = "#now" %}
+                {% set reset_link = reset_link ~ "#today" %}
             {% endif %}
             <a id="calendar-reset" class="btn variant-tertiary" href="{{ reset_link }}">
                 Reset

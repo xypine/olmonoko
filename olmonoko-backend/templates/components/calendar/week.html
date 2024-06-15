@@ -25,9 +25,11 @@
 	{% for day in [0, 1, 2, 3, 4, 5, 6] %}
 	{% set date = week_dates[day] %}
 	{% set day_name = day_names[day] %}
-	<div class="calendar-week-day
-		{% if current_day is defined and day == current_day %} today {% endif %}
-		">
+	<div class="calendar-week-day"
+		{% if current_day is defined and day == current_day %}
+			id="today"
+		{% endif %}
+	>
 		<div class="calendar-week-header">
 			<div class="calendar-week-header-day">{{ day_name }}</div>
 		</div>
@@ -108,7 +110,7 @@
 		flex-direction: column;
 		gap: 0.5rem;
 
-		&.today {
+		&#today {
 			--border-color: color-mix(in oklab, var(--surface-variant), var(--brand) 50%);
 			border-color: var(--border-color);
 		}
