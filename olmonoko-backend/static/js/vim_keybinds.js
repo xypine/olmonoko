@@ -62,16 +62,16 @@ function vk_handle_keypress(e) {
 			return false; // this keypress was not handled
 		}
 		if (e.key == "h") {
-			vk_emit_control_signal("move_left");
+			vk_emit_control_signal("move", "left");
 		}
 		else if (e.key == "j") {
-			vk_emit_control_signal("move_down");
+			vk_emit_control_signal("move", "down");
 		}
 		else if (e.key == "k") {
-			vk_emit_control_signal("move_up");
+			vk_emit_control_signal("move", "up");
 		}
 		else if (e.key == "l") {
-			vk_emit_control_signal("move_right");
+			vk_emit_control_signal("move", "right");
 		}
 
 		else if (e.key == "i") {
@@ -206,6 +206,16 @@ function vk_handle_event(e) {
 		window.requestAnimationFrame(() => {
 			link.click();
 		});
+	}
+	else if (e.detail.signal == "move") {
+		console.log("Received move signal:", e.detail.data);
+		let data = e.detail.data;
+		if (data == "left") {
+			document.getElementById("week-prev").click();
+		}
+		else if (data == "right") {
+			document.getElementById("week-next").click();
+		}
 	}
 }
 

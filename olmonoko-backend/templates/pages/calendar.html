@@ -12,13 +12,27 @@
             <a id="calendar-reset" class="btn variant-tertiary" href="{{ reset_link }}">
                 Reset
             </a>
-            <p>
+            <p style="font-variant-numeric: tabular-nums;">
                 Year: {{ selected_year }}
                 Week: {{ selected_week }}
             </p>
             <div id="calendar-nav">
-                <a id="week-prev" class="btn" href="{{ site_url }}?year={{ prev_year }}&week={{ prev_week }}">Prev</a>
-                <a id="week-next" class="btn" href="{{ site_url }}?year={{ next_year }}&week={{ next_week }}">Next</a>
+                <a
+                    id="week-prev"
+                    class="btn"
+                    href="{{ site_url }}?year={{ prev_year }}&week={{ prev_week }}"
+                    hx-on:click="this.outerHTML = `<button class=\'btn\' disabled>${this.innerHTML}</button>`"
+                >
+                    Prev
+                </a>
+                <a
+                    id="week-next"
+                    class="btn"
+                    href="{{ site_url }}?year={{ next_year }}&week={{ next_week }}"
+                    hx-on:click="this.outerHTML = `<button class=\'btn\' disabled>${this.innerHTML}</button>`"
+                >
+                    Next
+                </a>
             </div>
         </div>
         <div id="top-menu-right">

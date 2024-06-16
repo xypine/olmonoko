@@ -12,7 +12,7 @@ html,
 /* Use montserrat for headings and roboto for body text */
 
 body {
-	font-family: 'Roboto', sans-serif;
+	font-family: 'Roboto', 'Cantarell', 'Segoe UI', sans-serif;
 	font-display: swap;
 }
 
