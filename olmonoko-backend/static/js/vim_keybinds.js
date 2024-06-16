@@ -192,18 +192,8 @@ function vk_handle_event(e) {
 			// noop
 		}
 		else {
-			let offset = 0;
-			if (e.detail.data.startsWith("-")) {
-				offset = 1;
-			}
-			let line = parseInt(e.detail.data);
-			line = line.toString();
-			let year = line.substring(0 + offset, 4 + offset);
-			let month = line.substring(4 + offset, 6 + offset);
-			if (!month) month = "1";
-			let day = line.substring(6 + offset, 8 + offset);
-			if (!day) day = "1";
-			url = `/list?year=${year}&month=${month}&day=${day}`;
+			let data = e.detail.data;
+			url = `/?goto=${data}`;
 		}
 
 		let link = document.createElement("a");

@@ -95,11 +95,9 @@ pub struct EventFilter {
     pub exclude_tags: Option<Vec<String>>,
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Default)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Default, PartialEq)]
 pub struct RawEventFilter {
     pub summary_like: Option<String>,
-    pub after: Option<String>,
-    pub before: Option<String>,
     pub min_priority: Option<String>,
     pub max_priority: Option<String>,
     pub tags: Option<String>,
@@ -109,8 +107,8 @@ impl From<RawEventFilter> for EventFilter {
     fn from(raw: RawEventFilter) -> Self {
         Self {
             summary_like: raw.summary_like,
-            after: raw.after.and_then(|s| s.parse().ok()),
-            before: raw.before.and_then(|s| s.parse().ok()),
+            after: None,
+            before: None,
             min_priority: raw.min_priority.and_then(|s| s.parse().ok()),
             max_priority: raw.max_priority.and_then(|s| s.parse().ok()),
             tags: raw.tags.map(|s| {
@@ -128,12 +126,34 @@ impl From<RawEventFilter> for EventFilter {
         }
     }
 }
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Default)]
+pub struct RawEventDateFilter {
+    pub after: Option<String>,
+    pub before: Option<String>,
+}
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Default)]
+pub struct RawEventFilterWithDate {
+    #[serde(flatten)]
+    pub base: RawEventFilter,
+    #[serde(flatten)]
+    pub date: RawEventDateFilter,
+}
+impl From<RawEventFilterWithDate> for EventFilter {
+    fn from(raw: RawEventFilterWithDate) -> Self {
+        let mut base = EventFilter::from(raw.base);
+        let after = raw.date.after.and_then(|s| s.parse().ok());
+        let before = raw.date.before.and_then(|s| s.parse().ok());
+        base.after = after;
+        base.before = before;
+        base
+    }
+}
 
 #[derive(Debug, serde::Deserialize)]
 struct LocalQuery {
     selected: Option<i64>,
     #[serde(flatten)]
-    filter: RawEventFilter,
+    filter: RawEventFilterWithDate,
 }
 #[get("/local")]
 async fn local(
@@ -574,35 +594,176 @@ async fn list(
     remove_flash_cookie(HttpResponse::Ok()).body(content)
 }
 
-#[derive(Debug, serde::Deserialize)]
+#[derive(Debug, PartialEq)]
+struct CalendarPosition {
+    year: i32,
+    week: u32,
+}
+#[derive(Debug, serde::Deserialize, PartialEq)]
+struct CalendarPositionRaw {
+    year: String,
+    week: String,
+}
+impl TryFrom<CalendarPositionRaw> for CalendarPosition {
+    type Error = ();
+    fn try_from(raw: CalendarPositionRaw) -> Result<Self, Self::Error> {
+        Ok(Self {
+            year: raw.year.parse().map_err(|_| ())?,
+            week: raw.week.parse().map_err(|_| ())?,
+        })
+    }
+}
+#[derive(Debug, serde::Deserialize, PartialEq)]
+struct CalendarPositionGoto {
+    goto: String,
+}
+
+use serde_with::rust::deserialize_ignore_any;
+#[derive(Debug, serde::Deserialize, PartialEq)]
+#[serde(untagged)]
+enum CalendarQueryPosition {
+    Position(CalendarPositionRaw),
+    Goto(CalendarPositionGoto),
+    #[serde(deserialize_with = "deserialize_ignore_any")]
+    NotPresent,
+}
+
+fn parse_goto(goto: &str) -> Option<CalendarPosition> {
+    let mut year = None;
+    let mut buffer = String::new();
+    let mut mode_week_or_mmdd = false; // week = true, mmdd = false
+    for ch in goto.chars() {
+        match year {
+            None => {
+                buffer.push(ch);
+                if buffer.len() > 3 {
+                    year = Some(buffer.parse().ok()?);
+                    buffer.clear();
+                }
+            }
+            Some(_) => match (ch, buffer.len()) {
+                ('w', 0) => {
+                    mode_week_or_mmdd = true;
+                }
+                _ => {
+                    buffer.push(ch);
+                }
+            },
+        }
+    }
+
+    if year.is_none() {
+        year = Some(buffer.parse().ok()?);
+        buffer.clear();
+    }
+    let year = year.unwrap();
+
+    // no week or mmdd
+    if buffer.is_empty() {
+        return Some(CalendarPosition { year, week: 1 });
+    }
+
+    let week = if mode_week_or_mmdd {
+        buffer.parse().ok()?
+    } else {
+        let (month, day) = match buffer.len() {
+            4 => (buffer[..2].parse().ok()?, buffer[2..].parse().ok()?),
+            2 => (buffer.parse().ok()?, 1),
+            _ => return None,
+        };
+        let date = chrono::NaiveDate::from_ymd_opt(year, month, day)?;
+        date.iso_week().week()
+    };
+
+    // a year might contain at most 53 weeks
+    if week > 53 {
+        return None;
+    }
+
+    Some(CalendarPosition { year, week })
+}
+impl From<CalendarQueryPosition> for Option<CalendarPosition> {
+    fn from(position: CalendarQueryPosition) -> Self {
+        match position {
+            CalendarQueryPosition::Position(position) => CalendarPosition::try_from(position).ok(),
+            CalendarQueryPosition::Goto(g) => parse_goto(&g.goto),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Debug, serde::Deserialize, PartialEq)]
 struct CalendarQuery {
-    year: Option<i32>,
-    week: Option<u32>,
-    min_priority: Option<i64>,
-    max_priority: Option<i64>,
+    #[serde(flatten)]
+    position: CalendarQueryPosition,
+    #[serde(flatten)]
+    filter: RawEventFilter,
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_urlencoded::from_str;
+
+    #[test]
+    fn test_calendar_query_empty() {
+        let query = "";
+        let query: CalendarQuery = from_str(query).unwrap();
+        assert_eq!(query.position, CalendarQueryPosition::NotPresent);
+        assert_eq!(query.filter, RawEventFilter::default());
+    }
+
+    #[test]
+    fn test_calendar_query() {
+        let query = "year=2021&week=1&min_priority=1&max_priority=2";
+        let query: CalendarQuery = from_str(query).unwrap();
+        assert_eq!(
+            query.position,
+            CalendarQueryPosition::Position(CalendarPositionRaw {
+                year: "2021".to_string(),
+                week: "1".to_string()
+            })
+        );
+        assert_eq!(
+            query.filter,
+            RawEventFilter {
+                min_priority: Some("1".to_string()),
+                max_priority: Some("2".to_string()),
+                ..Default::default()
+            }
+        );
+    }
+
+    #[test]
+    fn test_calendar_goto_year() {
+        let query = "goto=2021";
+        let query: CalendarQuery = from_str(query).unwrap();
+        assert_eq!(
+            query.position,
+            CalendarQueryPosition::Goto(CalendarPositionGoto {
+                goto: "2021".to_string()
+            })
+        );
+        assert_eq!(query.filter, RawEventFilter::default());
+    }
 }
 #[get("/")]
 async fn calendar(
     data: web::Data<AppState>,
     request: HttpRequest,
-    filter: Query<CalendarQuery>,
+    query: Query<CalendarQuery>,
 ) -> impl Responder {
     let (mut context, user) = get_session_context(&data, &request).await;
     if let Some(user) = user {
         let now = chrono::Utc::now().with_timezone(&user.interface_timezone_parsed);
-        let pivot = if let Some(week) = filter.week {
-            if let Some(year) = filter.year {
-                chrono::NaiveDate::from_isoywd_opt(year, week, chrono::Weekday::Mon)
-                    .expect("Failed to construct pivot")
-                    .and_time(NaiveTime::MIN)
-                    .and_utc()
-            } else {
-                let year = now.year();
-                chrono::NaiveDate::from_isoywd_opt(year, week, chrono::Weekday::Mon)
-                    .expect("Failed to construct pivot")
-                    .and_time(NaiveTime::MIN)
-                    .and_utc()
-            }
+
+        let query = query.into_inner();
+        let chosen_position: Option<CalendarPosition> = query.position.into();
+        let filter = EventFilter::from(query.filter);
+        let pivot = if let Some(position) = chosen_position {
+            chrono::NaiveDate::from_isoywd_opt(position.year, position.week, chrono::Weekday::Mon)
+                .expect("Failed to construct pivot")
+                .and_time(NaiveTime::MIN)
+                .and_utc()
         } else {
             let year = now.year();
             // get monday of the current week
