@@ -14,5 +14,5 @@ async fn ready() -> impl Responder {
 // TODO: Add /license, /health, etc
 
 pub fn routes() -> Scope {
-    web::scope("/ui").service(version).service(ready)
+    web::scope("/meta").service(version).service(ready)
 }

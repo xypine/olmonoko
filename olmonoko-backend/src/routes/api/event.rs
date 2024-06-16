@@ -15,12 +15,13 @@ use crate::{
             DEFAULT_PRIORITY,
         },
     },
-    routes::{
-        api::user::reload,
-        ui::{get_session_context, parse_priority, EventFilter, RawEventFilter},
-        AppState,
+    routes::AppState,
+    utils::{
+        event_filters::{EventFilter, RawEventFilter},
+        events::parse_priority,
+        flash::{FlashMessage, WithFlashMessage},
+        request::{reload, EnhancedRequest},
     },
-    utils::flash::{FlashMessage, WithFlashMessage},
 };
 
 #[post("/local")]
@@ -30,7 +31,7 @@ async fn new_local_event(
     request: HttpRequest,
 ) -> impl Responder {
     tracing::info!("Creating new local event: {:?}", form);
-    let (_, user_opt) = get_session_context(&data, &request).await;
+    let user_opt = request.get_session_user(&data).await;
     if let Some(user) = user_opt {
         let new = NewLocalEvent::from((form.into_inner(), user.id));
 
@@ -98,7 +99,7 @@ async fn delete_local_event(
     request: HttpRequest,
     query: web::Query<DeleteQuery>,
 ) -> impl Responder {
-    let (_, user_opt) = get_session_context(&data, &request).await;
+    let user_opt = request.get_session_user(&data).await;
     if let Some(user) = user_opt {
         let query = query.into_inner();
         let filter = EventFilter::from(query.filter);
@@ -168,7 +169,7 @@ async fn update_local_event(
     id: Path<i64>,
     form: web::Form<LocalEventForm>,
 ) -> impl Responder {
-    let (_, user_opt) = get_session_context(&data, &request).await;
+    let user_opt = request.get_session_user(&data).await;
     if let Some(user) = user_opt {
         let id = id.into_inner();
         let form = form.into_inner();
@@ -231,7 +232,7 @@ async fn new_bill_from_barcode(
     form: web::Form<NewBillBarcodeForm>,
     request: HttpRequest,
 ) -> impl Responder {
-    let (_, user_opt) = get_session_context(&data, &request).await;
+    let user_opt = request.get_session_user(&data).await;
     if let Some(user) = user_opt {
         let form = form.into_inner();
         let with_user_id = NewBillBarcodeFormWithUserId {

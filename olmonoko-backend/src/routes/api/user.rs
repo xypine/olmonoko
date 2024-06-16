@@ -1,19 +1,17 @@
 use actix_web::cookie::Cookie;
-use actix_web::http::header;
+use actix_web::HttpRequest;
 use actix_web::{delete, get, patch, post, web, HttpResponse, Responder, Scope};
-use actix_web::{HttpRequest, HttpResponseBuilder};
 use uuid::Uuid;
 
 use crate::models::session::{NewSession, SessionRaw};
-use crate::models::user::{NewUser, RawUser, User, UserForm, UserPublic};
-use crate::routes::ui::get_session_context;
+use crate::models::user::{NewUser, RawUser, UserForm, UserPublic};
 use crate::routes::AppState;
 use crate::utils::flash::{FlashMessage, WithFlashMessage};
-use crate::utils::time::timestamp;
+use crate::utils::request::{deauth, redirect, reload, EnhancedRequest, SESSION_COOKIE_NAME};
 
 #[get("")]
 async fn users(data: web::Data<AppState>, req: HttpRequest) -> impl Responder {
-    let user = get_user_from_request(&data, &req).await;
+    let user = req.get_session_user(&data).await;
     if let Some(user) = user {
         if !user.admin {
             return HttpResponse::Forbidden().body("You are not an admin");
@@ -101,7 +99,7 @@ async fn verify_user(data: web::Data<AppState>, secret: web::Path<String>) -> im
             .fetch_one(&data.conn)
             .await
             .unwrap();
-            let cookie = Cookie::build(COOKIE_NAME, created.id.clone())
+            let cookie = Cookie::build(SESSION_COOKIE_NAME, created.id.clone())
                 .path("/")
                 .secure(true)
                 .http_only(true)
@@ -125,7 +123,7 @@ async fn remove_user(
     req: HttpRequest,
     id: web::Path<i64>,
 ) -> impl Responder {
-    let (mut context, user) = get_session_context(&data, &req).await;
+    let (mut context, user) = req.get_session_context(&data).await;
     if let Some(user) = user {
         if !user.admin {
             return HttpResponse::Forbidden().body("You are not an admin");
@@ -163,7 +161,6 @@ async fn remove_user(
     deauth()
 }
 
-const COOKIE_NAME: &str = "session_id";
 #[post("/login")]
 async fn login(
     data: web::Data<AppState>,
@@ -197,7 +194,7 @@ async fn login(
         .fetch_one(&data.conn)
         .await
         .unwrap();
-        let cookie = Cookie::build(COOKIE_NAME, created.id.clone())
+        let cookie = Cookie::build(SESSION_COOKIE_NAME, created.id.clone())
             .path("/")
             .secure(true)
             .http_only(true)
@@ -212,17 +209,13 @@ async fn login(
 
 #[post("/logout")]
 async fn logout(data: web::Data<AppState>, req: HttpRequest) -> impl Responder {
-    let session_cookie = req.cookie(COOKIE_NAME).unwrap();
+    let session_cookie = req.cookie(SESSION_COOKIE_NAME).unwrap();
     let session_id = session_cookie.value();
-    // Session::delete_by_id(session_id)
-    //     .exec(&data.conn)
-    //     .await
-    //     .expect("No session found to delete");
     sqlx::query!("DELETE FROM sessions WHERE id = $1", session_id)
         .execute(&data.conn)
         .await
         .unwrap();
-    let mut removal_cookie = Cookie::build(COOKIE_NAME, "").finish();
+    let mut removal_cookie = Cookie::build(SESSION_COOKIE_NAME, "").finish();
     removal_cookie.make_removal();
     reload(&req)
         .with_flash_message(FlashMessage::info("Goodbye!"))
@@ -241,7 +234,7 @@ async fn change_user_interface_timezone(
     req: HttpRequest,
     form: web::Form<ChangeUserInterfaceTimezoneForm>,
 ) -> impl Responder {
-    let (mut context, user) = get_session_context(&data, &req).await;
+    let (mut context, user) = req.get_session_context(&data).await;
     if let Some(mut user) = user {
         let timezone = form.interface_timezone.clone();
         let parsed_timezone: Option<chrono_tz::Tz> = timezone.parse().ok();
@@ -273,68 +266,9 @@ async fn change_user_interface_timezone(
     HttpResponse::Unauthorized().finish()
 }
 
-pub async fn get_user_from_request(data: &web::Data<AppState>, req: &HttpRequest) -> Option<User> {
-    let session_cookie = req.cookie(COOKIE_NAME);
-    match session_cookie {
-        None => None,
-        Some(session_cookie) => {
-            let session_id = session_cookie.value();
-            // let session = Session::find_by_id(session_id)
-            //     .one(&data.conn)
-            //     .await
-            //     .unwrap();
-            let session = sqlx::query_as!(
-                SessionRaw,
-                "SELECT * FROM sessions WHERE id = $1",
-                session_id
-            )
-            .fetch_optional(&data.conn)
-            .await
-            .unwrap();
-            if let Some(session) = session {
-                let expires_at = session.expires_at;
-                if expires_at < timestamp() {
-                    return None;
-                }
-                let user = sqlx::query_as!(
-                    RawUser,
-                    "SELECT * FROM users WHERE id = $1",
-                    session.user_id
-                )
-                .fetch_optional(&data.conn)
-                .await
-                .map(|o| o.map(User::from))
-                .unwrap();
-                return user;
-            }
-            None
-        }
-    }
-}
-pub fn deauth() -> HttpResponse {
-    let mut removal_cookie = Cookie::build(COOKIE_NAME, "").finish();
-    removal_cookie.make_removal();
-    HttpResponse::Unauthorized().cookie(removal_cookie).finish()
-}
-
-fn get_referer(req: &HttpRequest) -> Option<&str> {
-    let headers = req.headers();
-    headers.get("referer")?.to_str().ok()
-}
-pub fn redirect(location: &str) -> HttpResponseBuilder {
-    tracing::info!("Redirecting to: {location}");
-    let mut builder = HttpResponse::SeeOther();
-    builder.insert_header((header::LOCATION, location));
-    builder
-}
-pub fn reload(req: &HttpRequest) -> HttpResponseBuilder {
-    let location = get_referer(req).unwrap_or("/");
-    redirect(location)
-}
-
 #[get("/me")]
 async fn me(data: web::Data<AppState>, req: HttpRequest) -> impl Responder {
-    if let Some(user) = get_user_from_request(&data, &req).await {
+    if let Some(user) = req.get_session_user(&data).await {
         return HttpResponse::Ok().json(user);
     }
     deauth()
