@@ -1,21 +1,32 @@
-FROM lukemathwalker/cargo-chef:latest as chef
+FROM clux/muslrust:nightly AS planner
 WORKDIR /app
-
-FROM chef AS planner
+# We only pay the installation cost once,
+# it will be cached from the second build onwards
+RUN cargo install cargo-chef
 COPY . .
-RUN cargo chef prepare
+RUN rustup show
+RUN cargo chef prepare --recipe-path recipe.json
 
-FROM chef AS builder
-COPY --from=planner /app/recipe.json .
-RUN cargo chef cook --release
+# Build dependencies - this is the caching Docker layer!
+FROM clux/muslrust:nightly AS cacher
+WORKDIR /app
+RUN cargo install cargo-chef
+COPY --from=planner /app/recipe.json recipe.json
+RUN cargo chef cook --release --target x86_64-unknown-linux-musl --recipe-path recipe.json
+
+# Build the application
+FROM clux/muslrust:nightly AS builder
+WORKDIR /app
 COPY . .
-RUN cargo build --release
+COPY --from=cacher /app/target target
+COPY --from=cacher /root/.cargo /root/.cargo
+RUN cargo build --release --target x86_64-unknown-linux-musl
 
-FROM debian:stable-slim AS runtime
-# For example sqlite:/persistent/production.sqlite?mode=rwc
+FROM gcr.io/distroless/static:nonroot AS runtime
+# For example sqlite://persistent/production.sqlite?mode=rwc
 ARG DATABASE_URL
 WORKDIR /app
-COPY --from=builder /app/target/release/olmonoko-backend /app
+COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/olmonoko-backend /app
 COPY --from=builder /app/static /app/static
 COPY --from=builder /app/templates /app/templates
 CMD ["/app/olmonoko-backend"]
