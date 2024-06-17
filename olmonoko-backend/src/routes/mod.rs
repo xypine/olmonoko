@@ -95,7 +95,7 @@ pub async fn run_server(conn: DatabaseConnection) -> std::io::Result<()> {
                     .default_service(Files::new("", "static"))
                     .wrap(
                         actix_web::middleware::DefaultHeaders::new()
-                            .add(("Cache-Control", "max-age=3600")),
+                            .add(("Cache-Control", "max-age=31536000")),
                     ),
             )
             .service(ui::routes())
