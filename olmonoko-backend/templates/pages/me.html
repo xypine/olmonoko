@@ -2,7 +2,7 @@
 {% block title %}Auth{% endblock title %}
 {% block content %}
 <section style="flex: 1; display: flex; flex-direction: column; align-items: center; padding: 1rem; padding-top: 2rem;">
-    <div style="display: flex; flex-direction: row; flex-wrap: wrap; gap: 1.5rem; justify-content: stretch;">
+    <div id="me-container">
         {% if user %}
             <div id="me-left">
                 <h1>Hello, <span style="font-weight: 400;">{{ user.email }}</span>!</h1>
@@ -20,6 +20,17 @@
     </div>
 </section>
 <style>
+    #me-container {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+        justify-content: center;
+
+        & > * {
+            max-width: 500px;
+        }
+    }
     #me-left {
         flex: 1;
         display: flex;
