@@ -8,7 +8,7 @@
             <div class="ribbon" id="ribbon-year">
                 <ul>
                     <li>
-                        <a href="{{ site_url }}{{ path }}" id="ribbon-reset">
+                        <a href="{{ site_url | safe }}{{ path }}" id="ribbon-reset">
                             Reset
                         </a>
                     </li>
@@ -21,7 +21,7 @@
                             {% if year == selected_year %}
                                 <strong>{{ year }}</strong>
                             {% else %}
-                            <a href="{{ site_url }}{{ path }}?year={{ year }}&month={{ selected_month }}">
+                            <a href="{{ site_url | safe }}{{ path }}?year={{ year }}&month={{ selected_month }}">
                                     {{ year }}
                                 </a>
                             {% endif %}
@@ -40,7 +40,7 @@
                             {% if month == selected_month %}
                                 <strong>{{ month }}</strong>
                             {% else %}
-                                <a href="{{ site_url }}{{ path }}?year={{ selected_year }}&month={{ month }}">
+                                <a href="{{ site_url | safe }}{{ path }}?year={{ selected_year }}&month={{ month }}">
                                     {{ month }}
                                 </a>
                             {% endif %}
@@ -50,10 +50,10 @@
             </div>
         </div>
         <div id="top-menu-right">
-            <a href="{{ site_url }}/">
+            <a href="{{ site_url | safe }}/">
                 Calendar view
             </a>
-            <a href="{{ site_url }}{{ path }}">
+            <a href="{{ site_url | safe }}{{ path }}">
                 List view
             </a>
         </div>

@@ -75,6 +75,7 @@ pub(crate) async fn get_session_context(
 
 pub(crate) trait EnhancedRequest {
     fn get_referer(&self) -> Option<&str>;
+    fn get_session_id(&self) -> Option<String>;
     async fn get_session_user(&self, data: &web::Data<AppState>) -> Option<User>;
     async fn get_session_context(&self, data: &web::Data<AppState>) -> SessionContext;
 }
@@ -83,6 +84,10 @@ impl EnhancedRequest for HttpRequest {
     fn get_referer(&self) -> Option<&str> {
         let headers = self.headers();
         headers.get("referer")?.to_str().ok()
+    }
+    fn get_session_id(&self) -> Option<String> {
+        let session_cookie = self.cookie(SESSION_COOKIE_NAME)?;
+        Some(session_cookie.value().to_string())
     }
     async fn get_session_user(&self, data: &web::Data<AppState>) -> Option<User> {
         get_user_from_request(data, self).await

@@ -9,7 +9,7 @@
                 {# already current week #}
                 {% set reset_link = reset_link ~ "#today" %}
             {% endif %}
-            <a id="calendar-reset" class="btn variant-tertiary" href="{{ reset_link }}">
+            <a id="calendar-reset" class="btn variant-tertiary" href="{{ reset_link | safe }}">
                 Reset
             </a>
             <p style="font-variant-numeric: tabular-nums;">
@@ -20,7 +20,7 @@
                 <a
                     id="week-prev"
                     class="btn"
-                    href="{{ site_url }}?year={{ prev_year }}&week={{ prev_week }}"
+                    href="{{ site_url | safe }}?year={{ prev_year }}&week={{ prev_week }}"
                     hx-on:click="this.outerHTML = `<button class=\'btn\' disabled>${this.innerHTML}</button>`"
                 >
                     Prev
@@ -28,7 +28,7 @@
                 <a
                     id="week-next"
                     class="btn"
-                    href="{{ site_url }}?year={{ next_year }}&week={{ next_week }}"
+                    href="{{ site_url | safe }}?year={{ next_year }}&week={{ next_week }}"
                     hx-on:click="this.outerHTML = `<button class=\'btn\' disabled>${this.innerHTML}</button>`"
                 >
                     Next
@@ -36,10 +36,10 @@
             </div>
         </div>
         <div id="top-menu-right">
-            <a href="{{ site_url }}/">
+            <a href="{{ site_url | safe }}/">
                 Calendar view
             </a>
-            <a href="{{ site_url }}/list">
+            <a href="{{ site_url | safe }}/list">
                 List view
             </a>
         </div>

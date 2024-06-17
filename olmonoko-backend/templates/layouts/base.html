@@ -15,7 +15,7 @@
 		href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap"
 		rel="stylesheet">
 	{% block head %}
-	<link hx-preserve="true" rel="stylesheet" href="{{ site_url }}/static/css/base.css?v={{ version }}" />
+	<link hx-preserve="true" rel="stylesheet" href="{{ site_url | safe }}/static/css/base.css?v={{ version }}" />
 	<title>{% block title %}{% endblock title %}</title>
 	{% block head_extra %}{% endblock head_extra %}
 	{% endblock head %}
@@ -88,7 +88,7 @@
 		</footer>
 	</div>
 	<!-- VIM keybindings -->
-	<script hx-preserve="true" src="{{ site_url }}/static/js/vim_keybinds.js?v={{ version }}"></script>
+	<script hx-preserve="true" src="{{ site_url | safe }}/static/js/vim_keybinds.js?v={{ version }}"></script>
 	<div id="vk_overlay">
 		<span id="vk_mode">NORMAL</span>
 		<span id="vk_buffer"></span>

@@ -14,7 +14,7 @@
             <td>{{ user.admin }}</td>
             <td>
                 <form 
-                    hx-delete="{{ site_url }}/api/user/{{ user.id }}"
+                    hx-delete="{{ site_url | safe }}/api/user/{{ user.id }}"
                     hx-swap="outerHTML"
                     hx-target="#admin-user-list"
                     hx-disabled-elt="#admin-user-list"

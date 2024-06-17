@@ -7,6 +7,10 @@ use tracing_actix_web::TracingLogger;
 mod api;
 mod ui;
 
+use crate::middleware::autocache_responder;
+use crate::middleware::AutoCacher;
+use actix_web_lab::middleware::from_fn;
+
 pub type DatabaseConnection = sqlx::SqlitePool;
 
 #[derive(Debug, Clone)]
@@ -63,9 +67,12 @@ pub async fn run_server(conn: DatabaseConnection) -> std::io::Result<()> {
             .allow_any_method()
             .allow_any_header()
             .max_age(3600);
+        let autocache = AutoCacher;
         App::new()
             .wrap(cors)
             .wrap(TracingLogger::default())
+            .wrap(autocache)
+            .wrap(from_fn(autocache_responder))
             .app_data(web::Data::new(state.clone()))
             .service(api::routes())
             .service(

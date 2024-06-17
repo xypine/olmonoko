@@ -10,7 +10,7 @@
             {% endif %}
             {% if events and filter_query %}
                 <h3 style="margin-top:-1rem;margin-bottom:1rem; font-size:1.5em;">Filtered by '{{ filter_query }}'</h3>
-            <form action="{{ site_url }}/api/event/local/delete?{{ filter_query }}" method="post">
+            <form action="{{ site_url | safe }}/api/event/local/delete?{{ filter_query }}" method="post">
                 <button type="submit" style="margin-top:1rem;">Delete selected</button>
             </form>
             {% endif %}
@@ -34,7 +34,7 @@
                         </summary>
                         {% for event in events %}
                             <li style="display: flex; gap: 0.5em; flex-wrap: wrap;justify-content: center;" id="local-event-{{ event.id }}">
-                                <p href="{{ site_url }}/local/{{ event.id }}" style="flex: 1; min-width: 300px">{{ event.summary }}</p>
+                                <p href="{{ site_url | safe }}/local/{{ event.id }}" style="flex: 1; min-width: 300px">{{ event.summary }}</p>
                                 <div class="item-details">
                                     <span>
                                     {% if event.all_day %}
@@ -42,7 +42,7 @@
                                     {% endif %}
                                     {{ event.starts_at }}
                                     </span>
-                                    <a href="{{ site_url }}/local?selected={{ event.id }}">Edit</a>
+                                    <a href="{{ site_url | safe }}/local?selected={{ event.id }}">Edit</a>
                                 </div>
                             </li>
                         {% endfor %}

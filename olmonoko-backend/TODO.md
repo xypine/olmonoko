@@ -37,7 +37,7 @@
 - [ ] add proper error handling to frontend
 - [ ] track user attendance of events / maybe automatically based on location?
 - [ ] turn persist_events automatically off / on based on source behaviour
-- [ ] try automatically caching internal links on current page
+- [-] try automatically caching internal links on current page
 - [ ] remind when to leave / maps integration
 - [ ] clock-in-n-out 
     - [-] teamwork integration

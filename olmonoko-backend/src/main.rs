@@ -1,5 +1,6 @@
 mod auth;
 mod logic;
+mod middleware;
 mod models;
 mod routes;
 mod utils;

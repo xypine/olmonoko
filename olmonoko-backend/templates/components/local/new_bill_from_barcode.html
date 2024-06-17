@@ -1,5 +1,5 @@
 {% block head_extra %}
-<script src="{{ site_url }}/static/thirdparty-js/quagga.min.js" type="text/javascript"></script>
+<script src="{{ site_url | safe }}/static/thirdparty-js/quagga.min.js" type="text/javascript"></script>
 {% endblock head_extra %}
 <form id="new-bill-from-barcode" action="/api/event/bill/from_barcode" method="POST" hx-disabled-elt="#create-bill-from-barcode">
 	<fieldset>

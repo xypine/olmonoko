@@ -4,14 +4,14 @@
 			active
 		{% endif %}
 	">
-		<a href="{{ site_url }}/">Home</a>
+		<a href="{{ site_url | safe }}/">Home</a>
 	</li>
 	<li class="
 		{% if root_path == 'remote' %}
 			active
 		{% endif %}
 	">
-		<a href="{{ site_url }}/remote">Sources</a>
+		<a href="{{ site_url | safe }}/remote">Sources</a>
 	</li>
 	{% if user %}
 		<li class="
@@ -19,7 +19,7 @@
 				active
 			{% endif %}
 		">
-			<a href="{{ site_url }}/local">Local</a>
+			<a href="{{ site_url | safe }}/local">Local</a>
 		</li>
 		{% if user.admin %}
 			<li class="
@@ -27,7 +27,7 @@
 					active
 				{% endif %}
 			">
-				<a href="{{ site_url }}/admin">Admin</a>
+				<a href="{{ site_url | safe }}/admin">Admin</a>
 			</li>
 		{% endif %}
 	{% endif %}

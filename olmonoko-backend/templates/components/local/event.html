@@ -15,11 +15,11 @@
 {% endif %}
 <div id="{{ container_id }}">
 	{% if selected %}
-		<form action="{{ site_url }}/api/event/local/delete?id={{ selected_id }}" method="POST" style="align-items: end;">
+		<form action="{{ site_url | safe }}/api/event/local/delete?id={{ selected_id }}" method="POST" style="align-items: end;">
 			<button class="btn variant-danger border-only" type="submit" id="delete-{{ selected_id }}">Delete {{ selected.summary }}</button>
 		</form>
 	{% endif %}
-	<form id="local-event-form" action="{{ site_url }}{{ action }}" method="{{ method }}" hx-disabled-elt="#{{ action_id }}">
+	<form id="local-event-form" action="{{ site_url | safe }}{{ action }}" method="{{ method }}" hx-disabled-elt="#{{ action_id }}">
 		<fieldset>
 			<legend>{{ title }}</legend>
 			<label>
@@ -118,7 +118,7 @@
 			</label>
 			<div style="display: flex; gap: 1rem;">
 				{% if selected %}
-					<a href="{{ site_url }}/local" class="btn variant-plain" style="flex: 1;">Back</a>
+					<a href="{{ site_url | safe }}/local" class="btn variant-plain" style="flex: 1;">Back</a>
 				{% endif %}
 				<button id="{{ action_id }}" type="submit" class="btn" style="flex: 1;">{{ action_name }}</button>
 			</div>
