@@ -1,5 +1,5 @@
 use actix_web::{
-    body::{BoxBody, EitherBody, MessageBody},
+    body::{EitherBody, MessageBody},
     dev::{ServiceRequest, ServiceResponse},
     Error, HttpResponse,
 };

@@ -171,9 +171,10 @@ async fn login(
     if let Some(user) = sqlx::query!("SELECT * FROM users WHERE email = $1", user_input.email)
         .fetch_optional(&data.conn)
         .await
-        .unwrap()
+        .expect("Failed to fetch user for login")
     {
         if !bcrypt::verify(&user_input.password, &user.password_hash).unwrap() {
+            tracing::warn!("Failed login attempt for {}", user.email);
             return reload(&req)
                 .with_flash_message(FlashMessage::error("Invalid email or password"))
                 .finish();
@@ -193,7 +194,7 @@ async fn login(
         )
         .fetch_one(&data.conn)
         .await
-        .unwrap();
+        .expect("Failed to create session");
         let cookie = Cookie::build(SESSION_COOKIE_NAME, created.id.clone())
             .path("/")
             .secure(true)
