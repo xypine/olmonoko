@@ -7,6 +7,8 @@ use actix_web_lab::middleware::Next;
 
 use crate::{routes::get_site_url, utils::request::EnhancedRequest};
 
+use super::autocacher::AUTOCACHE_DISALLOWED_PATHS;
+
 pub async fn autocache_responder(
     req: ServiceRequest,
     next: Next<impl MessageBody>,
@@ -15,10 +17,11 @@ pub async fn autocache_responder(
     let recursion_prevention_header = req
         .headers()
         .get(super::autocacher::CACHE_RECURSION_PREVENTION_HEADER);
-    if recursion_prevention_header.is_none() {
+    let uri = req.uri().to_string();
+    if recursion_prevention_header.is_none() && !AUTOCACHE_DISALLOWED_PATHS.contains(&uri.as_str())
+    {
         let session_id = req.request().get_session_id();
         if let Some(session_id) = session_id {
-            let uri = req.uri().to_string();
             let link = format!("{}{}", site_url, uri);
             let cache_key = super::cache_key(&session_id, &link);
             let cache_hit = super::CACHE.get(&cache_key).await;

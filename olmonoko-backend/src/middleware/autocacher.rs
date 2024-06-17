@@ -1,4 +1,4 @@
-const DISALLOWED_PATHS: [&str; 2] = ["/static", "/api"];
+pub const AUTOCACHE_DISALLOWED_PATHS: [&str; 2] = ["/static", "/api"];
 
 use std::{
     future::{ready, Future, Ready},
@@ -126,7 +126,7 @@ impl<B> PinnedDrop for BodyAutoCacher<B> {
     fn drop(self: Pin<&mut Self>) {
         if let Some(session_id) = self.session_id.clone() {
             let enabled = self.enabled
-                && !DISALLOWED_PATHS
+                && !AUTOCACHE_DISALLOWED_PATHS
                     .iter()
                     .any(|path| self.request_path.starts_with(path));
             if enabled {
@@ -153,7 +153,7 @@ impl<B> PinnedDrop for BodyAutoCacher<B> {
                         let link_parsed = reqwest::Url::parse(link);
                         if let Ok(link_parsed) = link_parsed {
                             let link_path = link_parsed.path();
-                            if DISALLOWED_PATHS
+                            if AUTOCACHE_DISALLOWED_PATHS
                                 .iter()
                                 .any(|path| link_path.starts_with(path))
                             {

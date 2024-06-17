@@ -1,7 +1,8 @@
 use actix_cors::Cors;
 use actix_files::Files;
 use actix_web::{web, App, HttpServer};
-use chrono::{Datelike, Timelike, Utc};
+use api::meta::BuildInformation;
+use chrono::Datelike;
 use tracing_actix_web::TracingLogger;
 
 mod api;
@@ -18,7 +19,8 @@ pub type DatabaseConnection = sqlx::SqlitePool;
 pub(crate) struct AppState {
     pub site_url: String,
     pub version: String,
-    pub built_at: chrono::DateTime<Utc>,
+
+    pub build_info: BuildInformation,
 
     pub conn: DatabaseConnection,
     pub templates: tera::Tera,
@@ -46,17 +48,30 @@ pub async fn run_server(conn: DatabaseConnection) -> std::io::Result<()> {
         .collect()
     }
     let built_at = built::util::strptime(crate::built_info::BUILT_TIME_UTC);
+    let commit = crate::built_info::GIT_COMMIT_HASH
+        .map(|s| s.to_string())
+        .or(std::env::var("SOURCE_COMMIT").ok());
+    let commit_short = commit.as_ref().map(|s| s.chars().take(7).collect());
     let version = format!(
-        "v{}{}{}{}",
+        "v{}{}{}-{}",
         to_two_digits(built_at.year() as u32),
         to_two_digits(built_at.month()),
         to_two_digits(built_at.day()),
-        to_two_digits(built_at.hour())
+        commit_short
+            .clone()
+            .unwrap_or_else(|| "eeeeeee".to_string())
     );
+    let package_version = crate::built_info::PKG_VERSION.to_string();
     let state = AppState {
         site_url,
-        built_at,
         version,
+
+        build_info: BuildInformation {
+            package_version,
+            commit,
+            commit_short,
+            build_time: built_at,
+        },
 
         conn,
         templates,

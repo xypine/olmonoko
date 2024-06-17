@@ -20,6 +20,10 @@
 	{% block head_extra %}{% endblock head_extra %}
 	{% endblock head %}
 	<style hx-preserve="true">
+		#version {
+			font-family: monospace;
+			font-size: .83rem;
+		}
 		#main-nav {
 			display: flex;
 			justify-content: space-between;
@@ -62,7 +66,7 @@
 		<div id="nav-left">
 			<section>
 				<h1>OLMONOKO</h1>
-				<p>{{ version }}</p>
+				<p id="version">{{ version }}</p>
 			</section>
 			<p id="anything-loading">...</p>
 		</div>

@@ -1,8 +1,19 @@
 use actix_web::{get, web, HttpResponse, Responder, Scope};
+use chrono::{DateTime, Utc};
+
+use crate::routes::AppState;
+
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct BuildInformation {
+    pub package_version: String,
+    pub commit: Option<String>,
+    pub commit_short: Option<String>,
+    pub build_time: DateTime<Utc>,
+}
 
 #[get("/version")]
-async fn version() -> impl Responder {
-    HttpResponse::Ok().body("0.1.0")
+async fn version(data: web::Data<AppState>) -> impl Responder {
+    HttpResponse::Ok().json(data.build_info.clone())
 }
 
 #[get("/ready")]
