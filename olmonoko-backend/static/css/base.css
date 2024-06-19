@@ -99,8 +99,10 @@ a:hover {
 	border: none;
 	border-radius: 0.25rem;
 	cursor: pointer;
+	font-family: inherit;
 	font-size: 1rem;
-	font-weight: bold;
+	font-weight: 600;
+	line-height: 1.25;
 
 	text-decoration: none !important;
 	text-align: center;
