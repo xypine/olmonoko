@@ -61,16 +61,21 @@ function vk_handle_keypress(e) {
 		if (e.ctrlKey || e.metaKey || e.altKey) {
 			return false; // this keypress was not handled
 		}
-		if (e.key == "h") {
+		if (document.querySelector("input:focus") || document.querySelector("textarea:focus")) {
+			return false; // this keypress was not handled
+		}
+
+		const calendar = document.getElementById("calendar");
+		if (calendar && e.key == "h") {
 			vk_emit_control_signal("move", "left");
 		}
-		else if (e.key == "j") {
+		else if (calendar && e.key == "j") {
 			vk_emit_control_signal("move", "down");
 		}
-		else if (e.key == "k") {
+		else if (calendar && e.key == "k") {
 			vk_emit_control_signal("move", "up");
 		}
-		else if (e.key == "l") {
+		else if (calendar && e.key == "l") {
 			vk_emit_control_signal("move", "right");
 		}
 
@@ -211,10 +216,10 @@ function vk_handle_event(e) {
 		console.log("Received move signal:", e.detail.data);
 		let data = e.detail.data;
 		if (data == "left") {
-			document.getElementById("week-prev").click();
+			document.getElementById("week-prev")?.click();
 		}
 		else if (data == "right") {
-			document.getElementById("week-next").click();
+			document.getElementById("week-next")?.click();
 		}
 	}
 }

@@ -4,11 +4,7 @@
 {% if user %}
     <div id="top-menu">
         <div id="top-menu-left">
-            {% set reset_link = site_url ~ "/" %}
-            {% if current_day %}
-                {# already current week #}
-                {% set reset_link = reset_link ~ "#today" %}
-            {% endif %}
+            {% set reset_link = site_url ~ "/#today" %}
             <a id="calendar-reset" class="btn variant-tertiary" href="{{ reset_link | safe }}">
                 Reset
             </a>

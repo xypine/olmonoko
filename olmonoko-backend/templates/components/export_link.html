@@ -4,8 +4,7 @@
 	<span>
 		Note that <i>anyone</i> with the link can see all of your calendar events.
 	</span>
-	<form hx-post="/api/export" hx-swap="outerHTML" hx-target="#export-link"
-		hx-disabled-elt="#new-link">
+	<form hx-post="/api/export" hx-swap="outerHTML" hx-target="#export-link" hx-disabled-elt="#new-link">
 		<button id="new-link" class="btn" type="submit">
 			Generate new link
 		</button>
@@ -13,22 +12,23 @@
 	{% if export_links %}
 		{% for export_link in export_links %}
 			{% set id = export_link.id %}
-			<div id="export-link-{{ id }}" style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; margin-bottom: 1em;background: var(--surface-variant);border-radius: .25rem;padding: .25rem .5rem;justify-content: center;">
-				<a href="{{ export_link.url|replace(from='http://', to='https://')|replace(from='https://', to='webcal://') }}" target="_blank">
+			<div
+				id="export-link-{{ id }}"
+				style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; margin-bottom: 1em;background: var(--surface-variant);border-radius: .25rem;padding: .25rem .5rem;justify-content: center;"
+			>
+				<a href="{{ export_link.url|replace(from='http://', to='https://')|replace(from='https://', to='webcal://') }}"
+					target="_blank">
 					<code>
 						{{ export_link.id }}
 					</code>
 				</a>
-				<button id="copy-export-link-{{ id }}" class="btn" onclick="navigator.clipboard.writeText('{{ export_link.url }}');document.querySelector('#copy-export-link-{{ id }}').innerHTML = 'Copied!';">
-					Copy
+				<button id="copy-export-link-{{ id }}" class="btn"
+					onclick="navigator.clipboard.writeText('{{ export_link.url }}');document.querySelector('#copy-export-link-{{ id }}').innerHTML = 'Copied!';">
+					Copy link
 				</button>
-				<form
-					hx-delete="{{ export_link.url }}"
-					hx-target="#export-link-{{ id }}"
-					hx-swap="innerHTML"
+				<form hx-delete="{{ export_link.url }}" hx-target="#export-link-{{ id }}" hx-swap="innerHTML"
 					hx-disabled-elt="#remove-export-link-{{ id }}"
-					hx-confirm="Are you sure you want to remove this export link? Any calendar applications reading from it will stop functioning."
-				>
+					hx-confirm="Are you sure you want to remove this export link? Any calendar applications reading from it will stop functioning.">
 					<button id="remove-export-link-{{ id }}" class="btn variant-danger" type="submit">
 						Remove
 					</button>
@@ -36,5 +36,7 @@
 				{% include 'components/export_link_filter.html' %}
 			</div>
 		{% endfor %}
+	{% else %}
+		<span>No public links – yet</span>
 	{% endif %}
 </div>

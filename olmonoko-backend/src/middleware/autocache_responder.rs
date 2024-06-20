@@ -26,7 +26,7 @@ pub async fn autocache_responder(
             let cache_key = super::cache_key(&session_id, &link);
             let cache_hit = super::CACHE.get(&cache_key).await;
             if let Some((headers, body)) = cache_hit {
-                println!("Cache hit for key: {}", cache_key);
+                tracing::debug!("Cache hit for key: {}", cache_key);
                 let mut response = HttpResponse::Ok().body(body);
                 let new_headers = response.headers_mut();
                 for (name, value) in headers.iter() {
@@ -42,7 +42,7 @@ pub async fn autocache_responder(
 
                 return Ok(ServiceResponse::new(req.into_parts().0, response).map_into_right_body());
             } else {
-                println!("Cache miss for key: {}", cache_key);
+                tracing::debug!("Cache miss for key: {}", cache_key);
             }
         }
     }

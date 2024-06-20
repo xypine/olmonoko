@@ -70,7 +70,6 @@ async fn local(
 ) -> impl Responder {
     let (mut context, user) = request.get_session_context(&data).await;
     if let Some(user) = user {
-        println!("query: {:?}", query);
         let filter = EventFilter::from(query.filter.clone());
         let events = get_user_local_events(&data, user.id, false, filter.clone()).await;
         let available_tags = events

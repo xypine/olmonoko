@@ -1,3 +1,5 @@
+@import url('./fonts.css');
+
 * {
 	margin: 0;
 	padding: 0;
@@ -12,7 +14,7 @@ html,
 /* Use montserrat for headings and roboto for body text */
 
 body {
-	font-family: 'Roboto', 'Cantarell', 'Segoe UI', sans-serif;
+	font-family: 'Cantarell', 'Segoe UI', 'Roboto', sans-serif;
 	font-display: swap;
 }
 
@@ -22,7 +24,7 @@ h3,
 h4,
 h5,
 h6 {
-	font-family: 'Montserrat', sans-serif;
+	font-family: 'Montserrat', 'Montserrat Hosted', sans-serif;
 	font-display: swap;
 }
 

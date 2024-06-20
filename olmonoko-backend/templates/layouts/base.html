@@ -9,11 +9,6 @@
 	<script hx-preserve="true" src="https://unpkg.com/htmx.org@1.9.12"
 		integrity="sha384-ujb1lZYygJmzgSwoxRggbCHcjc0rB2XoQrxeTUQyRjrOnlCoYta87iKBWq3EsdM2"
 		crossorigin="anonymous"></script>
-	<link hx-preserve="true" rel="preconnect" href="https://fonts.googleapis.com">
-	<link hx-preserve="true" rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-	<link hx-preserve="true"
-		href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap"
-		rel="stylesheet">
 	{% block head %}
 	<link hx-preserve="true" rel="stylesheet" href="{{ site_url | safe }}/static/css/base.css?v={{ version }}" />
 	<title>{% block title %}{% endblock title %}</title>
@@ -24,6 +19,7 @@
 			font-family: monospace;
 			font-size: .83rem;
 		}
+
 		#main-nav {
 			display: flex;
 			justify-content: space-between;
