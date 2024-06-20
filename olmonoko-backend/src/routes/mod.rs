@@ -30,6 +30,12 @@ pub fn get_site_url() -> String {
     std::env::var("SITE_URL").expect("SITE_URL must be set")
 }
 
+pub fn get_source_commit() -> Option<String> {
+    crate::built_info::GIT_COMMIT_HASH
+        .map(|s| s.to_string())
+        .or(std::env::var("SOURCE_COMMIT").ok())
+}
+
 pub async fn run_server(conn: DatabaseConnection) -> std::io::Result<()> {
     let templates = tera::Tera::new("templates/**/*").unwrap();
     let site_url = get_site_url();
@@ -48,9 +54,7 @@ pub async fn run_server(conn: DatabaseConnection) -> std::io::Result<()> {
         .collect()
     }
     let built_at = built::util::strptime(crate::built_info::BUILT_TIME_UTC);
-    let commit = crate::built_info::GIT_COMMIT_HASH
-        .map(|s| s.to_string())
-        .or(std::env::var("SOURCE_COMMIT").ok());
+    let commit = get_source_commit();
     let commit_short = commit.as_ref().map(|s| s.chars().take(7).collect());
     let version = format!(
         "v{}{}{}-{}",

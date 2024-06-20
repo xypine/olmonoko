@@ -13,6 +13,8 @@ use tracing_subscriber::{
     // fmt::format::FmtSpan,
 };
 
+use crate::routes::get_source_commit;
+
 #[derive(Error, Debug)]
 pub enum AppError {
     #[error("Database error: {0}")]
@@ -24,7 +26,7 @@ pub enum AppError {
 #[tokio::main]
 async fn main() -> Result<(), AppError> {
     println!("OLMONOKO {}", built_info::PKG_VERSION,);
-    let git_hash = built_info::GIT_COMMIT_HASH.unwrap_or("unknown");
+    let git_hash = get_source_commit().unwrap_or("unknown".to_string());
     let dirty = built_info::GIT_DIRTY.unwrap_or(false);
     println!(
         "Built from commit: {}{} on {}",
