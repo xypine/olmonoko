@@ -7,6 +7,7 @@
 - [x] ui for removing / updating local events
 - [x] bills
 - [-] barcode scanner for bills
+    - [ ] barcode scanning from images sucks, find a better way?
 - [x] add all_day to events
 - [x] fix newlines in produced ics
 - [x] add date controls to default view
@@ -32,9 +33,10 @@
 - [-] local event bulk delete
     - [ ] make sure is safe
 - [ ] soft delete for local events
-- [ ] i18n
-- [ ] vim keybindings
+- [-] vim keybindings
+- [ ] "scrubbable navigation with heatmap"
 - [ ] add proper error handling to frontend
+- [ ] i18n
 - [ ] track user attendance of events / maybe automatically based on location?
 - [ ] turn persist_events automatically off / on based on source behaviour
 - [-] try automatically caching internal links on current page
