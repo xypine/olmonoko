@@ -98,12 +98,9 @@ async fn local(
                 .map(|form| (selected_event_id, form))
         });
 
-        // TODO: Fix this mess
         context.insert("filter", &filter);
-        // println!("filter: '{:?}'", filter);
         let filter_query = serde_urlencoded::to_string(query.filter.clone()).unwrap();
         context.insert("filter_query", &filter_query);
-        // println!("filter_query: '{}'", filter_query);
 
         context.insert("events", &events);
         context.insert("available_tags", &available_tags);
@@ -330,6 +327,8 @@ impl From<CalendarQueryPosition> for Option<CalendarPosition> {
     }
 }
 
+const INTERFACE_MIN_EVENT_LENGTH: i64 = 3600; // 1 hour
+
 #[derive(Debug, serde::Deserialize, PartialEq)]
 struct CalendarQuery {
     #[serde(flatten)]
@@ -350,6 +349,7 @@ async fn calendar(
         let query = query.into_inner();
         let chosen_position: Option<CalendarPosition> = query.position.into();
         let filter = EventFilter::from(query.filter);
+        // pivot is the first day of the shown week at 00:00
         let pivot = if let Some(position) = chosen_position {
             chrono::NaiveDate::from_isoywd_opt(position.year, position.week, chrono::Weekday::Mon)
                 .expect("Failed to construct pivot")
@@ -364,6 +364,12 @@ async fn calendar(
                 .and_time(NaiveTime::MIN)
                 .and_utc()
         };
+        let pivot_local = pivot
+            .with_timezone(&user.interface_timezone_parsed)
+            .with_time(NaiveTime::MIN)
+            .earliest()
+            .expect("Failed to convert pivot to local time");
+
         // after yesterday (from today)
         let yesterday = (pivot - chrono::Duration::days(1)).timestamp();
         // before next week
@@ -398,8 +404,31 @@ async fn calendar(
         for day in 0..7 {
             let mut day_events = events
                 .iter()
-                .filter(|event| event.starts_at.weekday().number_from_monday() - 1 == day)
-                .cloned()
+                .filter_map(|event| {
+                    let mut event = event.clone();
+                    let normal_today = event.starts_at.weekday().number_from_monday() - 1 == day;
+                    if normal_today {
+                        return Some(event);
+                    }
+                    let event_starts_at = event.starts_at.timestamp();
+                    let event_ends_at =
+                        event_starts_at + event.duration.unwrap_or(INTERFACE_MIN_EVENT_LENGTH);
+                    let day_ts = pivot_local.timestamp() + (day * 24 * 3600) as i64;
+                    let starts_before_today = event_starts_at < day_ts;
+                    let ends_after_today = event_ends_at > day_ts;
+                    if starts_before_today && ends_after_today {
+                        let start_today_s = 0;
+                        let mut duration_today_s = 24 * 3600;
+                        let tomorrow = day_ts + 24 * 3600;
+                        if event_ends_at < tomorrow {
+                            duration_today_s = event_ends_at - day_ts;
+                        }
+                        event.starts_at_seconds = start_today_s;
+                        event.duration = Some(duration_today_s);
+                        return Some(event);
+                    }
+                    None
+                })
                 .sorted_by_key(|event| event.priority)
                 .collect::<Vec<_>>();
 
@@ -410,6 +439,7 @@ async fn calendar(
                     source: crate::models::event::EventSource::Local(
                         crate::models::event::SourceLocal { user_id: -1 },
                     ),
+                    tags: vec![],
                     priority: 1,
                     starts_at: now,
                     starts_at_human: "".to_string(),
@@ -429,9 +459,14 @@ async fn calendar(
             }
 
             for event in &mut day_events {
+                // normalize all day events to start at 00:00 and last the default amount
+                if event.all_day {
+                    event.starts_at_seconds = 0;
+                    event.duration = None;
+                }
                 // set event duration to be at least 1 hour
-                if event.duration.unwrap_or(0) < 3600 {
-                    event.duration = Some(3600);
+                if event.duration.unwrap_or(0) < INTERFACE_MIN_EVENT_LENGTH {
+                    event.duration = Some(INTERFACE_MIN_EVENT_LENGTH);
                 }
             }
 

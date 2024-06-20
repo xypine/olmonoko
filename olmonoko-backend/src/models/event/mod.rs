@@ -205,6 +205,7 @@ pub struct EventOccurrenceHuman<T: TimeZone> {
     pub id: i64, // event id, not specific to this occurrence
     pub source: EventSource,
     pub priority: i64,
+    pub tags: Vec<String>,
     // Event data
     #[serde(skip)]
     pub starts_at: chrono::DateTime<T>,
@@ -246,6 +247,7 @@ where
             id: occurrence.id,
             source: occurrence.source,
             priority: occurrence.priority,
+            tags: occurrence.tags.clone(),
 
             starts_at_human: if occurrence.all_day {
                 starts_at.format("%Y-%m-%d").to_string()
@@ -271,5 +273,42 @@ where
             location: occurrence.location,
             uid: occurrence.uid,
         }
+    }
+}
+impl<T: TimeZone> EventLike for EventOccurrenceHuman<T> {
+    fn id(&self) -> i64 {
+        self.id
+    }
+
+    fn source(&self) -> EventSource {
+        self.source
+    }
+
+    fn all_day(&self) -> bool {
+        self.all_day
+    }
+
+    fn duration(&self) -> Option<i64> {
+        self.duration
+    }
+
+    fn summary(&self) -> &str {
+        self.summary.as_str()
+    }
+
+    fn description(&self) -> Option<&str> {
+        self.description.as_deref()
+    }
+
+    fn location(&self) -> Option<&str> {
+        self.location.as_deref()
+    }
+
+    fn priority(&self) -> Option<i64> {
+        Some(self.priority)
+    }
+
+    fn tags(&self) -> Vec<String> {
+        self.tags.clone()
     }
 }

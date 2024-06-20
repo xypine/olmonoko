@@ -45,7 +45,7 @@ pub async fn get_user_local_events(
         LEFT JOIN event_tags AS tag 
             ON tag.local_event_id = event.id
         WHERE event.user_id = $1 
-            AND ($2 IS NULL OR event.starts_at > $2) 
+            AND ($2 IS NULL OR event.starts_at + event.duration > $2)
             AND ($3 IS NULL OR event.starts_at < $3) 
             AND (COALESCE(NULLIF(event.priority, 0), $6) >= $4 OR $4 IS NULL)
             AND (COALESCE(NULLIF(event.priority, 0), $6) <= $5 OR $5 IS NULL)
