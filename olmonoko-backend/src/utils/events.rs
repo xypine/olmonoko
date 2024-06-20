@@ -45,7 +45,7 @@ pub async fn get_user_local_events(
         LEFT JOIN event_tags AS tag 
             ON tag.local_event_id = event.id
         WHERE event.user_id = $1 
-            AND ($2 IS NULL OR event.starts_at + event.duration > $2)
+            AND ($2 IS NULL OR event.starts_at + COALESCE(event.duration, 0) > $2)
             AND ($3 IS NULL OR event.starts_at < $3) 
             AND (COALESCE(NULLIF(event.priority, 0), $6) >= $4 OR $4 IS NULL)
             AND (COALESCE(NULLIF(event.priority, 0), $6) <= $5 OR $5 IS NULL)
@@ -158,7 +158,7 @@ async fn get_visible_remote_events(
             -- max_priority is null or (source_in_calendar and event_priority_override <= max_priority) and source_priority <= max_priority
             AND ($5 IS NULL OR (p.priority IS NOT NULL AND COALESCE(NULLIF(e.priority_override, 0), $6) <= $5) AND COALESCE(NULLIF(p.priority, 0), $6) <= $5)
         WHERE 
-            ($2 IS NULL OR o.starts_at > $2) 
+            ($2 IS NULL OR o.starts_at + COALESCE(e.duration, 0) > $2) 
             AND ($3 IS NULL OR o.starts_at < $3) 
         ORDER BY 
             o.starts_at;
