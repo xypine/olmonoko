@@ -165,7 +165,7 @@ impl<B> PinnedDrop for BodyAutoCacher<B> {
                         }
                     }
                 }
-                tracing::info!("Cacheable links: {:?}", cacheable_links);
+                tracing::debug!("Cacheable links: {:?}", cacheable_links);
 
                 for link in cacheable_links {
                     let link = link.to_string();
@@ -201,7 +201,7 @@ impl<B> PinnedDrop for BodyAutoCacher<B> {
                         let key = super::cache_key(&session_id, &link);
                         let data = (headers, body);
                         super::CACHE.insert(key.clone(), data).await;
-                        tracing::info!("Cached response for {}", key);
+                        tracing::debug!("Cached response for {}", key);
                         Ok::<(), reqwest::Error>(())
                     };
 
@@ -213,7 +213,7 @@ impl<B> PinnedDrop for BodyAutoCacher<B> {
                     });
                 }
 
-                tracing::info!("Started caching internal links for {}", self.request_path);
+                tracing::debug!("Started caching internal links for {}", self.request_path);
             }
         }
     }
