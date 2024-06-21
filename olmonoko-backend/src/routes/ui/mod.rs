@@ -371,15 +371,15 @@ async fn calendar(
             .expect("Failed to convert pivot to local time");
 
         // after yesterday (from today)
-        let yesterday = (pivot - chrono::Duration::days(1)).timestamp();
+        let from = (pivot - chrono::Duration::milliseconds(1)).timestamp();
         // before next week
-        let next_week = (pivot + chrono::Duration::days(7)).timestamp();
+        let to = (pivot + chrono::Duration::days(7)).timestamp();
         let events = get_visible_event_occurrences(
             &data,
             Some(user.id),
             true,
-            Some(yesterday),
-            Some(next_week),
+            Some(from),
+            Some(to),
             filter.min_priority,
             filter.max_priority,
         )
@@ -406,23 +406,35 @@ async fn calendar(
                 .iter()
                 .filter_map(|event| {
                     let mut event = event.clone();
-                    let normal_today = event.starts_at.weekday().number_from_monday() - 1 == day;
-                    if normal_today {
-                        return Some(event);
-                    }
-                    let event_starts_at = event.starts_at.timestamp();
+                    let event_starts_at = event.starts_at_utc.with_timezone(&user.interface_timezone_parsed)
+                        .to_utc()
+                        .timestamp();
                     let event_ends_at =
                         event_starts_at + event.duration.unwrap_or(INTERFACE_MIN_EVENT_LENGTH);
-                    let day_ts = pivot_local.timestamp() + (day * 24 * 3600) as i64;
+                    let day_ts = pivot.timestamp() + (day * 24 * 3600) as i64;
+                    let tomorrow = day_ts + 24 * 3600;
                     let starts_before_today = event_starts_at < day_ts;
-                    let ends_after_today = event_ends_at > day_ts;
-                    if starts_before_today && ends_after_today {
-                        let start_today_s = 0;
-                        let mut duration_today_s = 24 * 3600;
-                        let tomorrow = day_ts + 24 * 3600;
-                        if event_ends_at < tomorrow {
-                            duration_today_s = event_ends_at - day_ts;
-                        }
+                    let ends_before_tomorrow = event_ends_at < tomorrow;
+
+                    let starts_before_tomorrow = event_starts_at < tomorrow;
+                    let ends_after_today = event_ends_at >= day_ts;
+
+                    if event.id == 182 {
+                        println!("{event_starts_at} {day_ts} {tomorrow} {starts_before_today} {ends_before_tomorrow} {starts_before_tomorrow} {ends_after_today}");
+                    }
+
+                    if starts_before_tomorrow && ends_after_today {
+                        let start_today_s = if starts_before_today {
+                            0
+                        } else {
+                            event.starts_at_seconds
+                        };
+                        let duration_today_s = match (starts_before_today, ends_before_tomorrow) {
+                            (true, true) => event_ends_at - day_ts,
+                            (true, false) => 24 * 3600 - start_today_s,
+                            (false, true) => event.duration.unwrap_or(0),
+                            (false, false) => 24 * 3600 - start_today_s,
+                        };
                         event.starts_at_seconds = start_today_s;
                         event.duration = Some(duration_today_s);
                         return Some(event);
@@ -441,7 +453,7 @@ async fn calendar(
                     ),
                     tags: vec![],
                     priority: 1,
-                    starts_at: now,
+                    starts_at_utc: now.with_timezone(&chrono::Utc),
                     starts_at_human: "".to_string(),
                     starts_at_seconds: current_time_seconds as i64,
                     overlap_total: 0,

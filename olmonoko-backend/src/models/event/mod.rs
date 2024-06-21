@@ -201,16 +201,15 @@ impl From<Event> for Vec<EventOccurrence> {
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
-pub struct EventOccurrenceHuman<T: TimeZone> {
+pub struct EventOccurrenceHuman {
     pub id: i64, // event id, not specific to this occurrence
     pub source: EventSource,
     pub priority: i64,
     pub tags: Vec<String>,
     // Event data
-    #[serde(skip)]
-    pub starts_at: chrono::DateTime<T>,
     pub starts_at_human: String,
     pub starts_at_seconds: i64,
+    pub starts_at_utc: chrono::DateTime<Utc>,
 
     pub overlap_total: usize,
     pub overlap_index: usize,
@@ -226,7 +225,7 @@ pub struct EventOccurrenceHuman<T: TimeZone> {
     pub location: Option<String>,
     pub uid: String,
 }
-impl<T: TimeZone> From<(EventOccurrence, &T)> for EventOccurrenceHuman<T>
+impl<T: TimeZone> From<(EventOccurrence, &T)> for EventOccurrenceHuman
 where
     T::Offset: std::fmt::Display,
 {
@@ -255,7 +254,7 @@ where
                 starts_at_local.to_string()
             },
             starts_at_seconds,
-            starts_at,
+            starts_at_utc: occurrence.starts_at,
 
             overlap_total: 1,
             overlap_index: 0,
@@ -275,7 +274,7 @@ where
         }
     }
 }
-impl<T: TimeZone> EventLike for EventOccurrenceHuman<T> {
+impl EventLike for EventOccurrenceHuman {
     fn id(&self) -> i64 {
         self.id
     }

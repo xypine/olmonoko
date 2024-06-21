@@ -1,3 +1,4 @@
+pub const PREDICTIVE_CACHE_ENABLED: bool = false;
 pub const AUTOCACHE_DISALLOWED_PATHS: [&str; 2] = ["/static", "/api"];
 
 use std::{
@@ -55,10 +56,11 @@ where
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
         let request_path = req.path().to_string();
-        let enabled = req
-            .headers()
-            .get(CACHE_RECURSION_PREVENTION_HEADER)
-            .is_none();
+        let enabled = PREDICTIVE_CACHE_ENABLED
+            && req
+                .headers()
+                .get(CACHE_RECURSION_PREVENTION_HEADER)
+                .is_none();
         let session_id = req.request().get_session_id();
         WrapperStream {
             fut: self.service.call(req),
