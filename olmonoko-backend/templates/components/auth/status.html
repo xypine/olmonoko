@@ -1,7 +1,9 @@
-<a href="{{ site_url | safe }}/me">
-	{% if user %}
-	<span>Logged in as {{ user.email }}</span>
-	{% else %}
-	<span>Not Signed In</span>
-	{% endif %}
-</a>
+{% if user %}
+	<p>
+		Logged in as {{ user.email }}
+	</p>
+{% else %}
+	<a href="{{ site_url | safe }}/me">
+		Not Signed In
+	</a>
+{% endif %}

@@ -1,34 +1,15 @@
 <ul>
+	{% for nav_entry in nav_entries %}
 	<li class="
-		{% if root_path == '' %}
+		{% if nav_entry.active %}
 			active
 		{% endif %}
 	">
-		<a href="{{ site_url | safe }}/">Home</a>
-	</li>
-	<li class="
-		{% if root_path == 'remote' %}
-			active
+		{% if nav_entry.active %}
+			<p>{{nav_entry.name}}</p>	
+		{% else %}
+			<a href="{{ site_url | safe }}{{nav_entry.path}}">{{nav_entry.name}}</a>
 		{% endif %}
-	">
-		<a href="{{ site_url | safe }}/remote">Sources</a>
 	</li>
-	{% if user %}
-		<li class="
-			{% if root_path == 'local' %}
-				active
-			{% endif %}
-		">
-			<a href="{{ site_url | safe }}/local">Local</a>
-		</li>
-		{% if user.admin %}
-			<li class="
-				{% if root_path == 'admin' %}
-					active
-				{% endif %}
-			">
-				<a href="{{ site_url | safe }}/admin">Admin</a>
-			</li>
-		{% endif %}
-	{% endif %}
+	{% endfor %}
 </ul>

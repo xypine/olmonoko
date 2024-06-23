@@ -8,7 +8,10 @@ use crate::{
         session::SessionRaw,
         user::{RawUser, User, UserPublic},
     },
-    routes::AppState,
+    routes::{
+        AppState, APP_NAVIGATION_ENTRIES_ADMIN, APP_NAVIGATION_ENTRIES_LOGGEDIN,
+        APP_NAVIGATION_ENTRIES_PUBLIC,
+    },
 };
 use actix_web::{web, HttpRequest, HttpResponse, HttpResponseBuilder};
 
@@ -70,6 +73,24 @@ pub(crate) async fn get_session_context(
     context.insert("flash", &flash_message);
     context.insert("user", &user);
     context.insert("event_priority_options", &PRIORITY_OPTIONS);
+    let mut nav_entries = vec![];
+    if let Some(user) = user.clone() {
+        if user.admin {
+            nav_entries.extend(APP_NAVIGATION_ENTRIES_ADMIN);
+        }
+        nav_entries.extend(APP_NAVIGATION_ENTRIES_LOGGEDIN);
+    }
+    nav_entries.extend(APP_NAVIGATION_ENTRIES_PUBLIC);
+    for nav_entry in &mut nav_entries {
+        if path.starts_with(nav_entry.path) {
+            nav_entry.active = Some(true);
+            break;
+        } else {
+            nav_entry.active = Some(false);
+        }
+    }
+    nav_entries.reverse();
+    context.insert("nav_entries", &nav_entries);
     (context, user)
 }
 

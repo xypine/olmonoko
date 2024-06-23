@@ -46,3 +46,5 @@
 - [ ] more default themes, custom theme support
     - maybe try #D0A657
 - [ ] automatically add events for all pictures in gallery / photos / photoprism integration
+- [ ] automatic syncing between instances / per user
+- [ ] embeddable export links / public calendar views with privacy options

@@ -7,7 +7,7 @@ use chrono::NaiveTime;
 use serde_with::As;
 use serde_with::NoneAsEmptyString;
 
-/// See https://www.finanssiala.fi/wp-content/uploads/2021/03/Bank_bar_code_guide.pdf for the spec
+/// See <https://www.finanssiala.fi/wp-content/uploads/2021/03/Bank_bar_code_guide.pdf> for the spec
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct NewBillBarcodeForm {

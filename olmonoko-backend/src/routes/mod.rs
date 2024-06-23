@@ -26,6 +26,47 @@ pub(crate) struct AppState {
     pub templates: tera::Tera,
 }
 
+#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
+pub struct NavigationEntry<'a> {
+    pub name: &'a str,
+    pub path: &'a str,
+    pub active: Option<bool>,
+}
+
+// Navigation entries must be listed in [most --> least specific] order
+// for automatic path highlighting to work
+// (starting the list with the index would result in the index always being selected, for example)
+// the final list is reversed because of this restriction
+pub const APP_NAVIGATION_ENTRIES_ADMIN: [NavigationEntry; 1] = [NavigationEntry {
+    name: "Admin",
+    path: "/admin",
+    active: None,
+}];
+pub const APP_NAVIGATION_ENTRIES_LOGGEDIN: [NavigationEntry; 2] = [
+    NavigationEntry {
+        name: "Profile",
+        path: "/me",
+        active: None,
+    },
+    NavigationEntry {
+        name: "Local",
+        path: "/local",
+        active: None,
+    },
+];
+pub const APP_NAVIGATION_ENTRIES_PUBLIC: [NavigationEntry; 2] = [
+    NavigationEntry {
+        name: "Sources",
+        path: "/remote",
+        active: None,
+    },
+    NavigationEntry {
+        name: "Home",
+        path: "/",
+        active: None,
+    },
+];
+
 pub fn get_site_url() -> String {
     std::env::var("SITE_URL").expect("SITE_URL must be set")
 }

@@ -35,6 +35,8 @@
 			background-color: var(--surface);
 			overflow: hidden;
 
+			user-select: none;
+
 			&>li {
 				display: contents;
 
@@ -45,6 +47,10 @@
 				&.active>* {
 					background-color: var(--primary);
 					color: var(--surface);
+				}
+
+				&>p {
+					pointer-events: none;
 				}
 			}
 		}

@@ -1,4 +1,4 @@
-pub const PREDICTIVE_CACHE_ENABLED: bool = false;
+pub const PREDICTIVE_CACHE_ENABLED: bool = true;
 pub const AUTOCACHE_DISALLOWED_PATHS: [&str; 2] = ["/static", "/api"];
 
 use std::{

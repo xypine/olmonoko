@@ -8,8 +8,9 @@ use crate::{
         event_filters::{EventFilter, RawEventFilter, RawEventFilterWithDate},
         events::{get_user_local_events, get_visible_event_occurrences},
         flash::FLASH_COOKIE_NAME,
-        request::{redirect, EnhancedRequest},
+        request::{deauth, redirect, EnhancedRequest},
         sources::{get_source_as_user, get_visible_sources_with_event_count},
+        timeline::compile_timeline,
         user::get_user_export_links,
     },
 };
@@ -406,9 +407,7 @@ async fn calendar(
                 .iter()
                 .filter_map(|event| {
                     let mut event = event.clone();
-                    let event_starts_at = event.starts_at_utc.with_timezone(&user.interface_timezone_parsed)
-                        .to_utc()
-                        .timestamp();
+                    let event_starts_at = event.starts_at_utc.timestamp();
                     let event_ends_at =
                         event_starts_at + event.duration.unwrap_or(INTERFACE_MIN_EVENT_LENGTH);
                     let day_ts = pivot.timestamp() + (day * 24 * 3600) as i64;
@@ -419,8 +418,10 @@ async fn calendar(
                     let starts_before_tomorrow = event_starts_at < tomorrow;
                     let ends_after_today = event_ends_at >= day_ts;
 
-                    if event.id == 182 {
-                        println!("{event_starts_at} {day_ts} {tomorrow} {starts_before_today} {ends_before_tomorrow} {starts_before_tomorrow} {ends_after_today}");
+                    if event.id == 231786 {
+                        println!("{}", pivot.timestamp());
+                        println!("{day}: {event_starts_at} {day_ts} {event_ends_at}");
+                        // println!("{event_starts_at} {day_ts} {tomorrow} {starts_before_today} {ends_before_tomorrow} {starts_before_tomorrow} {ends_after_today}");
                     }
 
                     if starts_before_tomorrow && ends_after_today {
@@ -554,6 +555,20 @@ async fn calendar(
     remove_flash_cookie(HttpResponse::Ok()).body(content)
 }
 
+#[get("/timeline")]
+pub async fn timeline(data: web::Data<AppState>, request: HttpRequest) -> impl Responder {
+    let (mut context, user_opt) = request.get_session_context(&data).await;
+    if let Some(user) = user_opt {
+        tracing::info!(user.id, user.email, "User requested timeline");
+        let timeline = compile_timeline(&data)
+            .await
+            .expect("Failed to compile timeline!");
+
+        return HttpResponse::Ok().json(timeline);
+    }
+    deauth()
+}
+
 pub fn routes() -> Scope {
     web::scope("")
         .service(sources)
@@ -562,6 +577,7 @@ pub fn routes() -> Scope {
         .service(me)
         .service(list)
         .service(calendar)
+        .service(timeline)
         .service(admin)
 }
 
