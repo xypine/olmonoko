@@ -1,0 +1,194 @@
+{% extends "layouts/base.html" %}
+{% block title %}
+	Event timeline
+{% endblock title %}
+{% block content_nav %}
+{% if user %}
+    <div id="top-menu">
+        <div id="top-menu-left">
+        </div>
+        <div id="top-menu-right">
+            <a href="{{ site_url | safe }}/">
+                Calendar view
+            </a>
+            <p>
+		Timeline view
+            </p>
+        </div>
+    </div>
+{% endif %}
+{% endblock content_nav %}
+{% block content %}
+<section 
+	id="page-timeline" 
+	style="--date-min: {{ timeline.min_date }}; --date-max: {{ timeline.max_date }};"
+>
+
+	<span>
+		<h1>Event timeline</h1>
+		<h2 class="warn"><b>WIP</b>: This is feature is not complete yet, all information might not be accurate!</h2>
+		{% if user and user.admin %}
+			<p>
+				Range: chunks {{ timeline.min_date }} to {{ timeline.max_date }}
+			</p>
+		{% endif %}
+		<p>Max events in a chunk: {{ timeline.max }}</p>
+	</span>
+	<div
+		id="timeline-vis"
+	>
+		{% for yeard in timeline_years %}
+			{% set date = yeard.0 %}
+			<div
+				class="timeline-year bar"
+				style="--date: {{ date }};"
+			>
+			</div>
+		{% endfor %}
+		{% for data in timeline.by_date_normalized %}
+			{% set date = data.0 %}
+			{% set event_count = data.1 %}
+			{% set ts = (date + 1) * timeline.chunk_size %}
+			<div
+				class="timeline-date"
+				style="--date: {{ date }}; --event-count: {{ event_count }};"
+			>
+			</div>
+			<a
+				id="timeline-date-{{ date }}"
+				href="/?goto=t{{ ts }}"
+				class="timeline-date-link"
+				style="--date: {{ date }};"
+			>
+				jump to chunk {{ date }}
+			</a>
+		{% endfor %}
+	</div>
+	<div id="timeline-legend">
+		{% for yeard in timeline_years %}
+			{% set date = yeard.0 %}
+			{% set name = yeard.1 %}
+			<div
+				class="timeline-year"
+				style="--date: {{ date }};"
+			>
+				{{ name }}
+			</div>
+		{% endfor %}
+	</div>
+</section>
+<style>
+	.warn {
+		--variant: var(--danger);
+		font-size: 1rem;
+		font-weight: 400;
+		color: var(--variant);
+		border: 1px solid var(--variant);
+		border-radius: 0.5rem;
+		padding: 0.5rem 1rem;
+		width: fit-content;
+		background: color-mix(in oklab, var(--variant) 5%, var(--surface));
+	}
+	:root {
+		--min-height-percentage: 0;
+	}
+	#top-menu {
+		display: flex;
+		flex-wrap: wrap;
+
+		& > #top-menu-left {
+			flex: 1;
+			padding: .5rem;
+
+			min-width: min(100vw, 400px);
+			display: flex;
+			align-items: center;
+			gap: 1rem;
+		}
+
+		& > #top-menu-right {
+			display: flex;
+			gap: 1rem;
+			padding: .5rem;
+		}
+	}
+
+	#page-timeline {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		padding: 1rem;
+	}
+
+	#timeline-vis {
+		width: 90%;
+		margin-inline: auto;
+		height: 250px;
+		position: relative;
+
+		--date-width: calc(100% / (var(--date-max) - var(--date-min)));
+	}
+
+	#timeline-legend {
+		width: 90%;
+		margin-inline: auto;
+		font-size: 1.25vw;
+		font-family: monospace;
+		height: 1em;
+		position: relative;
+
+		--date-width: calc(100% / (var(--date-max) - var(--date-min)));
+	}
+
+	.timeline-date {
+		--height-percentage: max(var(--event-count), var(--min-height-percentage));
+
+		position: absolute;
+		z-index: 1;
+		pointer-events: none;
+		/* bottom: 0; */
+		width: var(--date-width);
+		/* border-radius: 0.5rem; */
+
+		left: calc((var(--date) - var(--date-min)) * var(--date-width));
+
+		height: max(calc(var(--height-percentage) * 100%), 1px);
+		top: calc(50% - var(--height-percentage) * 50%);
+
+		background: color-mix(in oklab, var(--primary) calc(max(var(--event-count), 0) * 100%), var(--surface-variant));
+	}
+	.timeline-date-link {
+		position: absolute;
+		z-index: 0;
+		top: 0;
+		height: 100%;
+		width: var(--date-width);
+		overflow: hidden;
+		text-align: center;
+		left: calc((var(--date) - var(--date-min)) * var(--date-width));
+		/* TODO: Find a better way to hide text from anyone but screen readers */
+		font-size: 0;
+	}
+	.timeline-date-link:hover {
+		background: var(--brand);
+	}
+
+	.timeline-year {
+		position: absolute;
+		bottom: 0;
+		width: var(--date-width);
+		border-radius: 0.5rem;
+		right: calc(100% - (var(--date) - var(--date-min)) * var(--date-width));
+	    	line-height: 1em;
+
+		&.bar {
+		    	opacity: 0.5;
+			width: 1px;
+			padding-right: 1px;
+			height: 100%;
+			top: 0;
+			background: var(--tertiary);
+		}
+	}
+</style>
+{% endblock content %}

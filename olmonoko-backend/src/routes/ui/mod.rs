@@ -10,6 +10,7 @@ use crate::{
         flash::FLASH_COOKIE_NAME,
         request::{deauth, redirect, EnhancedRequest},
         sources::{get_source_as_user, get_visible_sources_with_event_count},
+        time::from_timestamp,
         timeline::compile_timeline,
         user::get_user_export_links,
     },
@@ -72,7 +73,7 @@ async fn local(
     let (mut context, user) = request.get_session_context(&data).await;
     if let Some(user) = user {
         let filter = EventFilter::from(query.filter.clone());
-        let events = get_user_local_events(&data, user.id, false, filter.clone()).await;
+        let events = get_user_local_events(&data, user.id, false, &filter).await;
         let available_tags = events
             .iter()
             .flat_map(|event| event.tags.iter())
@@ -203,10 +204,13 @@ async fn list(
             &data,
             Some(user.id),
             true,
-            Some(yesterday),
-            Some(next_month),
-            filter.min_priority,
-            filter.max_priority,
+            &EventFilter {
+                after: Some(yesterday),
+                before: Some(next_month),
+                min_priority: filter.min_priority,
+                max_priority: filter.max_priority,
+                ..Default::default()
+            },
         )
         .await;
         // humanize dates etc
@@ -265,6 +269,14 @@ enum CalendarQueryPosition {
 }
 
 fn parse_goto(goto: &str) -> Option<CalendarPosition> {
+    if let Some(ts_str) = goto.strip_prefix('t') {
+        let timestamp: i64 = ts_str.parse().ok()?;
+        let date = from_timestamp(timestamp);
+        return Some(CalendarPosition {
+            year: date.year(),
+            week: date.iso_week().week(),
+        });
+    }
     let mut year = None;
     let mut buffer = String::new();
     let mut mode_week_or_mmdd = false; // week = true, mmdd = false
@@ -379,10 +391,13 @@ async fn calendar(
             &data,
             Some(user.id),
             true,
-            Some(from),
-            Some(to),
-            filter.min_priority,
-            filter.max_priority,
+            &EventFilter {
+                after: Some(from),
+                before: Some(to),
+                min_priority: filter.min_priority,
+                max_priority: filter.max_priority,
+                ..Default::default()
+            },
         )
         .await;
         // humanize dates etc
@@ -417,12 +432,6 @@ async fn calendar(
 
                     let starts_before_tomorrow = event_starts_at < tomorrow;
                     let ends_after_today = event_ends_at >= day_ts;
-
-                    if event.id == 231786 {
-                        println!("{}", pivot.timestamp());
-                        println!("{day}: {event_starts_at} {day_ts} {event_ends_at}");
-                        // println!("{event_starts_at} {day_ts} {tomorrow} {starts_before_today} {ends_before_tomorrow} {starts_before_tomorrow} {ends_after_today}");
-                    }
 
                     if starts_before_tomorrow && ends_after_today {
                         let start_today_s = if starts_before_today {
@@ -555,16 +564,80 @@ async fn calendar(
     remove_flash_cookie(HttpResponse::Ok()).body(content)
 }
 
+#[derive(Debug, serde::Deserialize)]
+struct TimelineQuery {
+    #[serde(flatten)]
+    filter: RawEventFilterWithDate,
+    #[serde(default)]
+    granularity: TimelineGranularity,
+}
+#[derive(Debug, serde::Deserialize)]
+pub enum TimelineGranularity {
+    Year,
+    Month,
+    Week,
+    Day,
+    Hour,
+    Second,
+}
+impl Default for TimelineGranularity {
+    fn default() -> Self {
+        Self::Week
+    }
+}
 #[get("/timeline")]
-pub async fn timeline(data: web::Data<AppState>, request: HttpRequest) -> impl Responder {
+pub async fn timeline(
+    data: web::Data<AppState>,
+    request: HttpRequest,
+    query: web::Query<TimelineQuery>,
+) -> impl Responder {
     let (mut context, user_opt) = request.get_session_context(&data).await;
     if let Some(user) = user_opt {
         tracing::info!(user.id, user.email, "User requested timeline");
-        let timeline = compile_timeline(&data)
+
+        const SECONDS_IN_HOUR: i64 = 60 * 60;
+        const SECONDS_IN_DAY: i64 = 24 * SECONDS_IN_HOUR;
+        const SECONDS_IN_WEEK: i64 = 7 * SECONDS_IN_DAY;
+        const SECONDS_IN_MONTH: i64 = 30 * SECONDS_IN_DAY;
+        const SECONDS_IN_YEAR: i64 = 365 * SECONDS_IN_DAY;
+        let granularity_seconds = match query.granularity {
+            TimelineGranularity::Year => SECONDS_IN_YEAR,
+            TimelineGranularity::Month => SECONDS_IN_MONTH,
+            TimelineGranularity::Week => SECONDS_IN_WEEK,
+            TimelineGranularity::Day => SECONDS_IN_DAY,
+            TimelineGranularity::Hour => SECONDS_IN_HOUR,
+            TimelineGranularity::Second => 1,
+        };
+
+        let filter = EventFilter::from(query.filter.clone());
+        let timeline = compile_timeline(&data, user.id, &filter, granularity_seconds)
             .await
             .expect("Failed to compile timeline!");
 
-        return HttpResponse::Ok().json(timeline);
+        context.insert("timeline", &timeline);
+
+        let mut years = vec![];
+
+        if let (Some(min_chunk), Some(max_chunk)) = (timeline.min_date, timeline.max_date) {
+            let total_chunks = max_chunk - min_chunk;
+            let seconds_in_year = 60 * 60 * 24 * 365;
+            let chunk_size = timeline.chunk_size;
+            let chunks_in_year = seconds_in_year / chunk_size;
+
+            let min_chunk_snapped_to_year = min_chunk - (min_chunk % chunks_in_year);
+            for year in 0..=total_chunks / chunks_in_year {
+                let year_start: i64 = min_chunk_snapped_to_year + year * chunks_in_year;
+                let year_since_zero = 1970 + (year_start / chunks_in_year);
+                years.push((year_start, year_since_zero));
+            }
+        }
+        context.insert("timeline_years", &years);
+
+        let content = data
+            .templates
+            .render("pages/timeline.html", &context)
+            .unwrap();
+        return HttpResponse::Ok().body(content);
     }
     deauth()
 }

@@ -3,6 +3,7 @@ use uuid::Uuid;
 
 use crate::models::public_link::{PublicLink, RawPublicLink};
 use crate::routes::AppState;
+use crate::utils::event_filters::EventFilter;
 use crate::utils::events::get_visible_event_occurrences;
 use crate::utils::request::{deauth, EnhancedRequest};
 use crate::utils::user::get_user_export_links;
@@ -25,10 +26,11 @@ async fn get_calendar(data: web::Data<AppState>, path: web::Path<Uuid>) -> impl 
             &data,
             Some(public_link.user_id),
             true,
-            None,
-            None,
-            public_link.min_priority,
-            public_link.max_priority,
+            &EventFilter {
+                min_priority: public_link.min_priority,
+                max_priority: public_link.max_priority,
+                ..Default::default()
+            },
         )
         .await;
         let ics = crate::logic::compose_ics(events)

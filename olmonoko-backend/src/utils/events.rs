@@ -19,12 +19,12 @@ pub async fn get_user_local_events(
     data: &web::Data<AppState>,
     user_id: i64,
     autodescription: bool,
-    filter: EventFilter,
+    filter: &EventFilter,
 ) -> Vec<LocalEvent> {
     let min_priority = parse_priority(filter.min_priority);
     let max_priority = parse_priority(filter.max_priority);
-    let tags = filter.tags.map(|tags| tags.join(","));
-    let exclude_tags = filter.exclude_tags.map(|tags| tags.join(","));
+    let tags = filter.tags.clone().map(|tags| tags.join(","));
+    let exclude_tags = filter.exclude_tags.clone().map(|tags| tags.join(","));
     sqlx::query!(
         r#"
         SELECT event.*, 
@@ -126,13 +126,12 @@ pub fn parse_priority(priority: Option<i64>) -> Option<i64> {
 async fn get_visible_remote_events(
     data: &web::Data<AppState>,
     user_id: Option<i64>,
-    after: Option<i64>,
-    before: Option<i64>,
-    min_priority: Option<i64>,
-    max_priority: Option<i64>,
+    filter: &EventFilter,
 ) -> Vec<(RemoteEvent, i64, bool)> {
-    let min_priority = parse_priority(min_priority);
-    let max_priority = parse_priority(max_priority);
+    let min_priority = parse_priority(filter.min_priority);
+    let max_priority = parse_priority(filter.max_priority);
+    let tags = filter.tags.clone().map(|tags| tags.join(","));
+    let exclude_tags = filter.exclude_tags.clone().map(|tags| tags.join(","));
     sqlx::query!(
         r#"
         SELECT 
@@ -157,18 +156,31 @@ async fn get_visible_remote_events(
             AND ($4 IS NULL OR (p.priority IS NOT NULL AND COALESCE(NULLIF(e.priority_override, 0), $6) >= $4) OR COALESCE(NULLIF(p.priority, 0), $6) >= $4)
             -- max_priority is null or (source_in_calendar and event_priority_override <= max_priority) and source_priority <= max_priority
             AND ($5 IS NULL OR (p.priority IS NOT NULL AND COALESCE(NULLIF(e.priority_override, 0), $6) <= $5) AND COALESCE(NULLIF(p.priority, 0), $6) <= $5)
+        LEFT JOIN event_tags AS tag
+            ON tag.remote_event_id = e.id
         WHERE 
             ($2 IS NULL OR o.starts_at + COALESCE(e.duration, 0) > $2) 
             AND ($3 IS NULL OR o.starts_at < $3) 
+            AND ($7 IS NULL OR e.summary LIKE $7)
+            AND ($8 IS NULL OR tag.tag IN ($8))
+            AND ($9 IS NULL OR tag IS NULL OR (
+                SELECT tag.tag
+                FROM event_tags AS tag
+                WHERE tag.local_event_id = e.id
+                AND tag.tag IN ($9)
+            ) IS NULL)
         ORDER BY 
             o.starts_at;
         "#,
         user_id,
-        after,
-        before,
+        filter.after,
+        filter.before,
         min_priority,
         max_priority,
         DEFAULT_PRIORITY,
+        filter.summary_like,
+        tags,
+        exclude_tags,
     )
     .fetch_all(&data.conn)
     .await
@@ -200,14 +212,10 @@ pub async fn get_visible_events(
     data: &web::Data<AppState>,
     user_id: Option<i64>,
     autodescription: bool,
-    after: Option<i64>,
-    before: Option<i64>,
-    min_priority: Option<i64>,
-    max_priority: Option<i64>,
+    filter: &EventFilter,
 ) -> Vec<Event> {
     // remote
-    let remote_events =
-        get_visible_remote_events(data, user_id, after, before, min_priority, max_priority).await;
+    let remote_events = get_visible_remote_events(data, user_id, filter).await;
     let mut events: Vec<Event> = remote_events
         .into_iter()
         .sorted_by_key(|(event, _, _)| event.id)
@@ -229,23 +237,12 @@ pub async fn get_visible_events(
         .map(Event::from)
         .collect();
     if let Some(user_id) = user_id {
-        let local_events: Vec<Event> = get_user_local_events(
-            data,
-            user_id,
-            autodescription,
-            EventFilter {
-                summary_like: None,
-                after,
-                before,
-                min_priority,
-                max_priority,
-                ..Default::default()
-            },
-        )
-        .await
-        .into_iter()
-        .map(Event::from)
-        .collect();
+        let local_events: Vec<Event> =
+            get_user_local_events(data, user_id, autodescription, filter)
+                .await
+                .into_iter()
+                .map(Event::from)
+                .collect();
         events.extend(local_events);
     }
     events.sort_by_key(|event| {
@@ -261,21 +258,9 @@ pub async fn get_visible_event_occurrences(
     data: &web::Data<AppState>,
     user_id: Option<i64>,
     autodescription: bool,
-    after: Option<i64>,
-    before: Option<i64>,
-    min_priority: Option<i64>,
-    max_priority: Option<i64>,
+    filter: &EventFilter,
 ) -> Vec<EventOccurrence> {
-    let events = get_visible_events(
-        data,
-        user_id,
-        autodescription,
-        after,
-        before,
-        min_priority,
-        max_priority,
-    )
-    .await;
+    let events = get_visible_events(data, user_id, autodescription, filter).await;
     events
         .into_iter()
         .flat_map(Vec::<EventOccurrence>::from)

@@ -2,14 +2,18 @@ use std::collections::BTreeMap;
 
 use actix_web::web;
 
-use crate::routes::AppState;
+use crate::{
+    routes::AppState,
+    utils::{event_filters::EventFilter, events::get_visible_event_occurrences},
+};
 
 #[derive(Debug, sqlx::FromRow, serde::Serialize)]
 pub struct Timeline {
-    relative_event_count_per_date: Vec<(i64, f64)>,
-    max: Option<usize>,
-    min_date: Option<i64>,
-    max_date: Option<i64>,
+    pub chunk_size: i64,
+    pub by_date_normalized: Vec<(i64, f64)>,
+    pub max: Option<usize>,
+    pub min_date: Option<i64>,
+    pub max_date: Option<i64>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -20,18 +24,36 @@ pub enum TimelineCompilationError {
 
 pub async fn compile_timeline(
     data: &web::Data<AppState>,
+    user_id: i64,
+    filter: &EventFilter,
+    chunk_size_seconds: i64,
 ) -> Result<Timeline, TimelineCompilationError> {
     tracing::debug!("Fetching timeline data...");
-    let data = sqlx::query_scalar!(
-        r#"
-        SELECT starts_at FROM event_occurrences
-    "#
-    )
-    .fetch_all(&data.conn)
-    .await?;
+    // TODO: Ponder on the performance characteristics custom query vs easy generic implementation
+    // let data = sqlx::query_scalar!(
+    //     r#"
+    //     SELECT
+    //         starts_at
+    //     FROM
+    //         event_occurrences
+    //     UNION ALL
+    //     SELECT
+    //         starts_at
+    //     FROM
+    //         local_events
+    // "#
+    // )
+    // .fetch_all(&data.conn)
+    // .await?;
+    let event_occurrences = get_visible_event_occurrences(data, Some(user_id), false, filter).await;
+
+    let data = event_occurrences
+        .into_iter()
+        .map(|occurrence| occurrence.starts_at.timestamp())
+        .collect::<Vec<_>>();
 
     tracing::debug!("Grouping timeline data by date");
-    let by_date = group_by_approx_date(data);
+    let by_date = group_by_approx_date(data, chunk_size_seconds);
     Ok(if let Some(by_date) = by_date {
         tracing::info!("Max events / day (approx): {:?}", by_date.max);
         let normalized: Vec<_> = by_date
@@ -40,18 +62,20 @@ pub async fn compile_timeline(
             .map(|(date, occurrences)| (date, ((occurrences as f64) / (by_date.max as f64))))
             .collect();
         Timeline {
-            relative_event_count_per_date: normalized,
+            by_date_normalized: normalized,
             max: Some(by_date.max),
             min_date: Some(by_date.min_date),
             max_date: Some(by_date.max_date),
+            chunk_size: chunk_size_seconds,
         }
     } else {
         tracing::info!("Max events / day: unknown");
         Timeline {
-            relative_event_count_per_date: vec![],
+            by_date_normalized: vec![],
             max: None,
             min_date: None,
             max_date: None,
+            chunk_size: chunk_size_seconds,
         }
     })
 }
@@ -64,11 +88,10 @@ struct ApproxByDate {
     max_date: i64,
 }
 
-fn group_by_approx_date(starts_at: Vec<i64>) -> Option<ApproxByDate> {
+fn group_by_approx_date(starts_at: Vec<i64>, chunk_size: i64) -> Option<ApproxByDate> {
     if starts_at.is_empty() {
         return None;
     }
-    const ONE_DAY_S: i64 = 86_400;
     let mut max = 1;
     let mut min_date = i64::MAX;
     let mut max_date = i64::MIN;
@@ -76,7 +99,7 @@ fn group_by_approx_date(starts_at: Vec<i64>) -> Option<ApproxByDate> {
     let mut aggregate_len = 0;
     let mut position_map: BTreeMap<i64, usize> = BTreeMap::new();
     for ts in starts_at {
-        let approx_date = ts / ONE_DAY_S;
+        let approx_date = ts / chunk_size;
         min_date = approx_date.min(min_date);
         max_date = approx_date.max(max_date);
         if let Some(pos) = position_map.get(&approx_date) {
@@ -104,9 +127,10 @@ mod tests {
 
     #[test]
     fn group_by_approx_sanity() {
+        const ONE_DAY_S: i64 = 86_400;
         let one_week_seconds = 604_800;
         let starts_at = vec![1719181069, 1719181069 - one_week_seconds];
-        let grouped_by_date = group_by_approx_date(starts_at).unwrap();
+        let grouped_by_date = group_by_approx_date(starts_at, ONE_DAY_S).unwrap();
 
         assert_eq!(grouped_by_date.min_date, grouped_by_date.max_date - 7);
 
