@@ -10,7 +10,7 @@ use crate::{
     },
     routes::{
         AppState, APP_NAVIGATION_ENTRIES_ADMIN, APP_NAVIGATION_ENTRIES_LOGGEDIN,
-        APP_NAVIGATION_ENTRIES_PUBLIC,
+        APP_NAVIGATION_ENTRIES_LOGGEDOUT, APP_NAVIGATION_ENTRIES_PUBLIC,
     },
 };
 use actix_web::{web, HttpRequest, HttpResponse, HttpResponseBuilder};
@@ -79,6 +79,8 @@ pub(crate) async fn get_session_context(
             nav_entries.extend(APP_NAVIGATION_ENTRIES_ADMIN);
         }
         nav_entries.extend(APP_NAVIGATION_ENTRIES_LOGGEDIN);
+    } else {
+        nav_entries.extend(APP_NAVIGATION_ENTRIES_LOGGEDOUT);
     }
     nav_entries.extend(APP_NAVIGATION_ENTRIES_PUBLIC);
     for nav_entry in &mut nav_entries {

@@ -23,58 +23,62 @@
 	id="page-timeline" 
 	style="--date-min: {{ timeline.min_date }}; --date-max: {{ timeline.max_date }};"
 >
-
-	<span>
-		<h1>Event timeline</h1>
-		<h2 class="warn"><b>WIP</b>: This is feature is not complete yet, all information might not be accurate!</h2>
-		{% if user and user.admin %}
-			<p>
-				Range: chunks {{ timeline.min_date }} to {{ timeline.max_date }}
-			</p>
-		{% endif %}
-		<p>Max events in a chunk: {{ timeline.max }}</p>
-	</span>
-	<div
-		id="timeline-vis"
-	>
-		{% for yeard in timeline_years %}
-			{% set date = yeard.0 %}
-			<div
-				class="timeline-year bar"
-				style="--date: {{ date }};"
-			>
-			</div>
-		{% endfor %}
-		{% for data in timeline.by_date_normalized %}
-			{% set date = data.0 %}
-			{% set event_count = data.1 %}
-			{% set ts = (date + 1) * timeline.chunk_size %}
-			<div
-				class="timeline-date"
-				style="--date: {{ date }}; --event-count: {{ event_count }};"
-			>
-			</div>
-			<a
-				id="timeline-date-{{ date }}"
-				href="/?goto=t{{ ts }}"
-				class="timeline-date-link"
-				style="--date: {{ date }};"
-			>
-				jump to chunk {{ date }}
-			</a>
-		{% endfor %}
+	<div>
+		{% include "components/event_filter.html" %}
 	</div>
-	<div id="timeline-legend">
-		{% for yeard in timeline_years %}
-			{% set date = yeard.0 %}
-			{% set name = yeard.1 %}
-			<div
-				class="timeline-year"
-				style="--date: {{ date }};"
-			>
-				{{ name }}
-			</div>
-		{% endfor %}
+	<div id="timeline">
+		<span>
+			<h1>Event timeline</h1>
+			<h2 class="warn"><b>WIP</b>: This is feature is not complete yet, all information might not be accurate!</h2>
+			{% if user and user.admin %}
+				<p>
+					Range: chunks {{ timeline.min_date }} to {{ timeline.max_date }}
+				</p>
+			{% endif %}
+			<p>Max events in a chunk: {{ timeline.max }}</p>
+		</span>
+		<div
+			id="timeline-vis"
+		>
+			{% for yeard in timeline_years %}
+				{% set date = yeard.0 %}
+				<div
+					class="timeline-year bar"
+					style="--date: {{ date }};"
+				>
+				</div>
+			{% endfor %}
+			{% for data in timeline.by_date_normalized %}
+				{% set date = data.0 %}
+				{% set event_count = data.1 %}
+				{% set ts = (date + 1) * timeline.chunk_size %}
+				<div
+					class="timeline-date"
+					style="--date: {{ date }}; --event-count: {{ event_count }};"
+				>
+				</div>
+				<a
+					id="timeline-date-{{ date }}"
+					href="/?goto=t{{ ts }}"
+					class="timeline-date-link"
+					style="--date: {{ date }};"
+				>
+					jump to chunk {{ date }}
+				</a>
+			{% endfor %}
+		</div>
+		<div id="timeline-legend">
+			{% for yeard in timeline_years %}
+				{% set date = yeard.0 %}
+				{% set name = yeard.1 %}
+				<div
+					class="timeline-year"
+					style="--date: {{ date }};"
+				>
+					{{ name }}
+				</div>
+			{% endfor %}
+		</div>
 	</div>
 </section>
 <style>
@@ -116,8 +120,14 @@
 	#page-timeline {
 		flex: 1;
 		display: flex;
-		flex-direction: column;
 		padding: 1rem;
+		gap: 1rem;
+	}
+	#timeline {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
 	}
 
 	#timeline-vis {

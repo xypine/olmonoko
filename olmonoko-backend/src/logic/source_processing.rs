@@ -67,7 +67,14 @@ pub(crate) fn process_events(
             };
             if let Some(template) = &source.import_template {
                 match render_import_template(template, &event) {
-                    Ok(new_event) => event = new_event,
+                    Ok(new_event) => {
+                        if let Some(new_event) = new_event {
+                            event = new_event;
+                        } else {
+                            // template requested to skip this event
+                            return vec![];
+                        }
+                    }
                     Err(e) => {
                         tracing::error!(
                             source_id = source.id,
@@ -316,7 +323,7 @@ pub enum ImportTemplateError {
 pub fn render_import_template(
     template: &str,
     event: &NewRemoteEvent,
-) -> Result<NewRemoteEvent, ImportTemplateError> {
+) -> Result<Option<NewRemoteEvent>, ImportTemplateError> {
     let mut context = tera::Context::new();
     context.insert("default_priority", &DEFAULT_PRIORITY);
 
@@ -339,6 +346,9 @@ pub fn render_import_template(
 
     let result = tera.render_str(template, &context)?;
     let parsed: ImportTemplateDelta = serde_json::from_str(&result)?;
+    if parsed.skip {
+        return Ok(None);
+    }
     let mut new_event = event.clone();
     // apply delta
     new_event.priority_override = parsed.priority_override.or(event.priority_override);
@@ -348,11 +358,13 @@ pub fn render_import_template(
     new_event.description = parsed.description.or(event.description.clone());
     new_event.location = parsed.location.or(event.location.clone());
 
-    Ok(new_event)
+    Ok(Some(new_event))
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ImportTemplateDelta {
+    #[serde(default)]
+    pub skip: bool,
     #[serde(default)]
     pub priority_override: Option<i64>,
     #[serde(default)]

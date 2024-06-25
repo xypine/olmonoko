@@ -54,6 +54,11 @@ pub const APP_NAVIGATION_ENTRIES_LOGGEDIN: [NavigationEntry; 2] = [
         active: None,
     },
 ];
+pub const APP_NAVIGATION_ENTRIES_LOGGEDOUT: [NavigationEntry; 1] = [NavigationEntry {
+    name: "Sign in",
+    path: "/me",
+    active: None,
+}];
 pub const APP_NAVIGATION_ENTRIES_PUBLIC: [NavigationEntry; 2] = [
     NavigationEntry {
         name: "Sources",

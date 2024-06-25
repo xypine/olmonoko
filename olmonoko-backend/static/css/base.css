@@ -108,10 +108,20 @@ a:hover {
 
 	text-decoration: none !important;
 	text-align: center;
+
+	border: 1px solid var(--variant-color);
 }
 
 .btn:disabled {
 	filter: grayscale(1);
+}
+
+.btn.icon {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	padding: .5rem;
+	font-size: 1.5rem;
 }
 
 .btn.variant-danger {
@@ -130,7 +140,49 @@ a:hover {
 .btn.border-only {
 	background-color: transparent;
 	color: var(--variant-color);
-	border: 1px solid;
+}
+
+summary.btn {
+	width: fit-content;
+	/* border-only */
+	background-color: transparent;
+	color: var(--primary);
+
+	transition-duration: 200ms;
+	transition-property: border-bottom-left-radius, border-top-right-radius;
+}
+
+summary.btn::marker {
+	content: none;
+}
+
+summary.btn::-webkit-details-marker {
+	display: none;
+}
+
+details[open]>summary.btn {
+	/* negate border-only */
+	background-color: var(--variant-color);
+	color: var(--variant-contrast);
+
+	/* blend in with the detail's border */
+	border-bottom-left-radius: 0;
+	border-top-right-radius: 0;
+}
+
+details:has(>summary.btn) {
+	border: 1px solid transparent;
+	border-radius: .33rem;
+}
+
+details:has(>summary.btn),
+details:has(>summary.btn)>*:not(summary) {
+	transition-behavior: allow-discrete;
+	transition: all 200ms;
+}
+
+details[open]:has(>summary.btn) {
+	border: 1px solid var(--primary);
 }
 
 li {
@@ -144,10 +196,16 @@ form {
 }
 
 fieldset {
-	padding: 1rem;
+	padding: .5rem;
+	margin: .5rem;
 	display: flex;
 	flex-direction: column;
 	gap: .5rem;
+	border: 1px solid color-mix(in srgb, var(--contrast) 20%, transparent 80%);
+}
+
+summary {
+	cursor: pointer;
 }
 
 select {
@@ -242,6 +300,11 @@ iframe.escaped-content {
 
 
 /* Loading */
+
+@view-transition {
+	/* enable view transitions */
+	navigation: auto;
+}
 
 #anything-loading {
 	visibility: hidden;

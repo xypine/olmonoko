@@ -193,8 +193,9 @@ function vk_handle_event(e) {
 	if (e.detail.signal == "goto") {
 		console.log("Received goto signal:", e.detail.data);
 		let url = `/`;
+		let spa = true;
 		if (e.detail.data == "now") {
-			// noop
+			spa = false;
 		}
 		else {
 			let data = e.detail.data;
@@ -205,8 +206,10 @@ function vk_handle_event(e) {
 		let content = document.getElementById("content");
 		content.appendChild(link);
 		link.href = url;
-		// allow htmx to insert boosted behaviour
-		htmx.process(link);
+		if (spa) {
+			// allow htmx to insert boosted behaviour
+			htmx.process(link);
+		}
 		// wait for htmx to finish
 		window.requestAnimationFrame(() => {
 			link.click();

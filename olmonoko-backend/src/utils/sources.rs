@@ -90,3 +90,35 @@ pub async fn get_source_as_user(
         }, source.priority))
     })
 }
+pub async fn get_source_as_user_with_event_count(
+    data: &web::Data<AppState>,
+    user_id: Option<i64>,
+    id: i32,
+) -> (IcsSource, i64, i64) {
+    let r = sqlx::query!(
+        "SELECT COUNT(DISTINCT e.id) AS event_count, COUNT(o.id) AS occurrence_count, s.*, p.priority FROM ics_sources AS s LEFT JOIN ics_source_priorities AS p ON p.ics_source_id = s.id AND p.user_id = $1 LEFT JOIN events AS e ON e.event_source_id = s.id LEFT JOIN event_occurrences AS o ON o.event_id = e.id WHERE (s.is_public = true OR s.user_id = $1) AND s.id = $2 GROUP BY s.id",
+        user_id,
+        id
+    )
+    .fetch_one(&data.conn)
+    .await
+    .expect("Failed to fetch source from db");
+
+    let ics_source = IcsSource::from((
+        RawIcsSource {
+            id: r.id,
+            name: r.name,
+            url: r.url,
+            user_id: r.user_id,
+            last_fetched_at: r.last_fetched_at,
+            is_public: r.is_public,
+            created_at: r.created_at,
+            persist_events: r.persist_events,
+            all_as_allday: r.all_as_allday,
+            import_template: r.import_template,
+        },
+        r.priority,
+    ));
+
+    (ics_source, r.event_count, r.occurrence_count)
+}

@@ -7,15 +7,36 @@ pub struct EventFilter {
     pub max_priority: Option<i64>,
     pub tags: Option<Vec<String>>,
     pub exclude_tags: Option<Vec<String>>,
+    pub show_filter: bool,
+}
+impl EventFilter {
+    pub fn is_defined(&self) -> bool {
+        self.summary_like.is_some()
+            || self.after.is_some()
+            || self.before.is_some()
+            || self.min_priority.is_some()
+            || self.max_priority.is_some()
+            || self.tags.is_some()
+            || self.exclude_tags.is_some()
+    }
 }
 
+use serde_with::As;
+use serde_with::NoneAsEmptyString;
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Default, PartialEq)]
 pub struct RawEventFilter {
+    #[serde(default, with = "As::<NoneAsEmptyString>")]
     pub summary_like: Option<String>,
+    #[serde(default, with = "As::<NoneAsEmptyString>")]
     pub min_priority: Option<String>,
+    #[serde(default, with = "As::<NoneAsEmptyString>")]
     pub max_priority: Option<String>,
+    #[serde(default, with = "As::<NoneAsEmptyString>")]
     pub tags: Option<String>,
+    #[serde(default, with = "As::<NoneAsEmptyString>")]
     pub exclude_tags: Option<String>,
+    #[serde(default, with = "As::<NoneAsEmptyString>")]
+    pub show_filter: Option<String>,
 }
 impl From<RawEventFilter> for EventFilter {
     fn from(raw: RawEventFilter) -> Self {
@@ -37,12 +58,24 @@ impl From<RawEventFilter> for EventFilter {
                     .filter(|s| !s.is_empty())
                     .collect()
             }),
+            show_filter: raw.show_filter.map(|s| s == "true").unwrap_or(false),
         }
+    }
+}
+impl RawEventFilter {
+    pub fn is_defined(&self) -> bool {
+        self.summary_like.is_some()
+            || self.min_priority.is_some()
+            || self.max_priority.is_some()
+            || self.tags.is_some()
+            || self.exclude_tags.is_some()
     }
 }
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Default)]
 pub struct RawEventDateFilter {
+    #[serde(default, with = "As::<NoneAsEmptyString>")]
     pub after: Option<String>,
+    #[serde(default, with = "As::<NoneAsEmptyString>")]
     pub before: Option<String>,
 }
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Default)]
@@ -60,5 +93,10 @@ impl From<RawEventFilterWithDate> for EventFilter {
         base.after = after;
         base.before = before;
         base
+    }
+}
+impl RawEventFilterWithDate {
+    pub fn is_defined(&self) -> bool {
+        self.base.is_defined() || self.date.after.is_some() || self.date.before.is_some()
     }
 }

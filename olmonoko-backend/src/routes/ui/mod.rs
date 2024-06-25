@@ -9,7 +9,10 @@ use crate::{
         events::{get_user_local_events, get_visible_event_occurrences},
         flash::FLASH_COOKIE_NAME,
         request::{deauth, redirect, EnhancedRequest},
-        sources::{get_source_as_user, get_visible_sources_with_event_count},
+        sources::{
+            get_source_as_user, get_source_as_user_with_event_count,
+            get_visible_sources_with_event_count,
+        },
         time::from_timestamp,
         timeline::compile_timeline,
         user::get_user_export_links,
@@ -72,6 +75,8 @@ async fn local(
 ) -> impl Responder {
     let (mut context, user) = request.get_session_context(&data).await;
     if let Some(user) = user {
+        context.insert("filter", &query.filter);
+        context.insert("filter_set", &query.filter.is_defined());
         let filter = EventFilter::from(query.filter.clone());
         let events = get_user_local_events(&data, user.id, false, &filter).await;
         let available_tags = events
@@ -123,8 +128,11 @@ async fn source(
 ) -> impl Responder {
     let (mut context, user) = request.get_session_context(&data).await;
     let id = path.into_inner();
-    let source = get_source_as_user(&data, user.map(|u| u.id), id).await;
+    let (source, events, occurrences) =
+        get_source_as_user_with_event_count(&data, user.map(|u| u.id), id).await;
     context.insert("source", &source);
+    context.insert("event_count", &events);
+    context.insert("occurrence_count", &occurrences);
     let content = data
         .templates
         .render("pages/source.html", &context)
@@ -359,9 +367,11 @@ async fn calendar(
     if let Some(user) = user {
         let now = chrono::Utc::now().with_timezone(&user.interface_timezone_parsed);
 
+        context.insert("filter", &query.filter);
+        context.insert("filter_set", &query.filter.is_defined());
         let query = query.into_inner();
         let chosen_position: Option<CalendarPosition> = query.position.into();
-        let filter = EventFilter::from(query.filter);
+        let mut filter = EventFilter::from(query.filter);
         // pivot is the first day of the shown week at 00:00
         let pivot = if let Some(position) = chosen_position {
             chrono::NaiveDate::from_isoywd_opt(position.year, position.week, chrono::Weekday::Mon)
@@ -387,19 +397,9 @@ async fn calendar(
         let from = (pivot - chrono::Duration::milliseconds(1)).timestamp();
         // before next week
         let to = (pivot + chrono::Duration::days(7)).timestamp();
-        let events = get_visible_event_occurrences(
-            &data,
-            Some(user.id),
-            true,
-            &EventFilter {
-                after: Some(from),
-                before: Some(to),
-                min_priority: filter.min_priority,
-                max_priority: filter.max_priority,
-                ..Default::default()
-            },
-        )
-        .await;
+        filter.after = Some(from);
+        filter.before = Some(to);
+        let events = get_visible_event_occurrences(&data, Some(user.id), true, &filter).await;
         // humanize dates etc
         let events = events
             .into_iter()
@@ -610,6 +610,8 @@ pub async fn timeline(
         };
 
         let filter = EventFilter::from(query.filter.clone());
+        context.insert("filter", &query.filter);
+        context.insert("filter_set", &query.filter.is_defined());
         let timeline = compile_timeline(&data, user.id, &filter, granularity_seconds)
             .await
             .expect("Failed to compile timeline!");

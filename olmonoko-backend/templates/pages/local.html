@@ -2,53 +2,64 @@
 {% block title %}Local events{% endblock title %}
 {% block content %}
 <section id="partial-local-events" style="">
-    <div style="display: flex; gap: 2.5rem; flex-wrap: wrap-reverse; justify-content: center; width: 100%;">
+    <div style="flex:1;display: flex; gap: 2.5rem; flex-wrap: wrap-reverse;min-width:50vw;">
         <div style="flex: 1;">
             <h1 style="margin-bottom:1rem; font-size:2em;">Local Events</h1>
-            {% if events_grouped_by_priority %}
-                <h2 style="margin-top:-1rem;margin-bottom:1rem; font-size:1.5em;">Grouped by priority</h2>
-            {% endif %}
-            {% if events and filter_query %}
-                <h3 style="margin-top:-1rem;margin-bottom:1rem; font-size:1.5em;">Filtered by '{{ filter_query }}'</h3>
-            <form action="{{ site_url | safe }}/api/event/local/delete?{{ filter_query }}" method="post">
-                <button type="submit" style="margin-top:1rem;">Delete selected</button>
-            </form>
-            {% endif %}
-            <ul class="local-event-list">
-                {% if not events %}
-                    <li>No events – yet</li>
-                    <p>Local events are events that are not fetched from any external source. They are stored on this server and can only be modified by you. </p>
-                {% endif %}
-                {% for tuple in events_grouped_by_priority %}
-                    {% set priority = tuple[0] %}
-                    {% set events = tuple[1] %}
-                    <details open>
-                        <summary style="margin-top:1rem;margin-bottom:1rem; font-size:1.2em;cursor:pointer;">
-                            <h3 style="display:inline;">
-                                {% if priority %}
-                                    Priority {{ priority }}
-                                {% else %}
-                                    Default priority
-                                {% endif %}
-                            </h3>
-                        </summary>
-                        {% for event in events %}
-                            <li style="display: flex; gap: 0.5em; flex-wrap: wrap;justify-content: center;" id="local-event-{{ event.id }}">
-                                <p href="{{ site_url | safe }}/local/{{ event.id }}" style="flex: 1; min-width: 300px">{{ event.summary }}</p>
-                                <div class="item-details">
-                                    <span>
-                                    {% if event.all_day %}
-                                        All day
+            <div id="events">
+                <div>
+                    {% include "components/event_filter.html" %}
+                    {% if events and filter_set == true %}
+                        <form
+                            method="post"
+                            action="{{ site_url | safe }}/api/event/local/delete?{{ filter_query }}"
+                            hx-confirm="Are you sure you want to delete {{ events | length }} selected event(s)?"
+                        >
+                            <button class="btn variant-danger border-only" type="submit" style="margin-top:1rem;">Delete selected</button>
+                        </form>
+                    {% endif %}
+                </div>
+                <ul class="local-event-list">
+                    {% if not events %}
+                        <li>No events 
+                            {% if filter_set %}
+                                match the filter
+                            {% else %}
+                                – yet
+                            {% endif %}
+                        </li>
+                        <p>Local events are events that are not fetched from any external source. They are stored on this server and can only be modified by you. </p>
+                    {% endif %}
+                    {% for tuple in events_grouped_by_priority %}
+                        {% set priority = tuple[0] %}
+                        {% set events = tuple[1] %}
+                        <details open>
+                            <summary style="margin-bottom:1rem; font-size:1.2em;cursor:pointer;">
+                                <h3 style="display:inline;">
+                                    {% if priority %}
+                                        Priority {{ priority }}
+                                    {% else %}
+                                        Default priority
                                     {% endif %}
-                                    {{ event.starts_at }}
-                                    </span>
-                                    <a href="{{ site_url | safe }}/local?selected={{ event.id }}">Edit</a>
-                                </div>
-                            </li>
-                        {% endfor %}
-                    </details>
-                {% endfor %}
-            </ul>
+                                </h3>
+                            </summary>
+                            {% for event in events %}
+                                <li style="display: flex; gap: 0.5em; flex-wrap: wrap;justify-content: center;" id="local-event-{{ event.id }}">
+                                    <p href="{{ site_url | safe }}/local/{{ event.id }}" style="flex: 1; min-width: 300px">{{ event.summary }}</p>
+                                    <div class="item-details">
+                                        <span>
+                                        {% if event.all_day %}
+                                            All day
+                                        {% endif %}
+                                        {{ event.starts_at }}
+                                        </span>
+                                        <a href="{{ site_url | safe }}/local?selected={{ event.id }}">Edit</a>
+                                    </div>
+                                </li>
+                            {% endfor %}
+                        </details>
+                    {% endfor %}
+                </ul>
+            </div>
         </div>
         <div>
             {% include 'components/local/event.html' %}
@@ -62,11 +73,14 @@
     #partial-local-events {
         flex: 1;
         display: flex;
-        flex-direction: column;
         justify-content: start;
-        align-items: center;
-        gap: 1rem;
+        gap: 2rem;
         padding: 1rem;
+
+        & #events {
+            display: flex;
+            gap: 1rem;
+        }
 
         & .item-details {
             display: flex;
@@ -75,9 +89,20 @@
             gap: .5em;
         }
         & .local-event-list {
+            flex: 1;
             display: flex;
             flex-direction: column;
             gap: .5rem;
+
+            & li:nth-child(odd) {
+                background-color: var(--surface-variant);
+            }
+        }
+    }
+
+    @media (max-width: 1300px) {
+        #events {
+            flex-direction: column;
         }
     }
 </style>

@@ -1,10 +1,10 @@
 <ul>
 	{% for nav_entry in nav_entries %}
-	<li class="
+	<li
 		{% if nav_entry.active %}
-			active
+			class="active"
 		{% endif %}
-	">
+	>
 		{% if nav_entry.active %}
 			<p>{{nav_entry.name}}</p>	
 		{% else %}
