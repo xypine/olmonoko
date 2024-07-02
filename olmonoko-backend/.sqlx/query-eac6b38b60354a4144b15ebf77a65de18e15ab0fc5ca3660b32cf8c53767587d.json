@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM event_tags WHERE remote_event_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "eac6b38b60354a4144b15ebf77a65de18e15ab0fc5ca3660b32cf8c53767587d"
+}
