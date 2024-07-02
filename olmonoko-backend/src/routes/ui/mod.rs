@@ -1,7 +1,7 @@
 use crate::{
     models::{
         event::{local::LocalEventForm, EventOccurrenceHuman},
-        user::{RawUser, UserPublic},
+        user::{RawUser, UnverifiedUser, UserPublic},
     },
     routes::AppState,
     utils::{
@@ -9,10 +9,7 @@ use crate::{
         events::{get_user_local_events, get_visible_event_occurrences},
         flash::FLASH_COOKIE_NAME,
         request::{deauth, redirect, EnhancedRequest},
-        sources::{
-            get_source_as_user, get_source_as_user_with_event_count,
-            get_visible_sources_with_event_count,
-        },
+        sources::{get_source_as_user_with_event_count, get_visible_sources_with_event_count},
         time::from_timestamp,
         timeline::compile_timeline,
         user::get_user_export_links,
@@ -152,6 +149,11 @@ async fn admin(data: web::Data<AppState>, request: HttpRequest) -> impl Responde
         .expect("Failed to get users");
     let users = users.into_iter().map(UserPublic::from).collect::<Vec<_>>();
     context.insert("users", &users);
+    let unverified_users = sqlx::query_as!(UnverifiedUser, "SELECT * FROM unverified_users")
+        .fetch_all(&data.conn)
+        .await
+        .expect("Failed to get unverified users");
+    context.insert("unverified_users", &unverified_users);
     let content = data.templates.render("pages/admin.html", &context).unwrap();
     remove_flash_cookie(HttpResponse::Ok()).body(content)
 }
@@ -372,7 +374,7 @@ async fn calendar(
         let query = query.into_inner();
         let chosen_position: Option<CalendarPosition> = query.position.into();
         let mut filter = EventFilter::from(query.filter);
-        // pivot is the first day of the shown week at 00:00
+        // pivot is the first day of the shown week at 00:00 UTC
         let pivot = if let Some(position) = chosen_position {
             chrono::NaiveDate::from_isoywd_opt(position.year, position.week, chrono::Weekday::Mon)
                 .expect("Failed to construct pivot")
@@ -422,31 +424,13 @@ async fn calendar(
                 .iter()
                 .filter_map(|event| {
                     let mut event = event.clone();
-                    let event_starts_at = event.starts_at_utc.timestamp();
-                    let event_ends_at =
-                        event_starts_at + event.duration.unwrap_or(INTERFACE_MIN_EVENT_LENGTH);
-                    let day_ts = pivot.timestamp() + (day * 24 * 3600) as i64;
-                    let tomorrow = day_ts + 24 * 3600;
-                    let starts_before_today = event_starts_at < day_ts;
-                    let ends_before_tomorrow = event_ends_at < tomorrow;
-
-                    let starts_before_tomorrow = event_starts_at < tomorrow;
-                    let ends_after_today = event_ends_at >= day_ts;
-
-                    if starts_before_tomorrow && ends_after_today {
-                        let start_today_s = if starts_before_today {
-                            0
-                        } else {
-                            event.starts_at_seconds
-                        };
-                        let duration_today_s = match (starts_before_today, ends_before_tomorrow) {
-                            (true, true) => event_ends_at - day_ts,
-                            (true, false) => 24 * 3600 - start_today_s,
-                            (false, true) => event.duration.unwrap_or(0),
-                            (false, false) => 24 * 3600 - start_today_s,
-                        };
-                        event.starts_at_seconds = start_today_s;
-                        event.duration = Some(duration_today_s);
+                    let today_ts = pivot_local.timestamp() + (day * 24 * 3600) as i64;
+                    let tomorrow_ts = today_ts + 24 * 3600;
+                    if let Some((starts_at_s, duration)) =
+                        event.interface_span(today_ts, tomorrow_ts)
+                    {
+                        event.starts_at_seconds = starts_at_s;
+                        event.duration = duration;
                         return Some(event);
                     }
                     None

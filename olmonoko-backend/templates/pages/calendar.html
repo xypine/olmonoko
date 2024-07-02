@@ -43,41 +43,6 @@
 {% endif %}
 {% endblock content_nav %}
 {% block content %}
-{% include "components/calendar/week.html" %}
-<section id="page-home">
-    {% if user %}
-        {% if events %}
-            <table>
-            <tr>
-                <th>P</th>
-                <th>What</th>
-                <th>When</th>
-                <th>What</th>
-                <th>Where</th>
-            </tr>
-            {% for event in events %}
-            <tr id="event-{{ event.id }}">
-                <td ><div style="display:flex;justify-content:center;align-items:center;">{{ event.priority|default(value=' ') }}</div></td>
-                <td>{{ event.summary }}</td>
-                <td>
-                    {{ event.starts_at_human }} 
-                    {% if event.duration_human %}
-                        for
-                        {{ event.duration_human }}
-                    {% endif %}
-                </td>
-                <td>
-                    <iframe class="escaped-content" srcdoc="<link rel='stylesheet' href='/static/css/base.css' />{{ event.description | default(value="no description") | replace(from="\n", to="<br>") | linebreaksbr | escape | safe }}" width=600 allowtransparency="true"></iframe>
-                </td>
-                <td>{{ event.location }}</td>
-            </tr>
-            {% endfor %}
-            </table>
-        {% else %}
-            <p id="no-events-found">No events found</p>
-        {% endif %}
-    {% endif %}
-</section>
 <style>
     :root {
         --ribbon-i-padding-x:  1em;
@@ -155,4 +120,39 @@
         background: var(--surface-variant);
     }
 </style>
+{% include "components/calendar/week.html" %}
+<section id="page-home">
+    {% if user %}
+        {% if events %}
+            <table>
+            <tr>
+                <th>P</th>
+                <th>What</th>
+                <th>When</th>
+                <th>What</th>
+                <th>Where</th>
+            </tr>
+            {% for event in events %}
+            <tr id="event-{{ event.id }}">
+                <td ><div style="display:flex;justify-content:center;align-items:center;">{{ event.priority|default(value=' ') }}</div></td>
+                <td>{{ event.summary }}</td>
+                <td>
+                    {{ event.starts_at_human }}
+                    {% if event.duration_human %}
+                        for
+                        {{ event.duration_human }}
+                    {% endif %}
+                </td>
+                <td>
+                    <iframe class="escaped-content" srcdoc="<link rel='stylesheet' href='/static/css/base.css' />{{ event.description | default(value="no description") | replace(from="\n", to="<br>") | linebreaksbr | escape | safe }}" width=600 allowtransparency="true"></iframe>
+                </td>
+                <td>{{ event.location }}</td>
+            </tr>
+            {% endfor %}
+            </table>
+        {% else %}
+            <p id="no-events-found">No events found</p>
+        {% endif %}
+    {% endif %}
+</section>
 {% endblock content %}

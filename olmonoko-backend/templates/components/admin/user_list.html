@@ -5,6 +5,7 @@
             <th>Id</th>
             <th>Email</th>
             <th>Admin</th>
+	        <th>Created</th> 
             <th>Actions</th>
         </tr>
         {% for user in users %}
@@ -12,6 +13,7 @@
             <td>{{ user.id }}</td>
             <td id="user-{{ user.id }}">{{ user.email }}</td>
             <td>{{ user.admin }}</td>
+            <td>{{ user.created_at }}</td>
             <td>
                 <form 
                     hx-delete="{{ site_url | safe }}/api/user/{{ user.id }}"

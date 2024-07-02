@@ -70,6 +70,8 @@ pub struct NewRemoteEvent {
     pub description: Option<String>,
     pub location: Option<String>,
     pub uid: String,
+    // tags
+    pub tags: Vec<String>,
 }
 
 #[derive(Debug, Clone, sqlx::FromRow, serde::Serialize, serde::Deserialize)]

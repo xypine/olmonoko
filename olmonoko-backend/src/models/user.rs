@@ -76,3 +76,13 @@ impl From<RawUser> for UserPublic {
         User::from(raw).into()
     }
 }
+
+#[derive(Debug, Clone, sqlx::FromRow, serde::Serialize, serde::Deserialize)]
+pub struct UnverifiedUser {
+    pub id: i64,
+    pub email: String,
+    pub password_hash: String,
+    pub created_at: i64,
+    pub admin: bool,
+    pub secret: String,
+}

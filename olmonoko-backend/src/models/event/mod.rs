@@ -225,6 +225,45 @@ pub struct EventOccurrenceHuman {
     pub location: Option<String>,
     pub uid: String,
 }
+impl EventOccurrenceHuman {
+    // returns the start time in seconds since midnight and the duration in seconds
+    // if the event doesn't span that day, returns None
+    pub fn interface_span(&self, day_start: i64, day_end: i64) -> Option<(i64, Option<i64>)> {
+        let start = self.starts_at_utc.timestamp();
+        // check if the event starts after the day ends
+        if self.starts_at_utc.timestamp() > day_end {
+            return None;
+        }
+
+        if let Some(duration) = self.duration {
+            let end = start + duration;
+
+            // check if the event ends before the day starts
+            if end < day_start {
+                return None;
+            }
+
+            let start = start.max(day_start);
+            let end = end.min(day_end);
+
+            let start = start - day_start;
+            let end = end - day_start;
+
+            let duration = end - start;
+            if duration == 0 {
+                return None;
+            }
+
+            Some((start, Some(duration)))
+        } else {
+            if start < day_start {
+                return None;
+            }
+            let start = start - day_start;
+            Some((start, None))
+        }
+    }
+}
 impl<T: TimeZone> From<(EventOccurrence, &T)> for EventOccurrenceHuman
 where
     T::Offset: std::fmt::Display,
@@ -309,5 +348,150 @@ impl EventLike for EventOccurrenceHuman {
 
     fn tags(&self) -> Vec<String> {
         self.tags.clone()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_event_occurrence_span() {
+        let event = EventOccurrence {
+            id: 1,
+            source: EventSource::Local(SourceLocal { user_id: 1 }),
+            priority: 5,
+            tags: vec![],
+            starts_at: Utc.ymd(2021, 1, 1).and_hms(12, 0, 0),
+            all_day: false,
+            duration: Some(3600),
+            rrule: None,
+            from_rrule: false,
+            summary: "Test".to_string(),
+            description: None,
+            location: None,
+            uid: "test".to_string(),
+        };
+        let tz = Utc;
+        let human = EventOccurrenceHuman::from((event, &tz));
+        let day_start = Utc.ymd(2021, 1, 1).and_hms(0, 0, 0).timestamp();
+        assert_eq!(
+            human.interface_span(day_start, day_start + 86400),
+            Some((12 * 3600, Some(3600)))
+        );
+        let day_start = Utc.ymd(2021, 1, 2).and_hms(0, 0, 0).timestamp();
+        assert_eq!(human.interface_span(day_start, day_start + 86400), None);
+    }
+
+    #[test]
+    fn test_event_occurrence_span_whole() {
+        let event = EventOccurrence {
+            id: 1,
+            source: EventSource::Local(SourceLocal { user_id: 1 }),
+            priority: 5,
+            tags: vec![],
+            starts_at: Utc.ymd(2021, 1, 1).and_hms(0, 0, 0),
+            all_day: false,
+            duration: Some(3600 * 24),
+            rrule: None,
+            from_rrule: false,
+            summary: "Test".to_string(),
+            description: None,
+            location: None,
+            uid: "test".to_string(),
+        };
+        let tz = Utc;
+        let human = EventOccurrenceHuman::from((event, &tz));
+        let day_start = Utc.ymd(2021, 1, 1).and_hms(0, 0, 0).timestamp();
+        assert_eq!(
+            human.interface_span(day_start, day_start + 86400),
+            Some((0, Some(3600 * 24)))
+        );
+        let day_start = Utc.ymd(2021, 1, 2).and_hms(0, 0, 0).timestamp();
+        assert_eq!(human.interface_span(day_start, day_start + 86400), None);
+    }
+
+    #[test]
+    fn test_event_occurrence_span_multiday() {
+        for tz in [chrono_tz::Etc::UTC, chrono_tz::Europe::Helsinki] {
+            let event = EventOccurrence {
+                id: 1,
+                source: EventSource::Local(SourceLocal { user_id: 1 }),
+                priority: 5,
+                tags: vec![],
+                starts_at: Utc.ymd(2021, 1, 1).and_hms(23, 30, 0),
+                all_day: false,
+                duration: Some(3600),
+                rrule: None,
+                from_rrule: false,
+                summary: "Test".to_string(),
+                description: None,
+                location: None,
+                uid: "test".to_string(),
+            };
+            let human = EventOccurrenceHuman::from((event, &tz));
+            let day_start = Utc.ymd(2021, 1, 1).and_hms(0, 0, 0).timestamp();
+            assert_eq!(
+                human.interface_span(day_start, day_start + 86400),
+                Some(((23.5 * 3600.0) as i64, Some(3600 / 2)))
+            );
+            let day_start = Utc.ymd(2021, 1, 2).and_hms(0, 0, 0).timestamp();
+            assert_eq!(
+                human.interface_span(day_start, day_start + 86400),
+                Some((0, Some(3600 / 2)))
+            );
+
+            let event = EventOccurrence {
+                id: 1,
+                source: EventSource::Local(SourceLocal { user_id: 1 }),
+                priority: 5,
+                tags: vec![],
+                starts_at: Utc.ymd(2024, 7, 25).and_hms(0, 0, 0),
+                all_day: true,
+                duration: Some(3600 * 24 * 3),
+                rrule: None,
+                from_rrule: false,
+                summary: "Test".to_string(),
+                description: None,
+                location: None,
+                uid: "test".to_string(),
+            };
+            let human = EventOccurrenceHuman::from((event, &tz));
+            let day_start = Utc.ymd(2024, 7, 26).and_hms(0, 0, 0).timestamp();
+            assert_eq!(
+                human.interface_span(day_start, day_start + 86400),
+                Some((0, Some(3600 * 24)))
+            );
+            let day_start = Utc.ymd(2024, 7, 28).and_hms(0, 0, 0).timestamp();
+            assert_eq!(human.interface_span(day_start, day_start + 86400), None);
+        }
+    }
+
+    #[test]
+    fn test_event_occurrence_span_no_duration() {
+        let event = EventOccurrence {
+            id: 1,
+            source: EventSource::Local(SourceLocal { user_id: 1 }),
+            priority: 5,
+            tags: vec![],
+            starts_at: Utc.ymd(2021, 1, 1).and_hms(12, 0, 0),
+            all_day: false,
+            duration: None,
+            rrule: None,
+            from_rrule: false,
+            summary: "Test".to_string(),
+            description: None,
+            location: None,
+            uid: "test".to_string(),
+        };
+        let tz = Utc;
+        let human = EventOccurrenceHuman::from((event, &tz));
+        let day_start = Utc.ymd(2021, 1, 1).and_hms(0, 0, 0).timestamp();
+        assert_eq!(
+            human.interface_span(day_start, day_start + 86400),
+            Some((12 * 3600, None))
+        );
+        let day_start = Utc.ymd(2021, 1, 2).and_hms(0, 0, 0).timestamp();
+        assert_eq!(human.interface_span(day_start, day_start + 86400), None);
     }
 }

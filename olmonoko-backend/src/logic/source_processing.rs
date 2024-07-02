@@ -21,8 +21,13 @@ pub(crate) fn process_events(
     source: &IcsSource,
     events: Vec<VEvent>,
     tz: Tz,
-) -> (Vec<NewRemoteEvent>, Vec<Vec<NewRemoteEventOccurrence>>) {
+) -> (
+    Vec<NewRemoteEvent>,
+    Vec<Vec<NewRemoteEventOccurrence>>,
+    Vec<String>,
+) {
     let flatten_ts_with_tz = |dt| flatten_ts(dt, tz);
+    let mut skipped = vec![];
 
     let (active_events, occurrences): (Vec<_>, Vec<_>) = events
         .into_iter()
@@ -57,26 +62,29 @@ pub(crate) fn process_events(
                 event_source_id: source.id,
                 priority_override: None,
                 rrule,
-                uid,
+                uid: uid.clone(),
                 dt_stamp,
                 all_day,
                 duration,
                 summary,
                 location,
                 description,
+                tags: vec![],
             };
+            let occurrences_start = occurrences.iter().map(|o| o.starts_at).collect();
             if let Some(template) = &source.import_template {
-                match render_import_template(template, &event) {
+                match render_import_template(template, &event, occurrences_start) {
                     Ok(new_event) => {
                         if let Some(new_event) = new_event {
                             event = new_event;
                         } else {
                             // template requested to skip this event
+                            skipped.push(uid);
                             return vec![];
                         }
                     }
                     Err(e) => {
-                        tracing::error!(
+                        tracing::warn!(
                             source_id = source.id,
                             "Failed to render import template: {}",
                             e
@@ -88,7 +96,7 @@ pub(crate) fn process_events(
             vec![(event, occurrences)]
         })
         .unzip();
-    (active_events, occurrences)
+    (active_events, occurrences, skipped)
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -125,10 +133,22 @@ where
     // Fetch new events
     let (events, tz) = fetch_source(&source.url).await?;
     // Insert new events
-    let (active_events, mut event_occurrences) = process_events(&source, events, tz);
+    let (active_events, mut event_occurrences, skipped_events) =
+        process_events(&source, events, tz);
     let events_len = active_events.len();
     tracing::info!("Inserting {} events", events_len);
+    tracing::info!("Skipped {} events", skipped_events.len());
     assert_eq!(events_len, event_occurrences.len());
+    for skipped in skipped_events {
+        // Remove skipped events
+        sqlx::query!(
+            "DELETE FROM events WHERE event_source_id = $1 AND uid = $2",
+            source_id,
+            skipped
+        )
+        .execute(&mut *conn)
+        .await?;
+    }
     let mut idmap = vec![];
     for event in active_events {
         let all_day = if source.all_as_allday {
@@ -150,9 +170,25 @@ where
             RETURNING id;
             "#, event.event_source_id, event.uid, event.dt_stamp, all_day, event.duration, event.summary, event.location, event.description, event.rrule, event.priority_override)
             .fetch_one(&mut *conn)
-            .await
-            .unwrap();
+            .await?;
         idmap.push(inserted_id);
+
+        // update tags
+        sqlx::query!(
+            "DELETE FROM event_tags WHERE remote_event_id = $1",
+            inserted_id
+        )
+        .execute(&mut *conn)
+        .await?;
+        for tag in &event.tags {
+            sqlx::query!(
+                "INSERT INTO event_tags (remote_event_id, tag) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+                inserted_id,
+                tag
+            )
+            .execute(&mut *conn)
+            .await?;
+        }
     }
     for i in 0..events_len {
         let inserted_id = idmap[i];
@@ -315,14 +351,15 @@ async fn fetch_source(url: &str) -> Result<(Vec<VEvent>, Tz), FetchError> {
 
 #[derive(Debug, thiserror::Error)]
 pub enum ImportTemplateError {
-    #[error("Failed to render template")]
+    #[error("Failed to render template: {0}")]
     RenderError(#[from] tera::Error),
-    #[error("Failed to parse rendered template")]
+    #[error("Failed to parse rendered template: {0}")]
     ParseError(#[from] serde_json::Error),
 }
 pub fn render_import_template(
     template: &str,
     event: &NewRemoteEvent,
+    occurrences: Vec<i64>,
 ) -> Result<Option<NewRemoteEvent>, ImportTemplateError> {
     let mut context = tera::Context::new();
     context.insert("default_priority", &DEFAULT_PRIORITY);
@@ -338,6 +375,29 @@ pub fn render_import_template(
     context.insert("description", &event.description);
     context.insert("location", &event.location);
     context.insert("uid", &event.uid);
+
+    let now = timestamp();
+    context.insert("now", &now);
+
+    let next_occurrence = occurrences.iter().min();
+    context.insert("next_occurrence", &next_occurrence);
+
+    let mut past = vec![];
+    let mut future = vec![];
+    let mut ongoing = vec![];
+    for occurrence in occurrences {
+        if occurrence < now {
+            if occurrence + event.duration.unwrap_or(0) > now {
+                ongoing.push(occurrence);
+            } else {
+                past.push(occurrence);
+            }
+        } else {
+            future.push(occurrence);
+        }
+    }
+    context.insert("past_occurrences", &past);
+    context.insert("future_occurrences", &future);
 
     let mut tera = tera::Tera::default();
     // disallow env access
@@ -357,6 +417,7 @@ pub fn render_import_template(
     new_event.summary = parsed.summary.or(event.summary.clone());
     new_event.description = parsed.description.or(event.description.clone());
     new_event.location = parsed.location.or(event.location.clone());
+    new_event.tags = parsed.tags;
 
     Ok(Some(new_event))
 }
@@ -377,6 +438,8 @@ pub struct ImportTemplateDelta {
     pub description: Option<String>,
     #[serde(default)]
     pub location: Option<String>,
+    #[serde(default)]
+    pub tags: Vec<String>,
 }
 
 #[cfg(test)]
@@ -397,9 +460,12 @@ mod tests {
             description: Some("Test".to_string()),
             location: Some("Test".to_string()),
             uid: "test".to_string(),
+            tags: vec![],
         };
         let result =
-            crate::logic::source_processing::render_import_template(template, &event).unwrap();
+            crate::logic::source_processing::render_import_template(template, &event, vec![])
+                .unwrap()
+                .unwrap();
         assert_eq!(
             result,
             crate::models::event::remote::NewRemoteEvent {
@@ -413,6 +479,7 @@ mod tests {
                 description: Some("Test".to_string()),
                 location: Some("Test".to_string()),
                 uid: "test".to_string(),
+                tags: vec![],
             }
         );
     }
@@ -426,7 +493,8 @@ mod tests {
             "duration": 7200,
             "summary": "Test2",
             "description": "Test2",
-            "location": "Test2"
+            "location": "Test2",
+            "tags": ["tag1"]
         }
         "#;
         let event = crate::models::event::remote::NewRemoteEvent {
@@ -440,9 +508,12 @@ mod tests {
             description: Some("Test".to_string()),
             location: Some("Test".to_string()),
             uid: "test".to_string(),
+            tags: vec![],
         };
         let result =
-            crate::logic::source_processing::render_import_template(template, &event).unwrap();
+            crate::logic::source_processing::render_import_template(template, &event, vec![])
+                .unwrap()
+                .unwrap();
         assert_eq!(
             result,
             crate::models::event::remote::NewRemoteEvent {
@@ -456,6 +527,7 @@ mod tests {
                 description: Some("Test2".to_string()),
                 location: Some("Test2".to_string()),
                 uid: "test".to_string(),
+                tags: vec!["tag1".to_string()],
             }
         );
     }

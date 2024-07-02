@@ -308,6 +308,7 @@ iframe.escaped-content {
 
 #anything-loading {
 	visibility: hidden;
+	font-size: 1.5rem;
 }
 
 .htmx-request #anything-loading,

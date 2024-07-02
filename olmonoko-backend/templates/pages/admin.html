@@ -6,6 +6,7 @@
         <h1 style="text-align: center;">Admin</h1>
         {% if user and user.admin %}
             {% include "components/admin/user_list.html" %}
+            {% include "components/admin/pending_list.html" %}
         {% else %}
             <p style="text-align: center;">You are not authorized to view this page.</p>
         {% endif %}

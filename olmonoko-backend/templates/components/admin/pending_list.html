@@ -1,0 +1,23 @@
+<fieldset id="admin-user-list">
+    <legend>Unverified Users</legend>
+    {% if unverified_users and unverified_users|length > 0 %}
+        <table>
+            <tr>
+                <th>Id</th>
+                <th>Email</th>
+                <th>Admin</th>
+                <th>Created</th> 
+            </tr>
+            {% for user in unverified_users %}
+            <tr>
+                <td>{{ user.id }}</td>
+                <td id="user-{{ user.id }}">{{ user.email }}</td>
+                <td>{{ user.admin }}</td>
+                <td>{{ user.created_at }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    {% else %}
+        <p>No unverified users</p>
+    {% endif %}
+</fieldset>

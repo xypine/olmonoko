@@ -166,7 +166,7 @@ async fn get_visible_remote_events(
             AND ($9 IS NULL OR tag IS NULL OR (
                 SELECT tag.tag
                 FROM event_tags AS tag
-                WHERE tag.local_event_id = e.id
+                WHERE tag.remote_event_id = e.id
                 AND tag.tag IN ($9)
             ) IS NULL)
         ORDER BY 

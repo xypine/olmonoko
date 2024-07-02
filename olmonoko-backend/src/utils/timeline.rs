@@ -89,7 +89,8 @@ struct ApproxByDate {
 }
 
 fn group_by_approx_date(starts_at: Vec<i64>, chunk_size: i64) -> Option<ApproxByDate> {
-    if starts_at.is_empty() {
+    let events_total = starts_at.len();
+    if events_total == 0 {
         return None;
     }
     let mut max = 1;
@@ -112,6 +113,8 @@ fn group_by_approx_date(starts_at: Vec<i64>, chunk_size: i64) -> Option<ApproxBy
             aggregate_len += 1;
         }
     }
+
+    tracing::info!("Grouped by date of {events_total} events resulted in {aggregate_len} chunks");
 
     Some(ApproxByDate {
         data: aggregate,
