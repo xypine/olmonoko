@@ -33,7 +33,7 @@ async fn new_local_event(
     tracing::info!("Creating new local event: {:?}", form);
     let user_opt = request.get_session_user(&data).await;
     if let Some(user) = user_opt {
-        let new = NewLocalEvent::from((form.into_inner(), user.id));
+        let new = NewLocalEvent::from((form.into_inner(), &user));
 
         // begin transaction
         let mut txn = data
@@ -180,7 +180,7 @@ async fn update_local_event(
             .await
             .expect("Failed to begin transaction");
         // update event
-        let new = NewLocalEvent::from((form, user.id));
+        let new = NewLocalEvent::from((form, &user));
         sqlx::query!(
             r#"
                 UPDATE local_events

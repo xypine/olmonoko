@@ -425,7 +425,7 @@ async fn calendar(
                 .filter_map(|event| {
                     let mut event = event.clone();
                     let today_ts = pivot_local.timestamp() + (day * 24 * 3600) as i64;
-                    let tomorrow_ts = today_ts + 24 * 3600;
+                    let tomorrow_ts = today_ts + (24 * 3600) - 1;
                     if let Some((starts_at_s, duration)) =
                         event.interface_span(today_ts, tomorrow_ts)
                     {

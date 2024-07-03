@@ -36,6 +36,17 @@
 			</label>
 			<label>
 				<span>
+					Timezone (hours):
+				</span>
+				<input
+					type="number"
+					name="starts_at_tz"
+					value="{{ selected.starts_at_tz|default(value='') }}"
+					placeholder="{{ user.interface_timezone_h }}"
+				>
+			</label>
+			<label>
+				<span>
 					Starts at:
 				</span>
 				<input type="datetime-local" name="starts_at"  value="{{ selected.starts_at|default(value='') }}">
@@ -50,18 +61,88 @@
 					{% endif %}
 				>
 			</label>
-			<label>
-				<span>
-					Timezone offset (hours):
-				</span>
-				<input type="number" name="starts_at_tz" value="{{ selected.starts_at_tz|default(value=3) }}">
-			</label>
-			<label>
-				<span>
-					Duration (seconds):
-				</span>
-				<input type="number" name="duration" value="{{ selected.duration|default(value='') }}">
-			</label>
+			<fieldset style="flex-direction: row;">
+				<legend>
+					Duration
+				</legend>
+				<label>
+					<input type="number" name="duration_h" value="{{ selected.duration_h|default(value='') }}" style="max-width: 5em;">
+					<span>
+						h
+					</span>
+				</label>
+				<label>
+					<input type="number" name="duration_m" value="{{ selected.duration_m|default(value='') }}" style="max-width: 5em;">
+					<span>
+						m
+					</span>
+				</label>
+				<label>
+					<input type="number" name="duration_s" value="{{ selected.duration_s|default(value='') }}" style="max-width: 5em;">
+					<span>
+						s
+					</span>
+				</label>
+			</fieldset>
+			<details>
+				<summary>
+					Your Attendance
+				</summary>
+				<fieldset>
+					<legend>
+						Planned
+					</legend>
+					<label>
+						<span>
+							Plan to attend:
+						</span>
+						<input type="checkbox" name="attend_plan" 
+							{% if selected.plan_to_attend and selected.plan_to_attend == "on" %}
+								checked
+							{% endif %}
+						>
+					</label>
+					<label>
+						<span>
+							Override From:
+						</span>
+						<input type="datetime-local" name="attend_plan_start"  value="{{ selected.attend.plan.start|default(value='') }}">
+					</label>
+					<label>
+						<span>
+							Override Till:
+						</span>
+						<input type="datetime-local" name="attend_plan_end"  value="{{ selected.attend.plan.end|default(value='') }}">
+					</label>
+				</fieldset>
+				<fieldset>
+					<legend>
+						Actual
+					</legend>
+					<label>
+						<span>
+							Attended:
+						</span>
+						<input type="checkbox" name="attend_actual" 
+							{% if selected.attended and selected.attended == "on" %}
+								checked
+							{% endif %}
+						>
+					</label>
+					<label>
+						<span>
+							Override From:
+						</span>
+						<input type="datetime-local" name="attend_actual_start"  value="{{ selected.attend.actual.start|default(value='') }}">
+					</label>
+					<label>
+						<span>
+							Override Till:
+						</span>
+						<input type="datetime-local" name="attend_actual_end"  value="{{ selected.attend.actual.end|default(value='') }}">
+					</label>
+				</fieldset>
+			</details>
 			<label>
 				<span>
 					Location:
@@ -131,6 +212,7 @@
 
 			& input, & textarea {
 				flex: 1;
+				align-self: center;
 			}
 
 			& textarea {

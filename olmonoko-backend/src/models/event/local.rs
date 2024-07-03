@@ -8,6 +8,7 @@ use serde_with::NoneAsEmptyString;
 use crate::models::bills::AutoDescription;
 use crate::models::bills::Bill;
 use crate::models::bills::RawBill;
+use crate::models::user::User;
 use crate::utils::time::from_timestamp;
 
 #[derive(Debug, Clone, sqlx::FromRow, serde::Serialize, serde::Deserialize)]
@@ -43,6 +44,9 @@ impl EventLike for RawLocalEvent {
     }
     fn all_day(&self) -> bool {
         self.all_day
+    }
+    fn starts_at(&self) -> Vec<i64> {
+        vec![self.starts_at]
     }
     fn duration(&self) -> Option<i64> {
         self.duration
@@ -202,7 +206,8 @@ pub struct LocalEventForm {
     #[serde(default, with = "As::<NoneAsEmptyString>")]
     pub description: Option<String>,
     pub starts_at: String,
-    pub starts_at_tz: i8,
+    #[serde(default, with = "As::<NoneAsEmptyString>")]
+    pub starts_at_tz: Option<i8>,
     #[serde(
         deserialize_with = "deserialize_checkbox",
         serialize_with = "serialize_checkbox",
@@ -210,14 +215,19 @@ pub struct LocalEventForm {
     )]
     pub all_day: bool,
     #[serde(default, with = "As::<NoneAsEmptyString>")]
-    pub duration: Option<i64>,
+    pub duration_h: Option<i64>,
+    #[serde(default, with = "As::<NoneAsEmptyString>")]
+    pub duration_m: Option<i64>,
+    #[serde(default, with = "As::<NoneAsEmptyString>")]
+    pub duration_s: Option<i64>,
     #[serde(default, with = "As::<NoneAsEmptyString>")]
     pub location: Option<String>,
 }
 
-pub type FormWithUserId = (LocalEventForm, i64);
-impl From<FormWithUserId> for NewLocalEvent {
-    fn from((form, user_id): FormWithUserId) -> Self {
+pub type FormWithUser<'a> = (LocalEventForm, &'a User);
+impl<'a> From<FormWithUser<'a>> for NewLocalEvent {
+    fn from((form, user): FormWithUser) -> Self {
+        let raw_tz = form.starts_at_tz.unwrap_or(user.interface_timezone_h);
         let mut tags = vec![];
         if let Some(tags_str) = form.tags.as_ref() {
             tags = tags_str
@@ -232,10 +242,10 @@ impl From<FormWithUserId> for NewLocalEvent {
         } else {
             format!("{}:00", form.starts_at)
         };
-        let tz = if form.starts_at_tz >= 0 {
-            format!("+{:02}:00", form.starts_at_tz)
+        let tz = if raw_tz >= 0 {
+            format!("+{:02}:00", raw_tz)
         } else {
-            format!("-{:02}:00", -form.starts_at_tz)
+            format!("-{:02}:00", -raw_tz)
         };
         let rfc = format!("{dt}{tz}");
         tracing::debug!("Parsing RFC3339 datetime: {}", rfc);
@@ -243,16 +253,25 @@ impl From<FormWithUserId> for NewLocalEvent {
             chrono::DateTime::parse_from_rfc3339(&rfc).expect("Failed to parse RFC3339 datetime");
         let starts_at = starts_at.with_timezone(&Utc).timestamp();
 
+        let duration = match (form.duration_h, form.duration_m, form.duration_s) {
+            (None, None, None) => None,
+            _ => Some(
+                form.duration_s.unwrap_or_default()
+                    + form.duration_m.unwrap_or_default() * 60
+                    + form.duration_h.unwrap_or_default() * 3600,
+            ),
+        };
+
         // generate a unique identifier
-        let uid = format!("{}:{}@olmonoko", uuid::Uuid::new_v4(), user_id);
+        let uid = format!("{}:{}@olmonoko", uuid::Uuid::new_v4(), user.id);
 
         Self {
-            user_id,
+            user_id: user.id,
             starts_at,
             priority: form.priority,
             tags,
             all_day: form.all_day,
-            duration: form.duration,
+            duration,
             summary: form.summary,
             description: form.description,
             location: form.location,
@@ -262,6 +281,9 @@ impl From<FormWithUserId> for NewLocalEvent {
 }
 impl From<LocalEvent> for LocalEventForm {
     fn from(event: LocalEvent) -> Self {
+        let duration_h = event.duration.map(|d| d / 3600);
+        let duration_m = event.duration.map(|d| (d % 3600) / 60);
+        let duration_s = event.duration.map(|d| (d % 3600) % 60);
         Self {
             priority: event.priority,
             tags: if event.tags.is_empty() {
@@ -279,9 +301,11 @@ impl From<LocalEvent> for LocalEventForm {
                 .first()
                 .map(|s| s.to_string())
                 .unwrap_or_default(),
-            starts_at_tz: 0,
+            starts_at_tz: Some(0),
             all_day: event.all_day,
-            duration: event.duration,
+            duration_h,
+            duration_m,
+            duration_s,
             location: event.location,
         }
     }
@@ -290,6 +314,19 @@ impl From<LocalEvent> for LocalEventForm {
 #[cfg(test)]
 pub mod tests {
     use super::*;
+    use crate::models::user::RawUser;
+
+    fn test_user() -> User {
+        User::from(RawUser {
+            id: 1,
+            interface_timezone: "UTC".to_string(),
+            email: "tester@olmonoko.ruta.fi".to_string(),
+            admin: false,
+            created_at: 0,
+            password_hash: "abc".to_string(),
+        })
+    }
+
     #[test]
     fn parse_form_utc() {
         let form = LocalEventForm {
@@ -298,20 +335,21 @@ pub mod tests {
             summary: "Test".to_string(),
             description: Some("Test".to_string()),
             starts_at: "2021-01-01T00:00:00".to_string(),
-            starts_at_tz: 0,
+            starts_at_tz: Some(0),
             all_day: false,
-            duration: Some(3600),
+            duration_h: Some(1),
+            duration_m: Some(30),
+            duration_s: Some(5),
             location: Some("Test".to_string()),
         };
-        let (form, user_id) = (form, 1);
-        let event = NewLocalEvent::from((form, user_id));
+        let event = NewLocalEvent::from((form, &test_user()));
         assert_eq!(event.user_id, 1);
         assert_eq!(event.priority, None);
         assert_eq!(event.tags, vec!["1", "2", "3a", "4 5"]);
         assert_eq!(event.summary, "Test");
         assert_eq!(event.description, Some("Test".to_string()));
         assert_eq!(event.starts_at, 1609459200);
-        assert_eq!(event.duration, Some(3600));
+        assert_eq!(event.duration, Some(3600 + 30 * 60 + 5));
         assert_eq!(event.location, Some("Test".to_string()));
     }
 
@@ -323,13 +361,14 @@ pub mod tests {
             summary: "Test".to_string(),
             description: Some("Test".to_string()),
             starts_at: "2021-01-01T00:00:00".to_string(),
-            starts_at_tz: 2,
+            starts_at_tz: Some(2),
             all_day: false,
-            duration: Some(3600),
+            duration_h: Some(1),
+            duration_s: None,
+            duration_m: None,
             location: Some("Test".to_string()),
         };
-        let (form, user_id) = (form, 1);
-        let event = NewLocalEvent::from((form, user_id));
+        let event = NewLocalEvent::from((form, &test_user()));
         assert_eq!(event.user_id, 1);
         assert_eq!(event.summary, "Test");
         assert_eq!(event.description, Some("Test".to_string()));
@@ -346,13 +385,14 @@ pub mod tests {
             summary: "Test".to_string(),
             description: Some("Test".to_string()),
             starts_at: "2021-01-01T00:00".to_string(),
-            starts_at_tz: -2,
+            starts_at_tz: Some(-2),
             all_day: false,
-            duration: Some(3600),
+            duration_s: Some(3600),
+            duration_m: None,
+            duration_h: None,
             location: Some("Test".to_string()),
         };
-        let (form, user_id) = (form, 1);
-        let event = NewLocalEvent::from((form, user_id));
+        let event = NewLocalEvent::from((form, &test_user()));
         assert_eq!(event.user_id, 1);
         assert_eq!(event.summary, "Test");
         assert_eq!(event.description, Some("Test".to_string()));

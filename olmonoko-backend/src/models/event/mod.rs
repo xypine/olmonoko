@@ -29,6 +29,7 @@ pub trait EventLike {
     fn id(&self) -> i64;
     fn source(&self) -> EventSource;
     fn all_day(&self) -> bool;
+    fn starts_at(&self) -> Vec<i64>;
     fn duration(&self) -> Option<i64>;
     fn summary(&self) -> &str;
     fn description(&self) -> Option<&str>;
@@ -71,6 +72,9 @@ impl EventLike for Event {
     }
     fn all_day(&self) -> bool {
         self.all_day
+    }
+    fn starts_at(&self) -> Vec<i64> {
+        self.starts_at.iter().map(|s| s.timestamp()).collect()
     }
     fn duration(&self) -> Option<i64> {
         self.duration
@@ -161,6 +165,9 @@ impl EventLike for EventOccurrence {
     }
     fn all_day(&self) -> bool {
         self.all_day
+    }
+    fn starts_at(&self) -> Vec<i64> {
+        vec![self.starts_at.timestamp()]
     }
     fn duration(&self) -> Option<i64> {
         self.duration
@@ -326,6 +333,10 @@ impl EventLike for EventOccurrenceHuman {
         self.all_day
     }
 
+    fn starts_at(&self) -> Vec<i64> {
+        vec![self.starts_at_utc.timestamp()]
+    }
+
     fn duration(&self) -> Option<i64> {
         self.duration
     }
@@ -352,6 +363,7 @@ impl EventLike for EventOccurrenceHuman {
 }
 
 #[cfg(test)]
+#[allow(deprecated)]
 mod tests {
     use super::*;
 
