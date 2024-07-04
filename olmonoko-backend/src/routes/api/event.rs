@@ -6,6 +6,7 @@ use actix_web::{
 
 use crate::{
     models::{
+        attendance::{AttendanceFormWithUserEventTz, NewAttendance},
         bills::{
             from_barcode::{NewBillBarcodeForm, NewBillBarcodeFormWithUserId},
             EventId, NewBillWithEvent,
@@ -173,6 +174,9 @@ async fn update_local_event(
     if let Some(user) = user_opt {
         let id = id.into_inner();
         let form = form.into_inner();
+        let attendance_form = form.attendance.clone();
+        let form_tz = form.starts_at_tz.unwrap_or(user.interface_timezone_h);
+
         // begin transaction
         let mut txn = data
             .conn
@@ -216,6 +220,15 @@ async fn update_local_event(
             .await
             .expect("Failed to insert tag");
         }
+        // update attendance
+        let attendance_params: AttendanceFormWithUserEventTz =
+            (attendance_form, &user, id, new.starts_at, form_tz);
+        let attendance: NewAttendance = NewAttendance::try_from(attendance_params).unwrap();
+        attendance
+            .write(&mut *txn)
+            .await
+            .expect("Failed to upsert attendance");
+
         // commit transaction
         txn.commit().await.expect("Failed to commit transaction");
 

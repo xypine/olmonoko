@@ -1,4 +1,6 @@
 use chrono::Utc;
+use sqlx::Executor;
+use sqlx::Sqlite;
 
 use crate::utils::time::from_timestamp;
 
@@ -27,12 +29,12 @@ pub struct AttendanceDetails {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct AutoAttendanceDetails {
+pub struct ExtraAttendanceDetails {
     pub starts_at: Option<i64>,
     pub duration: Option<i64>,
 
     pub start: chrono::DateTime<Utc>,
-    pub end: chrono::DateTime<Utc>,
+    pub end: Option<chrono::DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -51,6 +53,69 @@ pub struct Attendance<D> {
     pub actual: Option<D>,
 
     pub created_at: chrono::DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct NewAttendance {
+    pub user_id: i64,
+
+    pub event_id: AttendanceEvent,
+
+    pub planned: Option<AttendanceDetails>,
+    pub actual: Option<AttendanceDetails>,
+}
+impl NewAttendance {
+    pub async fn write<C>(&self, conn: &mut C) -> Result<(), sqlx::Error>
+    where
+        for<'e> &'e mut C: Executor<'e, Database = Sqlite>,
+    {
+        let (local_event_id, remote_event_id) = match self.event_id {
+            AttendanceEvent::Local(id) => (Some(id), None),
+            AttendanceEvent::Remote(id) => (None, Some(id)),
+        };
+        let (planned, planned_starts_at, planned_duration) = match &self.planned {
+            Some(p) => (true, p.starts_at, p.duration),
+            _ => (false, None, None),
+        };
+        let (actual, actual_starts_at, actual_duration) = match &self.actual {
+            Some(a) => (true, a.starts_at, a.duration),
+            _ => (false, None, None),
+        };
+        if planned || actual {
+            sqlx::query!(
+                r#"
+                INSERT INTO attendance
+                    ( user_id, local_event_id, remote_event_id, planned, planned_starts_at, planned_duration, actual, actual_starts_at, actual_duration )
+                VALUES
+                    ( ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
+                ON CONFLICT(user_id, coalesce(local_event_id,""), coalesce(remote_event_id,"")) DO UPDATE SET
+                    planned = excluded.planned,
+                    planned_starts_at = excluded.planned_starts_at,
+                    planned_duration = excluded.planned_duration,
+                    actual = excluded.actual,
+                    actual_starts_at = excluded.actual_starts_at,
+                    actual_duration = excluded.actual_duration
+            "#,
+                self.user_id,
+                local_event_id,
+                remote_event_id,
+                planned,
+                planned_starts_at,
+                planned_duration,
+                actual,
+                actual_starts_at,
+                actual_duration
+            )
+            .execute(&mut *conn)
+            .await?;
+        } else {
+            sqlx::query!("DELETE FROM attendance WHERE user_id = ?1 AND (local_event_id = ?2 OR ?2 IS NULL) AND (remote_event_id = ?3 OR ?3 IS NULL)", self.user_id, local_event_id, remote_event_id)
+            .execute(&mut *conn)
+            .await?;
+        }
+
+        Ok(())
+    }
 }
 
 impl TryFrom<RawAttendance> for Attendance<AttendanceDetails> {
@@ -91,10 +156,10 @@ impl TryFrom<RawAttendance> for Attendance<AttendanceDetails> {
     }
 }
 
-impl TryFrom<(RawAttendance, i64, i64)> for Attendance<AutoAttendanceDetails> {
+impl TryFrom<(RawAttendance, i64, Option<i64>)> for Attendance<ExtraAttendanceDetails> {
     type Error = &'static str;
     fn try_from(
-        (raw, starts_at, duration): (RawAttendance, i64, i64),
+        (raw, starts_at, event_duration): (RawAttendance, i64, Option<i64>),
     ) -> Result<Self, Self::Error> {
         let event_id = match (raw.local_event_id, raw.remote_event_id) {
             (None, None) => Err("Raw attendance missing any remote id"),
@@ -102,16 +167,21 @@ impl TryFrom<(RawAttendance, i64, i64)> for Attendance<AutoAttendanceDetails> {
             (Some(local_id), None) => Ok(AttendanceEvent::Local(local_id)),
             (Some(_), Some(_)) => Err("Raw attendance has two ids"),
         }?;
+        let calc_end = |start: i64, duration: Option<i64>| match (event_duration, duration) {
+            (_, Some(duration)) => Some(start + duration),
+            (Some(event_duration), None) => Some(start + event_duration),
+            (None, None) => None,
+        };
 
         let planned = if raw.planned {
             let start = raw.planned_starts_at.unwrap_or(starts_at);
-            let end = start + raw.planned_duration.unwrap_or(duration);
-            Some(AutoAttendanceDetails {
+            let end = calc_end(start, raw.planned_duration).map(from_timestamp);
+            Some(ExtraAttendanceDetails {
                 starts_at: raw.planned_starts_at,
                 duration: raw.planned_duration,
 
                 start: from_timestamp(start),
-                end: from_timestamp(end),
+                end,
             })
         } else {
             None
@@ -119,13 +189,13 @@ impl TryFrom<(RawAttendance, i64, i64)> for Attendance<AutoAttendanceDetails> {
 
         let actual = if raw.actual {
             let start = raw.actual_starts_at.unwrap_or(starts_at);
-            let end = start + raw.actual_duration.unwrap_or(duration);
-            Some(AutoAttendanceDetails {
+            let end = calc_end(start, raw.planned_duration).map(from_timestamp);
+            Some(ExtraAttendanceDetails {
                 starts_at: raw.actual_starts_at,
                 duration: raw.actual_duration,
 
                 start: from_timestamp(start),
-                end: from_timestamp(end),
+                end,
             })
         } else {
             None
@@ -138,5 +208,100 @@ impl TryFrom<(RawAttendance, i64, i64)> for Attendance<AutoAttendanceDetails> {
             actual,
             created_at: from_timestamp(raw.created_at),
         })
+    }
+}
+
+use crate::models::ics_source::deserialize_checkbox;
+use crate::models::ics_source::serialize_checkbox;
+use serde_with::As;
+use serde_with::NoneAsEmptyString;
+
+use super::user::User;
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Default)]
+pub struct AttendanceForm {
+    #[serde(
+        deserialize_with = "deserialize_checkbox",
+        serialize_with = "serialize_checkbox",
+        default
+    )]
+    pub attend_plan: bool,
+    #[serde(default, with = "As::<NoneAsEmptyString>")]
+    pub attend_plan_start: Option<String>,
+    #[serde(default, with = "As::<NoneAsEmptyString>")]
+    pub attend_plan_end: Option<String>,
+    #[serde(
+        deserialize_with = "deserialize_checkbox",
+        serialize_with = "serialize_checkbox",
+        default
+    )]
+    pub attend_actual: bool,
+    #[serde(default, with = "As::<NoneAsEmptyString>")]
+    pub attend_actual_start: Option<String>,
+    #[serde(default, with = "As::<NoneAsEmptyString>")]
+    pub attend_actual_end: Option<String>,
+}
+
+pub type AttendanceFormWithUserEventTz<'a> = (AttendanceForm, &'a User, i64, i64, i8);
+impl<'a> TryFrom<AttendanceFormWithUserEventTz<'a>> for NewAttendance {
+    type Error = &'static str;
+    fn try_from(
+        (form, user, local_event_id, event_starts_at, tz_offset): AttendanceFormWithUserEventTz,
+    ) -> Result<Self, Self::Error> {
+        let parse_time = |f: String| crate::utils::time::from_form(&f, tz_offset).timestamp();
+        let calc_duration = |start: Option<i64>, end: i64| end - start.unwrap_or(event_starts_at);
+
+        let planned = if form.attend_plan {
+            let starts_at = form.attend_plan_start.map(parse_time);
+            let end = form.attend_plan_end.map(parse_time);
+            let duration = end.map(|e| calc_duration(starts_at, e));
+            Some(AttendanceDetails {
+                starts_at,
+                duration,
+            })
+        } else {
+            None
+        };
+
+        let actual = if form.attend_actual {
+            let starts_at = form.attend_actual_start.map(parse_time);
+            let end = form.attend_actual_end.map(parse_time);
+            let duration = end.map(|e| calc_duration(starts_at, e));
+            Some(AttendanceDetails {
+                starts_at,
+                duration,
+            })
+        } else {
+            None
+        };
+
+        Ok(Self {
+            user_id: user.id,
+            event_id: AttendanceEvent::Local(local_event_id),
+            planned,
+            actual,
+        })
+    }
+}
+
+impl From<Attendance<ExtraAttendanceDetails>> for AttendanceForm {
+    fn from(f: Attendance<ExtraAttendanceDetails>) -> Self {
+        use crate::utils::time::to_form;
+        let (attend_plan, plan_start, plan_end) = match f.planned {
+            Some(p) => (true, Some(p.start), p.end),
+            None => (false, None, None),
+        };
+        let (attend_actual, actual_start, actual_end) = match f.actual {
+            Some(a) => (true, Some(a.start), a.end),
+            None => (false, None, None),
+        };
+        Self {
+            attend_plan,
+            attend_plan_start: plan_start.and_then(to_form),
+            attend_plan_end: plan_end.and_then(to_form),
+            attend_actual,
+            attend_actual_start: actual_start.and_then(to_form),
+            attend_actual_end: actual_end.and_then(to_form),
+        }
     }
 }

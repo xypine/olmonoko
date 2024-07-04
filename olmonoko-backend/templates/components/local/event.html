@@ -84,7 +84,11 @@
 					</span>
 				</label>
 			</fieldset>
-			<details>
+			<details
+				{% if selected and (selected.attend_plan == "on" or selected.attend_actual == "on") %}
+					open
+				{% endif %}
+			>
 				<summary>
 					Your Attendance
 				</summary>
@@ -96,8 +100,8 @@
 						<span>
 							Plan to attend:
 						</span>
-						<input type="checkbox" name="attend_plan" 
-							{% if selected.plan_to_attend and selected.plan_to_attend == "on" %}
+						<input type="checkbox" name="attend_plan" autocomplete="off"
+							{% if selected.attend_plan and selected.attend_plan == "on" %}
 								checked
 							{% endif %}
 						>
@@ -106,13 +110,13 @@
 						<span>
 							Override From:
 						</span>
-						<input type="datetime-local" name="attend_plan_start"  value="{{ selected.attend.plan.start|default(value='') }}">
+						<input type="datetime-local" name="attend_plan_start" autocomplete="off" value="{{ selected.attend.plan.start|default(value='') }}">
 					</label>
 					<label>
 						<span>
 							Override Till:
 						</span>
-						<input type="datetime-local" name="attend_plan_end"  value="{{ selected.attend.plan.end|default(value='') }}">
+						<input type="datetime-local" name="attend_plan_end" autocomplete="off" value="{{ selected.attend.plan.end|default(value='') }}">
 					</label>
 				</fieldset>
 				<fieldset>
@@ -123,8 +127,8 @@
 						<span>
 							Attended:
 						</span>
-						<input type="checkbox" name="attend_actual" 
-							{% if selected.attended and selected.attended == "on" %}
+						<input type="checkbox" name="attend_actual" autocomplete="off"
+							{% if selected.attend_actual and selected.attend_actual == "on" %}
 								checked
 							{% endif %}
 						>
@@ -133,13 +137,13 @@
 						<span>
 							Override From:
 						</span>
-						<input type="datetime-local" name="attend_actual_start"  value="{{ selected.attend.actual.start|default(value='') }}">
+						<input type="datetime-local" name="attend_actual_start" autocomplete="off" value="{{ selected.attend.actual.start|default(value='') }}">
 					</label>
 					<label>
 						<span>
 							Override Till:
 						</span>
-						<input type="datetime-local" name="attend_actual_end"  value="{{ selected.attend.actual.end|default(value='') }}">
+						<input type="datetime-local" name="attend_actual_end" autocomplete="off" value="{{ selected.attend.actual.end|default(value='') }}">
 					</label>
 				</fieldset>
 			</details>

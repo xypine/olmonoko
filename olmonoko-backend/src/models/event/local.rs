@@ -5,6 +5,9 @@ use chrono::Utc;
 use serde_with::As;
 use serde_with::NoneAsEmptyString;
 
+use crate::models::attendance::Attendance;
+use crate::models::attendance::AttendanceForm;
+use crate::models::attendance::ExtraAttendanceDetails;
 use crate::models::bills::AutoDescription;
 use crate::models::bills::Bill;
 use crate::models::bills::RawBill;
@@ -222,6 +225,9 @@ pub struct LocalEventForm {
     pub duration_s: Option<i64>,
     #[serde(default, with = "As::<NoneAsEmptyString>")]
     pub location: Option<String>,
+
+    #[serde(flatten)]
+    pub attendance: AttendanceForm,
 }
 
 pub type FormWithUser<'a> = (LocalEventForm, &'a User);
@@ -236,22 +242,8 @@ impl<'a> From<FormWithUser<'a>> for NewLocalEvent {
                 .filter(|s| !s.is_empty())
                 .collect();
         }
-        // FIX: This is stupid
-        let dt = if form.starts_at.chars().filter(|c| *c == ':').count() == 2 {
-            form.starts_at.clone()
-        } else {
-            format!("{}:00", form.starts_at)
-        };
-        let tz = if raw_tz >= 0 {
-            format!("+{:02}:00", raw_tz)
-        } else {
-            format!("-{:02}:00", -raw_tz)
-        };
-        let rfc = format!("{dt}{tz}");
-        tracing::debug!("Parsing RFC3339 datetime: {}", rfc);
-        let starts_at =
-            chrono::DateTime::parse_from_rfc3339(&rfc).expect("Failed to parse RFC3339 datetime");
-        let starts_at = starts_at.with_timezone(&Utc).timestamp();
+
+        let starts_at = crate::utils::time::from_form(&form.starts_at, raw_tz).timestamp();
 
         let duration = match (form.duration_h, form.duration_m, form.duration_s) {
             (None, None, None) => None,
@@ -293,21 +285,25 @@ impl From<LocalEvent> for LocalEventForm {
             },
             summary: event.summary,
             description: event.description,
-            starts_at: event
-                .starts_at
-                .to_rfc3339()
-                .split('+')
-                .collect::<Vec<_>>()
-                .first()
-                .map(|s| s.to_string())
-                .unwrap_or_default(),
+            starts_at: crate::utils::time::to_form(event.starts_at).unwrap_or_default(),
             starts_at_tz: Some(0),
             all_day: event.all_day,
             duration_h,
             duration_m,
             duration_s,
             location: event.location,
+            attendance: AttendanceForm::default(),
         }
+    }
+}
+type LocalEventWithAttendance = (LocalEvent, Option<Attendance<ExtraAttendanceDetails>>);
+impl From<LocalEventWithAttendance> for LocalEventForm {
+    fn from((event, attendance): LocalEventWithAttendance) -> Self {
+        let mut form = LocalEventForm::from(event);
+        if let Some(attendance) = attendance {
+            form.attendance = AttendanceForm::from(attendance);
+        }
+        form
     }
 }
 
@@ -341,6 +337,7 @@ pub mod tests {
             duration_m: Some(30),
             duration_s: Some(5),
             location: Some("Test".to_string()),
+            attendance: AttendanceForm::default(),
         };
         let event = NewLocalEvent::from((form, &test_user()));
         assert_eq!(event.user_id, 1);
@@ -367,6 +364,7 @@ pub mod tests {
             duration_s: None,
             duration_m: None,
             location: Some("Test".to_string()),
+            attendance: AttendanceForm::default(),
         };
         let event = NewLocalEvent::from((form, &test_user()));
         assert_eq!(event.user_id, 1);
@@ -391,6 +389,7 @@ pub mod tests {
             duration_m: None,
             duration_h: None,
             location: Some("Test".to_string()),
+            attendance: AttendanceForm::default(),
         };
         let event = NewLocalEvent::from((form, &test_user()));
         assert_eq!(event.user_id, 1);
