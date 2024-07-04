@@ -34,7 +34,11 @@ async fn new_local_event(
     tracing::info!("Creating new local event: {:?}", form);
     let user_opt = request.get_session_user(&data).await;
     if let Some(user) = user_opt {
-        let new = NewLocalEvent::from((form.into_inner(), &user));
+        let form = form.into_inner();
+        let attendance_form = form.attendance.clone();
+        let form_tz = form.starts_at_tz.unwrap_or(user.interface_timezone_h);
+
+        let new = NewLocalEvent::from((form, &user));
 
         // begin transaction
         let mut txn = data
@@ -75,6 +79,14 @@ async fn new_local_event(
             .await
             .expect("Failed to insert tag");
         }
+        // insert attendance
+        let attendance_params: AttendanceFormWithUserEventTz =
+            (attendance_form, &user, inserted.id, new.starts_at, form_tz);
+        let attendance: NewAttendance = NewAttendance::try_from(attendance_params).unwrap();
+        attendance
+            .write(&mut *txn)
+            .await
+            .expect("Failed to insert attendance");
         // commit transaction
         txn.commit().await.expect("Failed to commit transaction");
 

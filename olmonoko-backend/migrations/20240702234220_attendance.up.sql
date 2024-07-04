@@ -13,6 +13,7 @@ CREATE TABLE attendance (
     actual_duration INTEGER,
 
     created_at INTEGER DEFAULT (strftime('%s', 'now')) NOT NULL,
+    updated_at INTEGER DEFAULT (strftime('%s', 'now')) NOT NULL,
     -- either local_event_id or remote_event_id must be set
     CHECK ((local_event_id IS NOT NULL and remote_event_id IS NULL) OR (remote_event_id IS NOT NULL and local_event_id IS NULL)),
     -- either planned or actual must be set

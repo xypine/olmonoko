@@ -61,23 +61,23 @@
 					{% endif %}
 				>
 			</label>
-			<fieldset style="flex-direction: row;">
+			<fieldset style="flex-direction: row;gap:0.5em;">
 				<legend>
 					Duration
 				</legend>
-				<label>
+				<label style="gap:0.25em;">
 					<input type="number" name="duration_h" value="{{ selected.duration_h|default(value='') }}" style="max-width: 5em;">
 					<span>
 						h
 					</span>
 				</label>
-				<label>
+				<label style="gap:0.25em;">
 					<input type="number" name="duration_m" value="{{ selected.duration_m|default(value='') }}" style="max-width: 5em;">
 					<span>
 						m
 					</span>
 				</label>
-				<label>
+				<label style="gap:0.25em;">
 					<input type="number" name="duration_s" value="{{ selected.duration_s|default(value='') }}" style="max-width: 5em;">
 					<span>
 						s

@@ -52,6 +52,11 @@
         "name": "created_at",
         "ordinal": 9,
         "type_info": "Int64"
+      },
+      {
+        "name": "updated_at",
+        "ordinal": 10,
+        "type_info": "Int64"
       }
     ],
     "parameters": {
@@ -67,6 +72,7 @@
       false,
       true,
       true,
+      false,
       false
     ]
   },

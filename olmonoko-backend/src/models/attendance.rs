@@ -20,6 +20,7 @@ pub struct RawAttendance {
     pub actual_duration: Option<i64>,
 
     pub created_at: i64,
+    pub updated_at: i64,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -53,6 +54,7 @@ pub struct Attendance<D> {
     pub actual: Option<D>,
 
     pub created_at: chrono::DateTime<Utc>,
+    pub updated_at: chrono::DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -94,7 +96,8 @@ impl NewAttendance {
                     planned_duration = excluded.planned_duration,
                     actual = excluded.actual,
                     actual_starts_at = excluded.actual_starts_at,
-                    actual_duration = excluded.actual_duration
+                    actual_duration = excluded.actual_duration,
+                    updated_at = strftime('%s', 'now')
             "#,
                 self.user_id,
                 local_event_id,
@@ -152,6 +155,7 @@ impl TryFrom<RawAttendance> for Attendance<AttendanceDetails> {
             planned,
             actual,
             created_at: from_timestamp(raw.created_at),
+            updated_at: from_timestamp(raw.updated_at),
         })
     }
 }
@@ -207,6 +211,7 @@ impl TryFrom<(RawAttendance, i64, Option<i64>)> for Attendance<ExtraAttendanceDe
             planned,
             actual,
             created_at: from_timestamp(raw.created_at),
+            updated_at: from_timestamp(raw.updated_at),
         })
     }
 }

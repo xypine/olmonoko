@@ -99,24 +99,6 @@ async fn local(
                 .iter()
                 .find(|event| event.id == selected_event_id)
                 .cloned()
-            // .map(|e| {
-            //     let attendance_raw = sqlx::query_as!(
-            //         RawAttendance,
-            //         "SELECT * FROM attendance WHERE user_id = ?1 AND local_event_id = ?2",
-            //         user.id,
-            //         e.id
-            //     )
-            //     .find_optional(&data.conn)
-            //     .await
-            //     .expect("Failed to fetch attendance for local event");
-            //
-            //     let attendance: Attendance<ExtraAttendanceDetails> =
-            //         Attendance::from(attendance_raw);
-            //
-            //     (e, attendance)
-            // })
-            // .map(LocalEventForm::from)
-            // .map(|form| (selected_event_id, form))
         });
         let selected = if let Some(event) = selected {
             let attendance: Option<Attendance<ExtraAttendanceDetails>> = sqlx::query_as!(
