@@ -1,3 +1,7 @@
+use std::hash::DefaultHasher;
+use std::hash::Hash;
+use std::hash::Hasher;
+
 use chrono::NaiveDateTime;
 use chrono::NaiveTime;
 use chrono_tz::Tz;
@@ -7,6 +11,7 @@ use icalendar::DatePerhapsTime;
 use icalendar::Event as VEvent;
 use icalendar::EventLike;
 use rrule::RRuleSet;
+use sha2::Digest;
 use sqlx::Executor;
 use sqlx::Sqlite;
 
@@ -17,15 +22,14 @@ use crate::models::ics_source::IcsSource;
 use crate::models::ics_source::RawIcsSource;
 use crate::utils::time::timestamp;
 
-pub(crate) fn process_events(
-    source: &IcsSource,
-    events: Vec<VEvent>,
-    tz: Tz,
-) -> (
-    Vec<NewRemoteEvent>,
-    Vec<Vec<NewRemoteEventOccurrence>>,
-    Vec<String>,
-) {
+#[derive(Debug, Clone, PartialEq, Hash)]
+pub struct ProcessedData {
+    pub events: Vec<NewRemoteEvent>,
+    pub event_occurrences: Vec<Vec<NewRemoteEventOccurrence>>,
+    pub skipped_event_ids: Vec<String>,
+}
+
+pub(crate) fn process_events(source: &IcsSource, events: Vec<VEvent>, tz: Tz) -> ProcessedData {
     let flatten_ts_with_tz = |dt| flatten_ts(dt, tz);
     let mut skipped = vec![];
 
@@ -96,19 +100,23 @@ pub(crate) fn process_events(
             vec![(event, occurrences)]
         })
         .unzip();
-    (active_events, occurrences, skipped)
+    ProcessedData {
+        events: active_events,
+        event_occurrences: occurrences,
+        skipped_event_ids: skipped,
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum SyncError {
-    #[error("Failed to fetch source")]
+    #[error("Failed to fetch source: {0}")]
     FetchError(#[from] FetchError),
     #[error("Source not found")]
     SourceNotFound,
-    #[error("Failed to insert events")]
+    #[error("Failed to insert events: {0}")]
     InsertEventsError(#[from] sqlx::Error),
 }
-pub(crate) async fn sync_source<C>(conn: &mut C, source_id: i64) -> Result<(), SyncError>
+pub(crate) async fn sync_source<C>(conn: &mut C, source_id: i64) -> Result<bool, SyncError>
 where
     for<'e> &'e mut C: Executor<'e, Database = Sqlite>,
 {
@@ -123,6 +131,34 @@ where
     .map(IcsSource::from)
     .map_err(|_| SyncError::SourceNotFound)?;
 
+    // Fetch new events
+    let fetched_at = timestamp();
+    let (events, tz, new_hash) = if let FetchResult::Updated(data) =
+        fetch_source(&source.url, source.file_hash.clone()).await?
+    {
+        data
+    } else {
+        tracing::info!("No new events (file hash match)");
+        return Ok(false);
+    };
+
+    let processed = process_events(&source, events, tz);
+    let mut hasher = DefaultHasher::new();
+    processed.hash(&mut hasher);
+    let object_hash = hasher.finish().to_string();
+    if source.object_hash.is_some_and(|hash| hash == object_hash) {
+        tracing::info!("No new events (object hash match)");
+        sqlx::query!(
+            "UPDATE ics_sources SET last_fetched_at = ?1, file_hash = ?2 WHERE id = ?3",
+            fetched_at,
+            new_hash,
+            source_id
+        )
+        .execute(&mut *conn)
+        .await?;
+        return Ok(false);
+    }
+
     if !source.persist_events {
         // Remove existing events for this source
         sqlx::query!("DELETE FROM events WHERE event_source_id = $1", source_id)
@@ -130,11 +166,11 @@ where
             .await?;
     }
 
-    // Fetch new events
-    let (events, tz) = fetch_source(&source.url).await?;
+    let active_events = processed.events;
+    let mut event_occurrences = processed.event_occurrences;
+    let skipped_events = processed.skipped_event_ids;
+
     // Insert new events
-    let (active_events, mut event_occurrences, skipped_events) =
-        process_events(&source, events, tz);
     let events_len = active_events.len();
     tracing::info!("Inserting {} events", events_len);
     tracing::info!("Skipped {} events", skipped_events.len());
@@ -213,17 +249,18 @@ where
         .unwrap();
     }
 
-    // update source last fetched
-    let ts = timestamp();
+    // update source last fetched and file hash
     sqlx::query!(
-        "UPDATE ics_sources SET last_fetched_at = $1 WHERE id = $2",
-        ts,
+        "UPDATE ics_sources SET last_fetched_at = ?1, file_hash = ?2, object_hash = ?3 WHERE id = ?4",
+        fetched_at,
+        new_hash,
+        object_hash,
         source_id
     )
     .execute(&mut *conn)
     .await?;
 
-    Ok(())
+    Ok(true)
 }
 
 pub async fn sync_all() -> Result<(), anyhow::Error> {
@@ -337,16 +374,26 @@ fn parse_events(ics: String) -> Result<(Vec<VEvent>, Tz), String> {
 
 #[derive(Debug, thiserror::Error)]
 pub enum FetchError {
-    #[error("Failed to fetch source")]
+    #[error("Failed to fetch source: {0}")]
     FetchError(#[from] reqwest::Error),
-    #[error("Failed to parse source")]
+    #[error("Failed to parse source: {0}")]
     ParseError(String),
 }
-async fn fetch_source(url: &str) -> Result<(Vec<VEvent>, Tz), FetchError> {
+#[derive(Debug, Clone, PartialEq)]
+pub enum FetchResult {
+    Unchanged,
+    Updated((Vec<VEvent>, Tz, String)),
+}
+async fn fetch_source(url: &str, previous_hash: Option<String>) -> Result<FetchResult, FetchError> {
     tracing::info!("Fetching source: {}", url);
     let response = reqwest::get(url).await?;
     let body = response.text().await?;
-    parse_events(body).map_err(FetchError::ParseError)
+    let new_hash = format!("{:x}", sha2::Sha256::digest(body.as_bytes()));
+    if previous_hash.is_some_and(|phash| new_hash.as_str() == phash) {
+        return Ok(FetchResult::Unchanged);
+    }
+    let parsed = parse_events(body).map_err(FetchError::ParseError)?;
+    Ok(FetchResult::Updated((parsed.0, parsed.1, new_hash)))
 }
 
 #[derive(Debug, thiserror::Error)]

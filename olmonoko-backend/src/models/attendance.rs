@@ -45,13 +45,9 @@ pub enum AttendanceEvent {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct Attendance<D> {
-    pub user_id: i64,
-
-    pub event_id: AttendanceEvent,
-
-    pub planned: Option<D>,
-    pub actual: Option<D>,
+pub struct Attendance {
+    pub planned: Option<ExtraAttendanceDetails>,
+    pub actual: Option<ExtraAttendanceDetails>,
 
     pub created_at: chrono::DateTime<Utc>,
     pub updated_at: chrono::DateTime<Utc>,
@@ -60,7 +56,6 @@ pub struct Attendance<D> {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct NewAttendance {
     pub user_id: i64,
-
     pub event_id: AttendanceEvent,
 
     pub planned: Option<AttendanceDetails>,
@@ -121,56 +116,47 @@ impl NewAttendance {
     }
 }
 
-impl TryFrom<RawAttendance> for Attendance<AttendanceDetails> {
-    type Error = &'static str;
-    fn try_from(raw: RawAttendance) -> Result<Self, Self::Error> {
-        let event_id = match (raw.local_event_id, raw.remote_event_id) {
-            (None, None) => Err("Raw attendance missing any remote id"),
-            (None, Some(remote_id)) => Ok(AttendanceEvent::Remote(remote_id)),
-            (Some(local_id), None) => Ok(AttendanceEvent::Local(local_id)),
-            (Some(_), Some(_)) => Err("Raw attendance has two ids"),
-        }?;
+// impl TryFrom<RawAttendance> for Attendance<AttendanceDetails> {
+//     type Error = &'static str;
+//     fn try_from(raw: RawAttendance) -> Result<Self, Self::Error> {
+//         let event_id = match (raw.local_event_id, raw.remote_event_id) {
+//             (None, None) => Err("Raw attendance missing any remote id"),
+//             (None, Some(remote_id)) => Ok(AttendanceEvent::Remote(remote_id)),
+//             (Some(local_id), None) => Ok(AttendanceEvent::Local(local_id)),
+//             (Some(_), Some(_)) => Err("Raw attendance has two ids"),
+//         }?;
+//
+//         let planned = if raw.planned {
+//             Some(AttendanceDetails {
+//                 starts_at: raw.planned_starts_at,
+//                 duration: raw.planned_duration,
+//             })
+//         } else {
+//             None
+//         };
+//
+//         let actual = if raw.actual {
+//             Some(AttendanceDetails {
+//                 starts_at: raw.actual_starts_at,
+//                 duration: raw.actual_duration,
+//             })
+//         } else {
+//             None
+//         };
+//
+//         Ok(Self {
+//             user_id: raw.user_id,
+//             event_id,
+//             planned,
+//             actual,
+//             created_at: from_timestamp(raw.created_at),
+//             updated_at: from_timestamp(raw.updated_at),
+//         })
+//     }
+// }
 
-        let planned = if raw.planned {
-            Some(AttendanceDetails {
-                starts_at: raw.planned_starts_at,
-                duration: raw.planned_duration,
-            })
-        } else {
-            None
-        };
-
-        let actual = if raw.actual {
-            Some(AttendanceDetails {
-                starts_at: raw.actual_starts_at,
-                duration: raw.actual_duration,
-            })
-        } else {
-            None
-        };
-
-        Ok(Self {
-            user_id: raw.user_id,
-            event_id,
-            planned,
-            actual,
-            created_at: from_timestamp(raw.created_at),
-            updated_at: from_timestamp(raw.updated_at),
-        })
-    }
-}
-
-impl TryFrom<(RawAttendance, i64, Option<i64>)> for Attendance<ExtraAttendanceDetails> {
-    type Error = &'static str;
-    fn try_from(
-        (raw, starts_at, event_duration): (RawAttendance, i64, Option<i64>),
-    ) -> Result<Self, Self::Error> {
-        let event_id = match (raw.local_event_id, raw.remote_event_id) {
-            (None, None) => Err("Raw attendance missing any remote id"),
-            (None, Some(remote_id)) => Ok(AttendanceEvent::Remote(remote_id)),
-            (Some(local_id), None) => Ok(AttendanceEvent::Local(local_id)),
-            (Some(_), Some(_)) => Err("Raw attendance has two ids"),
-        }?;
+impl From<(RawAttendance, i64, Option<i64>)> for Attendance {
+    fn from((raw, starts_at, event_duration): (RawAttendance, i64, Option<i64>)) -> Self {
         let calc_end = |start: i64, duration: Option<i64>| match (event_duration, duration) {
             (_, Some(duration)) => Some(start + duration),
             (Some(event_duration), None) => Some(start + event_duration),
@@ -205,14 +191,12 @@ impl TryFrom<(RawAttendance, i64, Option<i64>)> for Attendance<ExtraAttendanceDe
             None
         };
 
-        Ok(Self {
-            user_id: raw.user_id,
-            event_id,
+        Self {
             planned,
             actual,
             created_at: from_timestamp(raw.created_at),
             updated_at: from_timestamp(raw.updated_at),
-        })
+        }
     }
 }
 
@@ -289,8 +273,8 @@ impl<'a> TryFrom<AttendanceFormWithUserEventTz<'a>> for NewAttendance {
     }
 }
 
-impl From<Attendance<ExtraAttendanceDetails>> for AttendanceForm {
-    fn from(f: Attendance<ExtraAttendanceDetails>) -> Self {
+impl From<Attendance> for AttendanceForm {
+    fn from(f: Attendance) -> Self {
         use crate::utils::time::to_form;
         let (attend_plan, plan_start, plan_end) = match f.planned {
             Some(p) => (true, Some(p.start), p.end),

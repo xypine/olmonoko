@@ -1,6 +1,6 @@
 use crate::{
     models::{
-        attendance::{Attendance, ExtraAttendanceDetails, RawAttendance},
+        attendance::{Attendance, RawAttendance},
         event::{local::LocalEventForm, EventOccurrenceHuman},
         user::{RawUser, UnverifiedUser, UserPublic},
     },
@@ -101,7 +101,7 @@ async fn local(
                 .cloned()
         });
         let selected = if let Some(event) = selected {
-            let attendance: Option<Attendance<ExtraAttendanceDetails>> = sqlx::query_as!(
+            let attendance: Option<Attendance> = sqlx::query_as!(
                 RawAttendance,
                 "SELECT * FROM attendance WHERE user_id = ?1 AND local_event_id = ?2",
                 user.id,
@@ -110,12 +110,7 @@ async fn local(
             .fetch_optional(&data.conn)
             .await
             .expect("Failed to fetch attendance for local event")
-            .map(|raw| {
-                let a: Attendance<ExtraAttendanceDetails> =
-                    Attendance::try_from((raw, event.starts_at.timestamp(), event.duration))
-                        .expect("abc");
-                a
-            });
+            .map(|raw| Attendance::from((raw, event.starts_at.timestamp(), event.duration)));
 
             let selected_id = event.id;
             let pair = (event, attendance);

@@ -7,7 +7,6 @@ use serde_with::NoneAsEmptyString;
 
 use crate::models::attendance::Attendance;
 use crate::models::attendance::AttendanceForm;
-use crate::models::attendance::ExtraAttendanceDetails;
 use crate::models::bills::AutoDescription;
 use crate::models::bills::Bill;
 use crate::models::bills::RawBill;
@@ -72,6 +71,7 @@ pub struct LocalEvent {
     pub updated_at: chrono::DateTime<Utc>,
     pub priority: Option<i64>,
     pub tags: Vec<String>,
+    pub attendance: Option<Attendance>,
     // Event data
     pub starts_at: chrono::DateTime<Utc>,
     pub all_day: bool,
@@ -92,6 +92,7 @@ impl From<RawLocalEvent> for LocalEvent {
             updated_at: from_timestamp(raw.updated_at),
             priority: raw.priority,
             tags: vec![],
+            attendance: None,
             starts_at: from_timestamp(raw.starts_at),
             all_day: raw.all_day,
             duration: raw.duration,
@@ -103,8 +104,8 @@ impl From<RawLocalEvent> for LocalEvent {
         }
     }
 }
-impl From<(RawLocalEvent, Vec<String>)> for LocalEvent {
-    fn from((raw, tags): (RawLocalEvent, Vec<String>)) -> Self {
+impl From<(RawLocalEvent, Vec<String>, Option<Attendance>)> for LocalEvent {
+    fn from((raw, tags, attendance): (RawLocalEvent, Vec<String>, Option<Attendance>)) -> Self {
         Self {
             id: raw.id,
             user_id: raw.user_id,
@@ -112,6 +113,7 @@ impl From<(RawLocalEvent, Vec<String>)> for LocalEvent {
             updated_at: from_timestamp(raw.updated_at),
             priority: raw.priority,
             tags,
+            attendance,
             starts_at: from_timestamp(raw.starts_at),
             all_day: raw.all_day,
             duration: raw.duration,
@@ -123,16 +125,35 @@ impl From<(RawLocalEvent, Vec<String>)> for LocalEvent {
         }
     }
 }
+impl From<(RawLocalEvent, &str, Option<Attendance>)> for LocalEvent {
+    fn from((raw, tags_concat, attendance): (RawLocalEvent, &str, Option<Attendance>)) -> Self {
+        let tags: Vec<_> = tags_concat.split(',').map(|s| s.to_string()).collect();
+        Self::from((raw, tags, attendance))
+    }
+}
 impl From<(RawLocalEvent, &str)> for LocalEvent {
     fn from((raw, tags_concat): (RawLocalEvent, &str)) -> Self {
-        let tags: Vec<_> = tags_concat.split(',').map(|s| s.to_string()).collect();
-        Self::from((raw, tags))
+        Self::from((raw, tags_concat, None))
     }
 }
 
-impl From<(RawLocalEvent, Option<RawBill>, bool, Vec<String>)> for LocalEvent {
+impl
+    From<(
+        RawLocalEvent,
+        Option<RawBill>,
+        bool,
+        Vec<String>,
+        Option<Attendance>,
+    )> for LocalEvent
+{
     fn from(
-        (raw, bill, autodescription, tags): (RawLocalEvent, Option<RawBill>, bool, Vec<String>),
+        (raw, bill, autodescription, tags, attendance): (
+            RawLocalEvent,
+            Option<RawBill>,
+            bool,
+            Vec<String>,
+            Option<Attendance>,
+        ),
     ) -> Self {
         let bill = bill.map(Bill::from);
         let description = if autodescription {
@@ -158,6 +179,7 @@ impl From<(RawLocalEvent, Option<RawBill>, bool, Vec<String>)> for LocalEvent {
             updated_at: from_timestamp(raw.updated_at),
             priority: raw.priority,
             tags,
+            attendance,
             starts_at: from_timestamp(raw.starts_at),
             all_day: raw.all_day,
             duration: raw.duration,
@@ -169,12 +191,26 @@ impl From<(RawLocalEvent, Option<RawBill>, bool, Vec<String>)> for LocalEvent {
         }
     }
 }
-impl From<(RawLocalEvent, Option<RawBill>, bool, &str)> for LocalEvent {
+impl
+    From<(
+        RawLocalEvent,
+        Option<RawBill>,
+        bool,
+        &str,
+        Option<Attendance>,
+    )> for LocalEvent
+{
     fn from(
-        (raw, bill, autodescription, tags_concat): (RawLocalEvent, Option<RawBill>, bool, &str),
+        (raw, bill, autodescription, tags_concat, attendance): (
+            RawLocalEvent,
+            Option<RawBill>,
+            bool,
+            &str,
+            Option<Attendance>,
+        ),
     ) -> Self {
         let tags: Vec<_> = tags_concat.split(',').map(|s| s.to_string()).collect();
-        Self::from((raw, bill, autodescription, tags))
+        Self::from((raw, bill, autodescription, tags, attendance))
     }
 }
 
@@ -296,7 +332,7 @@ impl From<LocalEvent> for LocalEventForm {
         }
     }
 }
-type LocalEventWithAttendance = (LocalEvent, Option<Attendance<ExtraAttendanceDetails>>);
+type LocalEventWithAttendance = (LocalEvent, Option<Attendance>);
 impl From<LocalEventWithAttendance> for LocalEventForm {
     fn from((event, attendance): LocalEventWithAttendance) -> Self {
         let mut form = LocalEventForm::from(event);

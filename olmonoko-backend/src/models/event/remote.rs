@@ -1,6 +1,8 @@
 use chrono::Utc;
+use std::hash::Hash;
+use std::hash::Hasher;
 
-use crate::utils::time::from_timestamp;
+use crate::{models::attendance::Attendance, utils::time::from_timestamp};
 
 #[derive(Debug, Clone, sqlx::FromRow, serde::Serialize, serde::Deserialize)]
 pub struct RawRemoteEvent {
@@ -23,6 +25,7 @@ pub struct RemoteEvent {
     pub id: i64,
     pub event_source_id: i64,
     pub priority: Option<i64>,
+    pub attendance: Option<Attendance>,
     // Event data
     pub rrule: Option<String>,
     pub dt_stamp: Option<chrono::DateTime<Utc>>,
@@ -33,8 +36,8 @@ pub struct RemoteEvent {
     pub location: Option<String>,
     pub uid: String,
 }
-impl From<RawRemoteEvent> for RemoteEvent {
-    fn from(raw: RawRemoteEvent) -> Self {
+impl From<(RawRemoteEvent, Option<Attendance>)> for RemoteEvent {
+    fn from((raw, attendance): (RawRemoteEvent, Option<Attendance>)) -> Self {
         let priority = if let Some(priority_override) = raw.priority_override {
             priority_override
         } else {
@@ -44,6 +47,7 @@ impl From<RawRemoteEvent> for RemoteEvent {
         Self {
             id: raw.id,
             event_source_id: raw.event_source_id,
+            attendance,
             priority,
             rrule: raw.rrule,
             dt_stamp: raw.dt_stamp.map(from_timestamp),
@@ -73,6 +77,21 @@ pub struct NewRemoteEvent {
     // tags
     pub tags: Vec<String>,
 }
+impl Hash for NewRemoteEvent {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        // everything except dt_stamp, as that often changes for every sync of the source
+        self.event_source_id.hash(state);
+        self.priority_override.hash(state);
+        self.rrule.hash(state);
+        self.all_day.hash(state);
+        self.duration.hash(state);
+        self.summary.hash(state);
+        self.description.hash(state);
+        self.location.hash(state);
+        self.uid.hash(state);
+        self.tags.hash(state);
+    }
+}
 
 #[derive(Debug, Clone, sqlx::FromRow, serde::Serialize, serde::Deserialize)]
 pub struct RemoteEventOccurrence {
@@ -81,7 +100,7 @@ pub struct RemoteEventOccurrence {
     pub from_rrule: bool,
     pub starts_at: chrono::DateTime<Utc>,
 }
-#[derive(Debug, Clone, sqlx::FromRow, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, sqlx::FromRow, serde::Serialize, serde::Deserialize, PartialEq, Hash)]
 pub struct NewRemoteEventOccurrence {
     pub event_id: i64,
     pub starts_at: i64,

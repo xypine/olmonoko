@@ -8,24 +8,26 @@
         <span style="view-transition-name: source-ec-{{ source.id }}">{{ event_count }} events</span>
         <span style="view-transition-name: source-oc-{{ source.id }}">with {{ occurrence_count }} occurrences</span>
     </span>
-    <p><b>url</b>: {{ source.url }}</p>
+    <p><b>URL</b>: {{ source.url }}</p>
     <p><b>Created</b>: {{ source.created_at }}</p>
     {% if source.is_public %}
-    <p>This data source is <b>public.</b> Others are allowed to add it to their calendars.</p>
+        <p>This data source is <b>public.</b> Anyone is allowed to add it to their calendar.</p>
     {% else %}
-    <p>This data source is <b>private</b>.</p>
+        <p>This data source is <b>private</b>.</p>
     {% endif %}
     {% if user and source.user_id == user.id %}
-    {% include 'components/data_source/persist_setting.html' %}
-    {% include 'components/data_source/all_as_allday_setting.html' %}
-    {% include 'components/data_source/import_template_setting.html' %}
+        {% include 'components/data_source/persist_setting.html' %}
+        {% include 'components/data_source/all_as_allday_setting.html' %}
+        {% include 'components/data_source/import_template_setting.html' %}
     {% endif %}
     <hr />
-    <p><b>Last synced</b>: {{ source.last_fetched_at }}</p>
+    <p><b>Last Synced</b>: {{ source.last_fetched_at }}</p>
+    <p><b>File Hash</b>: <code>{{ source.file_hash|default(value = "not calculated yet") }}</code></p>
+    <p><b>Object Hash</b>: <code>{{ source.object_hash|default(value = "not calculated yet") }}</code></p>
     {% if user %}
-    <form action="/api/source/{{ source.id }}/sync" method="POST">
-        <button id="sync-{{ source.id }}" type="submit" class="btn">Sync</button>
-    </form>
+        <form action="/api/source/{{ source.id }}/sync" method="POST">
+            <button id="sync-{{ source.id }}" type="submit" class="btn">Sync</button>
+        </form>
     {% endif %}
 </div>
 

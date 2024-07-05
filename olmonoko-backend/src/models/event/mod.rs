@@ -8,6 +8,8 @@ use crate::utils::time::from_timestamp;
 
 use self::{local::LocalEvent, remote::RemoteEvent};
 
+use super::attendance::Attendance;
+
 #[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub struct SourceLocal {
     pub user_id: i64,
@@ -46,6 +48,7 @@ pub struct Event {
     pub source: EventSource,
     pub priority: i64,
     pub tags: Vec<String>,
+    pub attendance: Option<Attendance>,
     // Event data
     pub starts_at: Vec<chrono::DateTime<Utc>>,
     pub all_day: bool,
@@ -99,6 +102,7 @@ impl From<LocalEvent> for Event {
             }),
             priority: local.priority.unwrap_or(DEFAULT_PRIORITY),
             tags: local.tags,
+            attendance: local.attendance,
             starts_at: vec![local.starts_at],
             all_day: local.all_day,
             duration: local.duration,
@@ -119,7 +123,8 @@ impl From<(RemoteEvent, Vec<i64>)> for Event {
                 source_id: remote.event_source_id,
             }),
             priority: remote.priority.unwrap_or(DEFAULT_PRIORITY),
-            tags: vec![], // TODO: Implement tags for remote events
+            tags: vec![],     // TODO: Implement tags for remote events
+            attendance: None, // TODO  Implement attendance for remote events
             starts_at: starts_at.into_iter().map(from_timestamp).collect(),
             all_day: remote.all_day,
             duration: remote.duration,
@@ -138,6 +143,7 @@ pub struct EventOccurrence {
     pub source: EventSource,
     pub priority: i64,
     pub tags: Vec<String>,
+    pub attendance: Option<Attendance>,
     // Event data
     pub starts_at: chrono::DateTime<Utc>,
     pub all_day: bool,
@@ -193,6 +199,7 @@ impl From<Event> for Vec<EventOccurrence> {
                 source: event.source,
                 priority: event.priority,
                 tags: event.tags.clone(),
+                attendance: event.attendance.clone(),
                 starts_at,
                 all_day: event.all_day,
                 duration: event.duration,
@@ -374,6 +381,7 @@ mod tests {
             source: EventSource::Local(SourceLocal { user_id: 1 }),
             priority: 5,
             tags: vec![],
+            attendance: None,
             starts_at: Utc.ymd(2021, 1, 1).and_hms(12, 0, 0),
             all_day: false,
             duration: Some(3600),
@@ -402,6 +410,7 @@ mod tests {
             source: EventSource::Local(SourceLocal { user_id: 1 }),
             priority: 5,
             tags: vec![],
+            attendance: None,
             starts_at: Utc.ymd(2021, 1, 1).and_hms(0, 0, 0),
             all_day: false,
             duration: Some(3600 * 24),
@@ -431,6 +440,7 @@ mod tests {
                 source: EventSource::Local(SourceLocal { user_id: 1 }),
                 priority: 5,
                 tags: vec![],
+                attendance: None,
                 starts_at: Utc.ymd(2021, 1, 1).and_hms(23, 30, 0),
                 all_day: false,
                 duration: Some(3600),
@@ -458,6 +468,7 @@ mod tests {
                 source: EventSource::Local(SourceLocal { user_id: 1 }),
                 priority: 5,
                 tags: vec![],
+                attendance: None,
                 starts_at: Utc.ymd(2024, 7, 25).and_hms(0, 0, 0),
                 all_day: true,
                 duration: Some(3600 * 24 * 3),
@@ -495,6 +506,7 @@ mod tests {
             description: None,
             location: None,
             uid: "test".to_string(),
+            attendance: None,
         };
         let tz = Utc;
         let human = EventOccurrenceHuman::from((event, &tz));

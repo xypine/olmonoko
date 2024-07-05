@@ -1,0 +1,61 @@
+<form
+	id="attendance-form"
+	action="{{ site_url | safe }}/api/event/{{ event.id }}/attendance"
+	method="post"
+	style="display: flex; flex-direction: column; gap: 1rem;"
+>
+	<fieldset>
+		<legend>
+			Planned
+		</legend>
+		<label>
+			<span>
+				Plan to attend:
+			</span>
+			<input type="checkbox" name="attend_plan" autocomplete="off"
+				{% if selected.attend_plan and selected.attend_plan == "on" %}
+					checked
+				{% endif %}
+			>
+		</label>
+		<label>
+			<span>
+				Override From:
+			</span>
+			<input type="datetime-local" name="attend_plan_start" autocomplete="off" value="{{ selected.attend.plan.start|default(value='') }}">
+		</label>
+		<label>
+			<span>
+				Override Till:
+			</span>
+			<input type="datetime-local" name="attend_plan_end" autocomplete="off" value="{{ selected.attend.plan.end|default(value='') }}">
+		</label>
+	</fieldset>
+	<fieldset>
+		<legend>
+			Actual
+		</legend>
+		<label>
+			<span>
+				Attended:
+			</span>
+			<input type="checkbox" name="attend_actual" autocomplete="off"
+				{% if selected.attend_actual and selected.attend_actual == "on" %}
+					checked
+				{% endif %}
+			>
+		</label>
+		<label>
+			<span>
+				Override From:
+			</span>
+			<input type="datetime-local" name="attend_actual_start" autocomplete="off" value="{{ selected.attend.actual.start|default(value='') }}">
+		</label>
+		<label>
+			<span>
+				Override Till:
+			</span>
+			<input type="datetime-local" name="attend_actual_end" autocomplete="off" value="{{ selected.attend.actual.end|default(value='') }}">
+		</label>
+	</fieldset>
+</form>

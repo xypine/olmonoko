@@ -150,10 +150,13 @@ async fn change_priority(
                 url: "".to_string(),
                 name: "".to_string(),
                 created_at: chrono::Utc::now(),
+                updated_at: None,
                 last_fetched_at: None,
                 persist_events: false,
                 all_as_allday: false,
                 import_template: None,
+                file_hash: None,
+                object_hash: None,
             },
         );
         let component = data
@@ -201,10 +204,13 @@ async fn change_persist_events(
                 url: "".to_string(),
                 name: "".to_string(),
                 created_at: chrono::Utc::now(),
+                updated_at: None,
                 last_fetched_at: None,
                 persist_events: new_value,
                 all_as_allday: false,
                 import_template: None,
+                file_hash: None,
+                object_hash: None,
             },
         );
         let component = data
@@ -250,10 +256,13 @@ async fn change_all_as_allday(
                 url: "".to_string(),
                 name: "".to_string(),
                 created_at: chrono::Utc::now(),
+                updated_at: None,
                 last_fetched_at: None,
                 persist_events: false,
                 all_as_allday: new_value,
                 import_template: None,
+                file_hash: None,
+                object_hash: None,
             },
         );
         let component = data
@@ -303,10 +312,13 @@ async fn change_import_template(
                 url: "".to_string(),
                 name: "".to_string(),
                 created_at: chrono::Utc::now(),
+                updated_at: None,
                 last_fetched_at: None,
                 persist_events: false,
                 all_as_allday: false,
                 import_template: new_value,
+                file_hash: None,
+                object_hash: None,
             },
         );
         let component = data

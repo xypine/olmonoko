@@ -52,6 +52,21 @@
         "name": "import_template",
         "ordinal": 9,
         "type_info": "Text"
+      },
+      {
+        "name": "file_hash",
+        "ordinal": 10,
+        "type_info": "Text"
+      },
+      {
+        "name": "object_hash",
+        "ordinal": 11,
+        "type_info": "Text"
+      },
+      {
+        "name": "updated_at",
+        "ordinal": 12,
+        "type_info": "Int64"
       }
     ],
     "parameters": {
@@ -67,6 +82,9 @@
       true,
       false,
       false,
+      true,
+      true,
+      true,
       true
     ]
   },

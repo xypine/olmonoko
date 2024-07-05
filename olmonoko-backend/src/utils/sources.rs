@@ -26,9 +26,12 @@ pub async fn get_visible_sources(
             last_fetched_at: source.last_fetched_at,
             is_public: source.is_public,
             created_at: source.created_at,
+            updated_at: source.updated_at,
             persist_events: source.persist_events,
             all_as_allday: source.all_as_allday,
             import_template: source.import_template,
+            file_hash: source.file_hash, 
+                object_hash: source.object_hash,
         }, source.priority))
     })
     .collect()
@@ -54,9 +57,12 @@ pub async fn get_visible_sources_with_event_count(
             last_fetched_at: source.last_fetched_at,
             is_public: source.is_public,
             created_at: source.created_at,
+            updated_at: source.updated_at,
             persist_events: source.persist_events,
             all_as_allday: source.all_as_allday,
             import_template: source.import_template,
+            file_hash: source.file_hash,
+            object_hash: source.object_hash,
         }, source.priority));
         (s, source.event_count as i64, source.occurrence_count as i64)
     })
@@ -84,9 +90,12 @@ pub async fn get_source_as_user(
             last_fetched_at: source.last_fetched_at,
             is_public: source.is_public,
             created_at: source.created_at,
+            updated_at: source.updated_at,
             persist_events: source.persist_events,
             all_as_allday: source.all_as_allday,
             import_template: source.import_template,
+            file_hash: source.file_hash,
+                object_hash: source.object_hash,
         }, source.priority))
     })
 }
@@ -113,9 +122,12 @@ pub async fn get_source_as_user_with_event_count(
             last_fetched_at: r.last_fetched_at,
             is_public: r.is_public,
             created_at: r.created_at,
+            updated_at: r.updated_at,
             persist_events: r.persist_events,
             all_as_allday: r.all_as_allday,
             import_template: r.import_template,
+            file_hash: r.file_hash,
+            object_hash: r.object_hash,
         },
         r.priority,
     ));

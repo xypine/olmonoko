@@ -3,6 +3,7 @@ use itertools::Itertools;
 
 use crate::{
     models::{
+        attendance::{Attendance, RawAttendance},
         bills::RawBill,
         event::{
             local::{LocalEvent, RawLocalEvent},
@@ -38,10 +39,20 @@ pub async fn get_user_local_events(
             bill.payee_email,
             bill.payee_address,
             bill.payee_phone,
-            GROUP_CONCAT(tag.tag, ',') AS tags
+            GROUP_CONCAT(tag.tag, ',') AS tags,
+            attendance.planned,
+            attendance.planned_starts_at,
+            attendance.planned_duration,
+            attendance.actual,
+            attendance.actual_starts_at,
+            attendance.actual_duration,
+            attendance.created_at as attendance_created_at,
+            attendance.updated_at as attendance_updated_at
         FROM local_events AS event
         LEFT JOIN bills AS bill 
             ON bill.local_event_id = event.id 
+        LEFT JOIN attendance
+            ON attendance.local_event_id = event.id
         LEFT JOIN event_tags AS tag 
             ON tag.local_event_id = event.id
         WHERE event.user_id = $1 
@@ -105,8 +116,34 @@ pub async fn get_user_local_events(
             payee_address: event.payee_address,
             payee_phone: event.payee_phone,
         });
+        let attendance = event
+            .attendance_created_at
+            .map(|created_at| RawAttendance {
+                created_at,
+                updated_at: event
+                    .attendance_updated_at
+                    .expect("Missing attendance_updated_at"),
+                planned: event.planned.expect("Missing attendance_planned"),
+                planned_starts_at: event.planned_starts_at,
+                planned_duration: event.planned_duration,
+                actual: event.actual.expect("Missing attendance_actual"),
+                actual_starts_at: event.actual_starts_at,
+                actual_duration: event.actual_duration,
+                user_id: event.user_id,
+                local_event_id: Some(event.id),
+                remote_event_id: None,
+            })
+            .map(|a| {
+                Attendance::from((a, event.starts_at, event.duration))
+            });
         let tags = event.tags.unwrap_or_default();
-        LocalEvent::from((raw_event, raw_bill, autodescription, tags.as_str()))
+        LocalEvent::from((
+            raw_event,
+            raw_bill,
+            autodescription,
+            tags.as_str(),
+            attendance,
+        ))
     })
     .collect()
 }
@@ -138,7 +175,15 @@ async fn get_visible_remote_events(
             e.*, 
             p.priority, 
             o.starts_at, 
-            o.from_rrule 
+            o.from_rrule,
+            attendance.planned,
+            attendance.planned_starts_at,
+            attendance.planned_duration,
+            attendance.actual,
+            attendance.actual_starts_at,
+            attendance.actual_duration,
+            attendance.created_at as attendance_created_at,
+            attendance.updated_at as attendance_updated_at
         FROM 
             events AS e 
         INNER JOIN 
@@ -158,6 +203,8 @@ async fn get_visible_remote_events(
             AND ($5 IS NULL OR (p.priority IS NOT NULL AND COALESCE(NULLIF(e.priority_override, 0), $6) <= $5) AND COALESCE(NULLIF(p.priority, 0), $6) <= $5)
         LEFT JOIN event_tags AS tag
             ON tag.remote_event_id = e.id
+        LEFT JOIN attendance
+            ON attendance.remote_event_id = e.id
         WHERE 
             ($2 IS NULL OR o.starts_at + COALESCE(e.duration, 0) > $2) 
             AND ($3 IS NULL OR o.starts_at < $3) 
@@ -187,8 +234,29 @@ async fn get_visible_remote_events(
     .expect("Failed to get events")
     .into_iter()
     .map(|event| {
+        let attendance = event
+            .attendance_created_at
+            .and_then(|created_at| user_id.map(|user_id| (created_at, user_id)))
+            .map(|(created_at, user_id)| RawAttendance {
+                created_at,
+                updated_at: event
+                    .attendance_updated_at
+                    .expect("Missing attendance_updated_at"),
+                planned: event.planned.expect("Missing attendance_planned"),
+                planned_starts_at: event.planned_starts_at,
+                planned_duration: event.planned_duration,
+                actual: event.actual.expect("Missing attendance_actual"),
+                actual_starts_at: event.actual_starts_at,
+                actual_duration: event.actual_duration,
+                user_id,
+                local_event_id: Some(event.id),
+                remote_event_id: None,
+            })
+            .map(|a| {
+                Attendance::from((a, event.starts_at, event.duration))
+            });
         (
-            RemoteEvent::from(RawRemoteEvent {
+            RemoteEvent::from((RawRemoteEvent {
                 priority_override: event.priority_override,
                 rrule: event.rrule,
                 id: event.id,
@@ -201,7 +269,7 @@ async fn get_visible_remote_events(
                 duration: event.duration,
                 location: event.location,
                 description: event.description,
-            }),
+            }, attendance)), 
             event.starts_at,
             event.from_rrule,
         )
