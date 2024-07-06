@@ -116,45 +116,6 @@ impl NewAttendance {
     }
 }
 
-// impl TryFrom<RawAttendance> for Attendance<AttendanceDetails> {
-//     type Error = &'static str;
-//     fn try_from(raw: RawAttendance) -> Result<Self, Self::Error> {
-//         let event_id = match (raw.local_event_id, raw.remote_event_id) {
-//             (None, None) => Err("Raw attendance missing any remote id"),
-//             (None, Some(remote_id)) => Ok(AttendanceEvent::Remote(remote_id)),
-//             (Some(local_id), None) => Ok(AttendanceEvent::Local(local_id)),
-//             (Some(_), Some(_)) => Err("Raw attendance has two ids"),
-//         }?;
-//
-//         let planned = if raw.planned {
-//             Some(AttendanceDetails {
-//                 starts_at: raw.planned_starts_at,
-//                 duration: raw.planned_duration,
-//             })
-//         } else {
-//             None
-//         };
-//
-//         let actual = if raw.actual {
-//             Some(AttendanceDetails {
-//                 starts_at: raw.actual_starts_at,
-//                 duration: raw.actual_duration,
-//             })
-//         } else {
-//             None
-//         };
-//
-//         Ok(Self {
-//             user_id: raw.user_id,
-//             event_id,
-//             planned,
-//             actual,
-//             created_at: from_timestamp(raw.created_at),
-//             updated_at: from_timestamp(raw.updated_at),
-//         })
-//     }
-// }
-
 impl From<(RawAttendance, i64, Option<i64>)> for Attendance {
     fn from((raw, starts_at, event_duration): (RawAttendance, i64, Option<i64>)) -> Self {
         let calc_end = |start: i64, duration: Option<i64>| match (event_duration, duration) {
@@ -277,11 +238,11 @@ impl From<Attendance> for AttendanceForm {
     fn from(f: Attendance) -> Self {
         use crate::utils::time::to_form;
         let (attend_plan, plan_start, plan_end) = match f.planned {
-            Some(p) => (true, Some(p.start), p.end),
+            Some(p) => (true, p.starts_at.map(|_| p.start), p.end),
             None => (false, None, None),
         };
         let (attend_actual, actual_start, actual_end) = match f.actual {
-            Some(a) => (true, Some(a.start), a.end),
+            Some(a) => (true, a.starts_at.map(|_| a.start), a.end),
             None => (false, None, None),
         };
         Self {

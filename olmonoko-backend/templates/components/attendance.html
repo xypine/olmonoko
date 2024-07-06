@@ -1,9 +1,11 @@
+{% if standalone %}
 <form
 	id="attendance-form"
-	action="{{ site_url | safe }}/api/event/{{ event.id }}/attendance"
+	action="{{ site_url | safe }}/api/event/{{ event_id }}/attendance"
 	method="post"
 	style="display: flex; flex-direction: column; gap: 1rem;"
 >
+{% endif %}
 	<fieldset>
 		<legend>
 			Planned
@@ -13,7 +15,7 @@
 				Plan to attend:
 			</span>
 			<input type="checkbox" name="attend_plan" autocomplete="off"
-				{% if selected.attend_plan and selected.attend_plan == "on" %}
+				{% if event.attend_plan and event.attend_plan == "on" %}
 					checked
 				{% endif %}
 			>
@@ -22,13 +24,13 @@
 			<span>
 				Override From:
 			</span>
-			<input type="datetime-local" name="attend_plan_start" autocomplete="off" value="{{ selected.attend.plan.start|default(value='') }}">
+			<input type="datetime-local" name="attend_plan_start" autocomplete="off" value="{{ event.attend_plan_start|default(value='') }}">
 		</label>
 		<label>
 			<span>
 				Override Till:
 			</span>
-			<input type="datetime-local" name="attend_plan_end" autocomplete="off" value="{{ selected.attend.plan.end|default(value='') }}">
+			<input type="datetime-local" name="attend_plan_end" autocomplete="off" value="{{ event.attend_plan_end|default(value='') }}">
 		</label>
 	</fieldset>
 	<fieldset>
@@ -40,7 +42,7 @@
 				Attended:
 			</span>
 			<input type="checkbox" name="attend_actual" autocomplete="off"
-				{% if selected.attend_actual and selected.attend_actual == "on" %}
+				{% if event.attend_actual and event.attend_actual == "on" %}
 					checked
 				{% endif %}
 			>
@@ -49,13 +51,15 @@
 			<span>
 				Override From:
 			</span>
-			<input type="datetime-local" name="attend_actual_start" autocomplete="off" value="{{ selected.attend.actual.start|default(value='') }}">
+			<input type="datetime-local" name="attend_actual_start" autocomplete="off" value="{{ event.attend_actual_start|default(value='') }}">
 		</label>
 		<label>
 			<span>
 				Override Till:
 			</span>
-			<input type="datetime-local" name="attend_actual_end" autocomplete="off" value="{{ selected.attend.actual.end|default(value='') }}">
+			<input type="datetime-local" name="attend_actual_end" autocomplete="off" value="{{ event.attend_actual_end|default(value='') }}">
 		</label>
 	</fieldset>
+{% if standalone %}
 </form>
+{% endif %}
