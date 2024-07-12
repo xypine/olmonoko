@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT * FROM event_tags WHERE remote_event_id IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "name": "local_event_id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "remote_event_id",
+        "ordinal": 1,
+        "type_info": "Int64"
+      },
+      {
+        "name": "tag",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "created_at",
+        "ordinal": 3,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "1793e43187abf1c0a66ecbb510402d3b45422c5510e72217e9b7235aa1adbf8a"
+}

@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT * FROM ics_source_priorities",
+  "describe": {
+    "columns": [
+      {
+        "name": "user_id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "ics_source_id",
+        "ordinal": 1,
+        "type_info": "Int64"
+      },
+      {
+        "name": "priority",
+        "ordinal": 2,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "85fa4775afb4137062666f93efa307c10ab22ac630386e2901a8b58e567efbbf"
+}

@@ -8,7 +8,6 @@ use crate::{models::attendance::Attendance, utils::time::from_timestamp};
 pub struct RawRemoteEvent {
     pub id: i64,
     pub event_source_id: i64,
-    pub event_source_priority: i64,
     pub priority_override: Option<i64>,
     // Event data
     pub rrule: Option<String>,
@@ -36,12 +35,14 @@ pub struct RemoteEvent {
     pub location: Option<String>,
     pub uid: String,
 }
-impl From<(RawRemoteEvent, Option<Attendance>)> for RemoteEvent {
-    fn from((raw, attendance): (RawRemoteEvent, Option<Attendance>)) -> Self {
+impl From<(RawRemoteEvent, i64, Option<Attendance>)> for RemoteEvent {
+    fn from(
+        (raw, event_source_priority, attendance): (RawRemoteEvent, i64, Option<Attendance>),
+    ) -> Self {
         let priority = if let Some(priority_override) = raw.priority_override {
             priority_override
         } else {
-            raw.event_source_priority
+            event_source_priority
         };
         let priority = if priority == 0 { None } else { Some(priority) };
         Self {

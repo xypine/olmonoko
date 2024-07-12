@@ -3,7 +3,7 @@ use chrono::{DateTime, Utc};
 
 use crate::routes::AppState;
 
-#[derive(Debug, Clone, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct BuildInformation {
     pub package_version: String,
     pub commit: Option<String>,

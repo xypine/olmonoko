@@ -1,5 +1,6 @@
 use actix_web::{web, Scope};
 
+pub(crate) mod backup;
 pub(crate) mod data_source;
 pub(crate) mod event;
 pub(crate) mod export;
@@ -13,4 +14,5 @@ pub fn routes() -> Scope {
         .service(user::routes())
         .service(export::routes())
         .service(event::routes())
+        .service(backup::routes())
 }

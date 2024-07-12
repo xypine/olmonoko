@@ -1,0 +1,80 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT * FROM events",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "event_source_id",
+        "ordinal": 1,
+        "type_info": "Int64"
+      },
+      {
+        "name": "dt_stamp",
+        "ordinal": 2,
+        "type_info": "Int64"
+      },
+      {
+        "name": "duration",
+        "ordinal": 3,
+        "type_info": "Int64"
+      },
+      {
+        "name": "summary",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "description",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "location",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "uid",
+        "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "rrule",
+        "ordinal": 8,
+        "type_info": "Text"
+      },
+      {
+        "name": "all_day",
+        "ordinal": 9,
+        "type_info": "Bool"
+      },
+      {
+        "name": "priority_override",
+        "ordinal": 10,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      false,
+      true,
+      true,
+      false,
+      true,
+      false,
+      true
+    ]
+  },
+  "hash": "0d4d698b039ac95743392f44379bd1b8881297a06d0e0d333b065aec5d9da24e"
+}

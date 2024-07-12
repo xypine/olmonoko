@@ -545,7 +545,7 @@ async fn calendar(
         {
             let formatted = day.format("%d.%-m.").to_string();
             week_dates.push(formatted.clone());
-            context.insert(&format!("week_date_{}", i), &formatted);
+            context.insert(format!("week_date_{}", i), &formatted);
         }
         context.insert("week_dates", &week_dates);
         context.insert(
