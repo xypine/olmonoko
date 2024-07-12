@@ -12,7 +12,7 @@ use crate::{
             EventId, NewBillWithEvent,
         },
         event::{
-            local::{LocalEvent, LocalEventForm, NewLocalEvent, RawLocalEvent},
+            local::{LocalEvent, LocalEventForm, LocalEventId, NewLocalEvent, RawLocalEvent},
             DEFAULT_PRIORITY,
         },
     },
@@ -102,7 +102,7 @@ async fn new_local_event(
 
 #[derive(Debug, serde::Deserialize)]
 struct DeleteQuery {
-    id: Option<i64>,
+    id: Option<i32>,
     #[serde(flatten)]
     filter: RawEventFilter,
 }
@@ -118,30 +118,30 @@ async fn delete_local_event(
         let filter = EventFilter::from(query.filter);
         let min_priority = parse_priority(filter.min_priority);
         let max_priority = parse_priority(filter.max_priority);
-        let tags = filter.tags.map(|tags| tags.join(","));
-        let exclude_tags = filter.exclude_tags.map(|tags| tags.join(","));
+        // let tags = filter.tags.map(|tags| tags.join(","));
+        // let exclude_tags = filter.exclude_tags.map(|tags| tags.join(","));
         let deleted = sqlx::query_as!(
             RawLocalEvent,
             r#"
                 DELETE FROM local_events
-                WHERE user_id = $2
-                    AND ($1 IS NULL OR id = $1) 
-                    AND ($3 IS NULL OR starts_at > $3) 
-                    AND ($4 IS NULL OR starts_at < $4) 
+                WHERE user_id = $2::integer
+                    AND ($1::integer IS NULL OR id = $1) 
+                    AND ($3::bigint IS NULL OR starts_at > $3) 
+                    AND ($4::bigint IS NULL OR starts_at < $4) 
                     AND (COALESCE(NULLIF(priority, 0), $7) >= $5 OR $5 IS NULL)
                     AND (COALESCE(NULLIF(priority, 0), $7) <= $6 OR $6 IS NULL)
-                    AND ($8 IS NULL OR summary LIKE $8)
-                    AND ($9 IS NULL OR (
+                    AND ($8::text IS NULL OR summary LIKE $8)
+                    AND ($9::text[] IS NULL OR (
                         SELECT tag.tag
                         FROM event_tags AS tag
                         WHERE tag.local_event_id = id
-                        AND tag.tag IN ($9)
+                        AND tag.tag = ANY($9)
                     ) IS NOT NULL)
-                    AND ($10 IS NULL OR (
+                    AND ($10::text[] IS NULL OR (
                         SELECT tag.tag
                         FROM event_tags AS tag
                         WHERE tag.local_event_id = id
-                        AND tag.tag IN ($10)
+                        AND tag.tag = ANY($10)
                     ) IS NULL)
                 RETURNING *
             "#,
@@ -153,8 +153,8 @@ async fn delete_local_event(
             max_priority,
             DEFAULT_PRIORITY,
             filter.summary_like,
-            tags,
-            exclude_tags,
+            filter.tags.as_deref(),
+            filter.exclude_tags.as_deref(),
         )
         .fetch_all(&data.conn)
         .await
@@ -179,7 +179,7 @@ async fn delete_local_event(
 async fn update_local_event(
     data: web::Data<AppState>,
     request: HttpRequest,
-    id: Path<i64>,
+    id: Path<LocalEventId>,
     form: web::Form<LocalEventForm>,
 ) -> impl Responder {
     let user_opt = request.get_session_user(&data).await;

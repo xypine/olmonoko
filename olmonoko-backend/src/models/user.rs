@@ -1,10 +1,12 @@
 use crate::utils::time::from_timestamp;
-use chrono::TimeZone;
+use chrono::{TimeZone, Utc};
 use chrono_tz::OffsetComponents;
+
+pub type UserId = i32;
 
 #[derive(Debug, Clone, sqlx::FromRow, serde::Serialize, serde::Deserialize)]
 pub struct RawUser {
-    pub id: i64,
+    pub id: UserId,
     pub email: String,
     pub password_hash: String,
     pub admin: bool,
@@ -13,11 +15,11 @@ pub struct RawUser {
 }
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct User {
-    pub id: i64,
+    pub id: UserId,
     pub email: String,
     pub password_hash: String,
     pub admin: bool,
-    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub created_at: chrono::DateTime<Utc>,
     pub interface_timezone: String,
     #[serde(skip)]
     pub interface_timezone_parsed: chrono_tz::Tz,
@@ -59,7 +61,7 @@ pub struct UserForm {
 
 #[derive(Debug, Clone, sqlx::FromRow, serde::Serialize, serde::Deserialize)]
 pub struct UserPublic {
-    pub id: i64,
+    pub id: UserId,
     pub email: String,
     pub admin: bool,
     pub created_at: chrono::DateTime<chrono::Utc>,
@@ -89,7 +91,7 @@ impl From<RawUser> for UserPublic {
 
 #[derive(Debug, Clone, sqlx::FromRow, serde::Serialize, serde::Deserialize)]
 pub struct UnverifiedUser {
-    pub id: i64,
+    pub id: UserId,
     pub email: String,
     pub password_hash: String,
     pub created_at: i64,

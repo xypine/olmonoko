@@ -4,7 +4,7 @@ use actix_web::{delete, get, patch, post, web, HttpResponse, Responder, Scope};
 use uuid::Uuid;
 
 use crate::models::session::{NewSession, SessionRaw};
-use crate::models::user::{NewUser, RawUser, UserForm, UserPublic};
+use crate::models::user::{NewUser, RawUser, UserForm, UserId, UserPublic};
 use crate::routes::AppState;
 use crate::utils::flash::{FlashMessage, WithFlashMessage};
 use crate::utils::request::{deauth, redirect, reload, EnhancedRequest, SESSION_COOKIE_NAME};
@@ -56,9 +56,9 @@ async fn register(
         .fetch_one(&data.conn)
         .await;
     let unreliable_user_count = if let Ok(count) = unreliable_user_count {
-        count
+        count.expect("Failed to count users (2)")
     } else {
-        tracing::error!("Failed to count users");
+        tracing::error!("Failed to count users (1)");
         1
     };
     if unreliable_user_count == 0 {
@@ -121,7 +121,7 @@ async fn verify_user(data: web::Data<AppState>, secret: web::Path<String>) -> im
 async fn remove_user(
     data: web::Data<AppState>,
     req: HttpRequest,
-    id: web::Path<i64>,
+    id: web::Path<UserId>,
 ) -> impl Responder {
     let (mut context, user) = req.get_session_context(&data).await;
     if let Some(user) = user {
@@ -132,7 +132,8 @@ async fn remove_user(
         let user_count = sqlx::query_scalar!("SELECT COUNT(*) FROM users")
             .fetch_one(&data.conn)
             .await
-            .expect("Failed to count users");
+            .expect("Failed to count users (3)")
+            .expect("Failed to count users (4)");
         if user_count == 1 {
             return HttpResponse::Forbidden().body("Cannot remove the last user");
         }

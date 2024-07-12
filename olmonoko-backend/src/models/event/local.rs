@@ -11,26 +11,29 @@ use crate::models::bills::AutoDescription;
 use crate::models::bills::Bill;
 use crate::models::bills::RawBill;
 use crate::models::user::User;
+use crate::models::user::UserId;
 use crate::utils::time::from_timestamp;
+
+pub type LocalEventId = i32;
 
 #[derive(Debug, Clone, sqlx::FromRow, serde::Serialize, serde::Deserialize)]
 pub struct RawLocalEvent {
-    pub id: i64,
-    pub user_id: i64,
+    pub id: LocalEventId,
+    pub user_id: UserId,
     pub created_at: i64,
     pub updated_at: i64,
-    pub priority: Option<i64>,
+    pub priority: Option<Priority>,
     // Event data
     pub starts_at: i64,
     pub all_day: bool,
-    pub duration: Option<i64>,
+    pub duration: Option<i32>,
     pub summary: String,
     pub description: Option<String>,
     pub location: Option<String>,
     pub uid: String,
 }
 impl EventLike for RawLocalEvent {
-    fn id(&self) -> i64 {
+    fn id(&self) -> EventId {
         self.id
     }
     fn source(&self) -> EventSource {
@@ -38,7 +41,7 @@ impl EventLike for RawLocalEvent {
             user_id: self.user_id,
         })
     }
-    fn priority(&self) -> Option<i64> {
+    fn priority(&self) -> Option<Priority> {
         self.priority
     }
     fn tags(&self) -> Vec<String> {
@@ -50,7 +53,7 @@ impl EventLike for RawLocalEvent {
     fn starts_at(&self) -> Vec<i64> {
         vec![self.starts_at]
     }
-    fn duration(&self) -> Option<i64> {
+    fn duration(&self) -> Option<i32> {
         self.duration
     }
     fn summary(&self) -> &str {
@@ -65,17 +68,17 @@ impl EventLike for RawLocalEvent {
 }
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct LocalEvent {
-    pub id: i64,
-    pub user_id: i64,
+    pub id: LocalEventId,
+    pub user_id: UserId,
     pub created_at: chrono::DateTime<Utc>,
     pub updated_at: chrono::DateTime<Utc>,
-    pub priority: Option<i64>,
+    pub priority: Option<Priority>,
     pub tags: Vec<String>,
     pub attendance: Option<Attendance>,
     // Event data
     pub starts_at: chrono::DateTime<Utc>,
     pub all_day: bool,
-    pub duration: Option<i64>,
+    pub duration: Option<i32>,
     pub summary: String,
     pub description: Option<String>,
     pub location: Option<String>,
@@ -216,13 +219,13 @@ impl
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct NewLocalEvent {
-    pub user_id: i64,
-    pub priority: Option<i64>,
+    pub user_id: UserId,
+    pub priority: Option<Priority>,
     pub tags: Vec<String>,
     // Event data
     pub starts_at: i64,
     pub all_day: bool,
-    pub duration: Option<i64>,
+    pub duration: Option<i32>,
     pub summary: String,
     pub description: Option<String>,
     pub location: Option<String>,
@@ -232,14 +235,16 @@ pub struct NewLocalEvent {
 use crate::models::ics_source::deserialize_checkbox;
 use crate::models::ics_source::serialize_checkbox;
 
+use super::EventId;
 use super::EventLike;
 use super::EventSource;
+use super::Priority;
 use super::SourceLocal;
 #[derive(Debug, Clone, sqlx::FromRow, serde::Serialize, serde::Deserialize)]
 pub struct LocalEventForm {
     pub summary: String,
     #[serde(default, with = "As::<NoneAsEmptyString>")]
-    pub priority: Option<i64>,
+    pub priority: Option<Priority>,
     #[serde(default, with = "As::<NoneAsEmptyString>")]
     pub tags: Option<String>,
     #[serde(default, with = "As::<NoneAsEmptyString>")]
@@ -254,11 +259,11 @@ pub struct LocalEventForm {
     )]
     pub all_day: bool,
     #[serde(default, with = "As::<NoneAsEmptyString>")]
-    pub duration_h: Option<i64>,
+    pub duration_h: Option<i32>,
     #[serde(default, with = "As::<NoneAsEmptyString>")]
-    pub duration_m: Option<i64>,
+    pub duration_m: Option<i32>,
     #[serde(default, with = "As::<NoneAsEmptyString>")]
-    pub duration_s: Option<i64>,
+    pub duration_s: Option<i32>,
     #[serde(default, with = "As::<NoneAsEmptyString>")]
     pub location: Option<String>,
 

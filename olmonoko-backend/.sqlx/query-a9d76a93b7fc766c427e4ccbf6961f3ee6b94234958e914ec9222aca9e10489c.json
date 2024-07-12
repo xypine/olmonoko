@@ -1,10 +1,14 @@
 {
-  "db_name": "SQLite",
+  "db_name": "PostgreSQL",
   "query": "\n                INSERT INTO event_occurrences (event_id, starts_at, from_rrule)\n                VALUES ($1, $2, $3)\n                ON CONFLICT(event_id, starts_at) DO NOTHING;\n            ",
   "describe": {
     "columns": [],
     "parameters": {
-      "Right": 3
+      "Left": [
+        "Int4",
+        "Int8",
+        "Bool"
+      ]
     },
     "nullable": []
   },

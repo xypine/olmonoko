@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO events (event_source_id, uid, dt_stamp, all_day, duration, summary, location, description, rrule, priority_override)\n            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)\n            ON CONFLICT(event_source_id, uid, coalesce(rrule, '')) DO UPDATE SET\n                dt_stamp = excluded.dt_stamp,\n                priority_override = excluded.priority_override,\n                all_day = excluded.all_day,\n                duration = excluded.duration,\n                summary = excluded.summary,\n                location = excluded.location,\n                description = excluded.description\n            RETURNING id;\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Text",
+        "Int8",
+        "Bool",
+        "Int4",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "d79b60e28d7df420de643fa9b2c1b600cc1f9d3a0a9a70ab8fd11ea864dbfdf1"
+}

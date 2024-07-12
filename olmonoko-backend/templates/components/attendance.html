@@ -1,8 +1,11 @@
 {% if standalone %}
 <form
-	id="attendance-form"
-	action="{{ site_url | safe }}/api/event/{{ event_id }}/attendance"
-	method="post"
+	id="attendance-form-{{ event_id }}"
+	hx-patch="{{ site_url | safe }}/api/event/{{ event_id }}/attendance"
+	hx-target="#attendance-form-{{ event_id }}"
+	hx-swap="outerHTML"
+	hx-disabled-elt="#attendance-form-{{ event_id }}"
+	hx-trigger="change"
 	style="display: flex; flex-direction: column; gap: 1rem;"
 >
 {% endif %}

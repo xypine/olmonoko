@@ -11,14 +11,14 @@ use super::event::EventLike;
 
 #[derive(Debug, Clone, sqlx::FromRow, serde::Serialize, serde::Deserialize)]
 pub struct RawBill {
-    pub id: i64,
+    pub id: i32,
 
     // either but not both
-    pub local_event_id: Option<i64>,
-    pub remote_event_id: Option<i64>,
+    pub local_event_id: Option<i32>,
+    pub remote_event_id: Option<i32>,
 
     pub payee_account_number: String,
-    pub amount: i64,
+    pub amount: i32,
     pub reference: String,
 
     pub payee_name: Option<String>,
@@ -32,17 +32,17 @@ pub struct RawBill {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum EventId {
-    Local(i64),
-    Remote(i64),
+    Local(i32),
+    Remote(i32),
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Bill {
-    pub id: i64,
+    pub id: i32,
     pub event_id: EventId,
 
     pub payee_account_number: String,
-    pub amount: i64,
+    pub amount: i32,
     pub reference: String,
     // due and paid_at are stored in the event
     // as starts_at and duration (paid_at - due)
@@ -84,7 +84,7 @@ pub struct NewBill {
     pub event_id: EventId,
 
     pub payee_account_number: String,
-    pub amount: i64,
+    pub amount: i32,
     pub reference: String,
 
     pub payee_name: Option<String>,
@@ -100,7 +100,7 @@ pub struct NewBillForm {
     pub event_id: EventId,
 
     pub payee_account_number: String,
-    pub amount: i64,
+    pub amount: i32,
     pub reference: String,
 
     #[serde(default, with = "As::<NoneAsEmptyString>")]
@@ -131,7 +131,7 @@ impl From<NewBillForm> for NewBill {
 #[allow(dead_code)]
 pub trait BillLike {
     fn payee_account_number(&self) -> &str;
-    fn amount(&self) -> i64;
+    fn amount(&self) -> i32;
     fn reference(&self) -> &str;
     fn payee_name(&self) -> Option<&str>;
     fn payee_email(&self) -> Option<&str>;
@@ -143,7 +143,7 @@ impl BillLike for Bill {
     fn payee_account_number(&self) -> &str {
         &self.payee_account_number
     }
-    fn amount(&self) -> i64 {
+    fn amount(&self) -> i32 {
         self.amount
     }
     fn reference(&self) -> &str {
@@ -166,7 +166,7 @@ impl BillLike for NewBill {
     fn payee_account_number(&self) -> &str {
         &self.payee_account_number
     }
-    fn amount(&self) -> i64 {
+    fn amount(&self) -> i32 {
         self.amount
     }
     fn reference(&self) -> &str {

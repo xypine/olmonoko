@@ -1,23 +1,23 @@
 use chrono::Utc;
 use sqlx::Executor;
-use sqlx::Sqlite;
+use sqlx::Postgres;
 
 use crate::utils::time::from_timestamp;
 
 #[derive(Debug, Clone, sqlx::FromRow, serde::Serialize, serde::Deserialize)]
 pub struct RawAttendance {
-    pub user_id: i64,
+    pub user_id: i32,
 
-    pub local_event_id: Option<i64>,
-    pub remote_event_id: Option<i64>,
+    pub local_event_id: Option<i32>,
+    pub remote_event_id: Option<i32>,
 
     pub planned: bool,
     pub planned_starts_at: Option<i64>,
-    pub planned_duration: Option<i64>,
+    pub planned_duration: Option<i32>,
 
     pub actual: bool,
     pub actual_starts_at: Option<i64>,
-    pub actual_duration: Option<i64>,
+    pub actual_duration: Option<i32>,
 
     pub created_at: i64,
     pub updated_at: i64,
@@ -26,13 +26,13 @@ pub struct RawAttendance {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct AttendanceDetails {
     pub starts_at: Option<i64>,
-    pub duration: Option<i64>,
+    pub duration: Option<i32>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ExtraAttendanceDetails {
     pub starts_at: Option<i64>,
-    pub duration: Option<i64>,
+    pub duration: Option<i32>,
 
     pub start: chrono::DateTime<Utc>,
     pub end: Option<chrono::DateTime<Utc>>,
@@ -40,8 +40,8 @@ pub struct ExtraAttendanceDetails {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum AttendanceEvent {
-    Local(i64),
-    Remote(i64),
+    Local(i32),
+    Remote(i32),
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -55,7 +55,7 @@ pub struct Attendance {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct NewAttendance {
-    pub user_id: i64,
+    pub user_id: i32,
     pub event_id: AttendanceEvent,
 
     pub planned: Option<AttendanceDetails>,
@@ -64,7 +64,7 @@ pub struct NewAttendance {
 impl NewAttendance {
     pub async fn write<C>(&self, conn: &mut C) -> Result<(), sqlx::Error>
     where
-        for<'e> &'e mut C: Executor<'e, Database = Sqlite>,
+        for<'e> &'e mut C: Executor<'e, Database = Postgres>,
     {
         let (local_event_id, remote_event_id) = match self.event_id {
             AttendanceEvent::Local(id) => (Some(id), None),
@@ -84,15 +84,16 @@ impl NewAttendance {
                 INSERT INTO attendance
                     ( user_id, local_event_id, remote_event_id, planned, planned_starts_at, planned_duration, actual, actual_starts_at, actual_duration )
                 VALUES
-                    ( ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
-                ON CONFLICT(user_id, coalesce(local_event_id,""), coalesce(remote_event_id,"")) DO UPDATE SET
+                    ( $1, $2, $3, $4, $5, $6, $7, $8, $9 )
+                ON CONFLICT(user_id, coalesce(local_event_id,0), coalesce(remote_event_id,0)) DO UPDATE SET
                     planned = excluded.planned,
                     planned_starts_at = excluded.planned_starts_at,
                     planned_duration = excluded.planned_duration,
                     actual = excluded.actual,
                     actual_starts_at = excluded.actual_starts_at,
                     actual_duration = excluded.actual_duration,
-                    updated_at = strftime('%s', 'now')
+                    updated_at = EXTRACT(EPOCH FROM NOW())*1000
+
             "#,
                 self.user_id,
                 local_event_id,
@@ -107,7 +108,7 @@ impl NewAttendance {
             .execute(&mut *conn)
             .await?;
         } else {
-            sqlx::query!("DELETE FROM attendance WHERE user_id = ?1 AND (local_event_id = ?2 OR ?2 IS NULL) AND (remote_event_id = ?3 OR ?3 IS NULL)", self.user_id, local_event_id, remote_event_id)
+            sqlx::query!("DELETE FROM attendance WHERE user_id = $1 AND (local_event_id = $2 OR $2 IS NULL) AND (remote_event_id = $3 OR $3 IS NULL)", self.user_id, local_event_id, remote_event_id)
             .execute(&mut *conn)
             .await?;
         }
@@ -116,11 +117,11 @@ impl NewAttendance {
     }
 }
 
-impl From<(RawAttendance, i64, Option<i64>)> for Attendance {
-    fn from((raw, starts_at, event_duration): (RawAttendance, i64, Option<i64>)) -> Self {
-        let calc_end = |start: i64, duration: Option<i64>| match (event_duration, duration) {
-            (_, Some(duration)) => Some(start + duration),
-            (Some(event_duration), None) => Some(start + event_duration),
+impl From<(RawAttendance, i64, Option<i32>)> for Attendance {
+    fn from((raw, starts_at, event_duration): (RawAttendance, i64, Option<i32>)) -> Self {
+        let calc_end = |start: i64, duration: Option<i32>| match (event_duration, duration) {
+            (_, Some(duration)) => Some(start + duration as i64),
+            (Some(event_duration), None) => Some(start + event_duration as i64),
             (None, None) => None,
         };
 
@@ -192,7 +193,7 @@ pub struct AttendanceForm {
     pub attend_actual_end: Option<String>,
 }
 
-pub type AttendanceFormWithUserEventTz<'a> = (AttendanceForm, &'a User, i64, i64, i8);
+pub type AttendanceFormWithUserEventTz<'a> = (AttendanceForm, &'a User, i32, i64, i8);
 impl<'a> TryFrom<AttendanceFormWithUserEventTz<'a>> for NewAttendance {
     type Error = &'static str;
     fn try_from(
@@ -204,7 +205,7 @@ impl<'a> TryFrom<AttendanceFormWithUserEventTz<'a>> for NewAttendance {
         let planned = if form.attend_plan {
             let starts_at = form.attend_plan_start.map(parse_time);
             let end = form.attend_plan_end.map(parse_time);
-            let duration = end.map(|e| calc_duration(starts_at, e));
+            let duration = end.map(|e| calc_duration(starts_at, e) as i32);
             Some(AttendanceDetails {
                 starts_at,
                 duration,
@@ -216,7 +217,7 @@ impl<'a> TryFrom<AttendanceFormWithUserEventTz<'a>> for NewAttendance {
         let actual = if form.attend_actual {
             let starts_at = form.attend_actual_start.map(parse_time);
             let end = form.attend_actual_end.map(parse_time);
-            let duration = end.map(|e| calc_duration(starts_at, e));
+            let duration = end.map(|e| calc_duration(starts_at, e) as i32);
             Some(AttendanceDetails {
                 starts_at,
                 duration,

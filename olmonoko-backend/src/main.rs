@@ -6,12 +6,9 @@ mod routes;
 mod utils;
 
 use dotenvy::dotenv;
-use sqlx::sqlite::SqlitePoolOptions;
+use sqlx::postgres::PgPoolOptions;
 use thiserror::Error;
-use tracing_subscriber::{
-    filter::{EnvFilter, LevelFilter},
-    // fmt::format::FmtSpan,
-};
+use tracing_subscriber::filter::{EnvFilter, LevelFilter};
 
 use crate::routes::get_source_commit;
 
@@ -60,9 +57,9 @@ async fn main() -> Result<(), AppError> {
     Ok(())
 }
 
-async fn get_conn() -> Result<sqlx::SqlitePool, sqlx::Error> {
+async fn get_conn() -> Result<sqlx::PgPool, sqlx::Error> {
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    let pool = SqlitePoolOptions::new()
+    let pool = PgPoolOptions::new()
         .max_connections(5)
         .connect(&database_url)
         .await?;

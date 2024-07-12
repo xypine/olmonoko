@@ -2,6 +2,8 @@ use actix_web::{delete, patch, HttpRequest};
 use actix_web::{get, post, web, HttpResponse, Responder, Scope};
 
 use crate::logic::source_processing::sync_source;
+use crate::models::event::remote::RemoteSourceId;
+use crate::models::event::Priority;
 use crate::models::ics_source::{IcsSource, IcsSourceForm, NewIcsSource};
 use crate::routes::AppState;
 use crate::utils::flash::{FlashMessage, WithFlashMessage};
@@ -107,7 +109,7 @@ use serde_with::NoneAsEmptyString;
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ChangePriorityForm {
     #[serde(default, with = "As::<NoneAsEmptyString>")]
-    pub priority: Option<i64>,
+    pub priority: Option<Priority>,
 }
 #[patch("/{id}/priority")]
 async fn change_priority(
@@ -144,7 +146,7 @@ async fn change_priority(
             "source",
             &IcsSource {
                 user_id: user.id,
-                id: id as i64,
+                id,
                 chosen_priority: form.priority,
                 is_public: false,
                 url: "".to_string(),
@@ -198,7 +200,7 @@ async fn change_persist_events(
             "source",
             &IcsSource {
                 user_id: user.id,
-                id: id as i64,
+                id,
                 chosen_priority: None,
                 is_public: false,
                 url: "".to_string(),
@@ -250,7 +252,7 @@ async fn change_all_as_allday(
             "source",
             &IcsSource {
                 user_id: user.id,
-                id: id as i64,
+                id,
                 chosen_priority: None,
                 is_public: false,
                 url: "".to_string(),
@@ -306,7 +308,7 @@ async fn change_import_template(
             "source",
             &IcsSource {
                 user_id: user.id,
-                id: id as i64,
+                id,
                 chosen_priority: None,
                 is_public: false,
                 url: "".to_string(),
@@ -336,7 +338,7 @@ async fn change_import_template(
 #[post("/{id}/sync")]
 async fn force_sync(
     data: web::Data<AppState>,
-    path: web::Path<i64>,
+    path: web::Path<RemoteSourceId>,
     request: HttpRequest,
 ) -> impl Responder {
     if (get_user_from_request(&data, &request).await).is_none() {

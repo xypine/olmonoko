@@ -12,7 +12,7 @@ use crate::middleware::autocache_responder;
 use crate::middleware::AutoCacher;
 use actix_web_lab::middleware::from_fn;
 
-pub type DatabaseConnection = sqlx::SqlitePool;
+pub type DatabaseConnection = sqlx::PgPool;
 
 #[derive(Debug, Clone)]
 #[allow(dead_code)]

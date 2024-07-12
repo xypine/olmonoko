@@ -146,7 +146,14 @@
                 <td>
                     <iframe class="escaped-content" srcdoc="<link rel='stylesheet' href='/static/css/base.css' />{{ event.description | default(value="no description") | replace(from="\n", to="<br>") | linebreaksbr | escape | safe }}" width=600 allowtransparency="true"></iframe>
                 </td>
-                <td>{{ event.location }}</td>
+                <td>
+                    {{ event.location }}
+                    <b>Your Attendance:</b>
+                    {% set standalone = true %}
+                    {% set event_id = event.id %}
+                    {% set event = event.attendance_form %}
+                    {% include "components/attendance.html" %}
+                </td>
             </tr>
             {% endfor %}
             </table>

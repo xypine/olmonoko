@@ -2,21 +2,23 @@ use uuid::Uuid;
 
 use crate::{routes::get_site_url, utils::time::from_timestamp};
 
+use super::{event::Priority, user::UserId};
+
 #[derive(Debug, Clone, sqlx::FromRow, serde::Serialize, serde::Deserialize)]
 pub struct RawPublicLink {
     pub id: String,
-    pub user_id: i64,
+    pub user_id: UserId,
     pub created_at: i64,
-    pub min_priority: Option<i64>,
-    pub max_priority: Option<i64>,
+    pub min_priority: Option<Priority>,
+    pub max_priority: Option<Priority>,
 }
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct PublicLink {
     pub id: Uuid,
-    pub user_id: i64,
+    pub user_id: UserId,
     pub created_at: chrono::DateTime<chrono::Utc>,
-    pub min_priority: Option<i64>,
-    pub max_priority: Option<i64>,
+    pub min_priority: Option<Priority>,
+    pub max_priority: Option<Priority>,
     pub url: String,
 }
 impl From<RawPublicLink> for PublicLink {

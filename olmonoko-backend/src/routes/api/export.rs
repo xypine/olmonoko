@@ -1,6 +1,7 @@
 use actix_web::{delete, get, patch, post, web, HttpRequest, HttpResponse, Responder, Scope};
 use uuid::Uuid;
 
+use crate::models::event::Priority;
 use crate::models::public_link::{PublicLink, RawPublicLink};
 use crate::routes::AppState;
 use crate::utils::event_filters::EventFilter;
@@ -70,9 +71,9 @@ use serde_with::NoneAsEmptyString;
 #[derive(Debug, Clone, Copy, serde::Deserialize)]
 struct ChangePriorityFilterForm {
     #[serde(default, with = "As::<NoneAsEmptyString>")]
-    min_priority: Option<i64>,
+    min_priority: Option<Priority>,
     #[serde(default, with = "As::<NoneAsEmptyString>")]
-    max_priority: Option<i64>,
+    max_priority: Option<Priority>,
 }
 #[patch("/{id}.ics")]
 async fn change_filters(

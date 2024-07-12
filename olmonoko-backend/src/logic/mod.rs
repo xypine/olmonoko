@@ -31,7 +31,7 @@ pub(crate) async fn compose_ics(
             ical_event.starts(event.starts_at);
         }
         if let Some(duration) = event.duration {
-            let end = from_timestamp(event.starts_at.timestamp() + duration);
+            let end = from_timestamp(event.starts_at.timestamp() + duration as i64);
             if event.all_day {
                 ical_event.ends(end.date_naive());
             } else {

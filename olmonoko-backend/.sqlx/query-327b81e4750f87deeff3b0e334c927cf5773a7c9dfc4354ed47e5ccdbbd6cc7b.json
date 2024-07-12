@@ -1,10 +1,19 @@
 {
-  "db_name": "SQLite",
+  "db_name": "PostgreSQL",
   "query": "INSERT INTO bills (local_event_id, payee_account_number, amount, reference, payee_name, payee_email, payee_address, payee_phone) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
   "describe": {
     "columns": [],
     "parameters": {
-      "Right": 8
+      "Left": [
+        "Int4",
+        "Text",
+        "Int4",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text"
+      ]
     },
     "nullable": []
   },

@@ -34,12 +34,15 @@
     - [ ] make sure is safe
 - [ ] soft delete for local events
 - [-] vim keybindings
-- [ ] "scrubbable navigation with heatmap"
+- [-] "scrubbable navigation with heatmap"
 - [ ] add proper error handling to frontend
 - [ ] i18n
 - [ ] track user attendance of events / maybe automatically based on location?
+- [ ] api keys
+- [ ] headless mode / system user dictated by a config file
 - [ ] turn persist_events automatically off / on based on source behaviour
 - [-] try automatically caching internal links on current page
+- [ ] automatic geolocation + manual override
 - [ ] remind when to leave / maps integration
 - [ ] clock-in-n-out 
     - [-] teamwork integration

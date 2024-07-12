@@ -1,16 +1,20 @@
 {
-  "db_name": "SQLite",
+  "db_name": "PostgreSQL",
   "query": "UPDATE ics_sources SET import_template = $1 WHERE id = $2 AND user_id = $3 RETURNING import_template",
   "describe": {
     "columns": [
       {
-        "name": "import_template",
         "ordinal": 0,
+        "name": "import_template",
         "type_info": "Text"
       }
     ],
     "parameters": {
-      "Right": 3
+      "Left": [
+        "Text",
+        "Int4",
+        "Int4"
+      ]
     },
     "nullable": [
       true
