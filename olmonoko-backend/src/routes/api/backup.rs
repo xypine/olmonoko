@@ -6,7 +6,7 @@ use crate::{
         bills::RawBill,
         event::{
             local::{LocalEventId, RawLocalEvent},
-            remote::{RawRemoteEvent, RemoteEventId},
+            remote::{RawRemoteEvent, RawRemoteEventOccurrence, RemoteEventId},
             Priority,
         },
         ics_source::{IcsSourceId, RawIcsSource},
@@ -35,7 +35,8 @@ pub struct Backup {
     pub source_priorities: Vec<(UserId, IcsSourceId, Priority)>, // user_id, ics_source_id, priority
     pub attendance: Vec<RawAttendance>,
     pub bills: Vec<RawBill>,
-    pub remote_events: Vec<RawRemoteEvent>,
+    pub persisted_remote_events: Vec<RawRemoteEvent>,
+    pub persisted_remote_event_occurrences: Vec<RawRemoteEventOccurrence>,
     pub tags: Vec<(i64, Option<LocalEventId>, Option<RemoteEventId>, String)>, // created_at, local_event_id, remote_event_id, tag
 }
 
@@ -61,18 +62,23 @@ async fn export(data: web::Data<AppState>, req: HttpRequest) -> impl Responder {
             .into_iter()
             .map(|p| (p.user_id, p.ics_source_id, p.priority))
             .collect();
-        let remote_events: Vec<RawRemoteEvent> =
-            sqlx::query_as!(RawRemoteEvent, "SELECT * FROM events")
+        let persisted_remote_events: Vec<RawRemoteEvent> =
+            sqlx::query_as!(RawRemoteEvent, "SELECT events.* FROM events INNER JOIN ics_sources ON events.event_source_id = ics_sources.id AND ics_sources.persist_events = true")
                 .fetch_all(&data.conn)
                 .await
                 .expect("Failed to fetch remote events");
+        let persisted_remote_event_occurrences: Vec<RawRemoteEventOccurrence> =
+            sqlx::query_as!(RawRemoteEventOccurrence, "SELECT event_occurrences.* FROM event_occurrences INNER JOIN events ON events.id = event_occurrences.event_id INNER JOIN ics_sources ON events.event_source_id = ics_sources.id AND ics_sources.persist_events = true")
+                .fetch_all(&data.conn)
+                .await
+                .expect("Failed to fetch remote event occurrences");
         let local_events: Vec<RawLocalEvent> =
             sqlx::query_as!(RawLocalEvent, "SELECT * FROM local_events")
                 .fetch_all(&data.conn)
                 .await
                 .expect("Failed to fetch local events");
-        let tags: Vec<(i64, Option<LocalEventId>, Option<RemoteEventId>, String)> =
-            sqlx::query!("SELECT * FROM event_tags")
+        let tags: Vec<_> =
+            sqlx::query!("SELECT event_tags.* FROM event_tags INNER JOIN events ON events.id = event_tags.remote_event_id INNER JOIN ics_sources ON events.event_source_id = ics_sources.id AND ics_sources.persist_events = true")
                 .fetch_all(&data.conn)
                 .await
                 .expect("Failed to fetch event tags")
@@ -80,11 +86,11 @@ async fn export(data: web::Data<AppState>, req: HttpRequest) -> impl Responder {
                 .map(|t| (t.created_at, t.local_event_id, t.remote_event_id, t.tag))
                 .collect();
         let attendance: Vec<RawAttendance> =
-            sqlx::query_as!(RawAttendance, "SELECT * FROM attendance")
+            sqlx::query_as!(RawAttendance, "SELECT attendance.* FROM attendance INNER JOIN events ON events.id = attendance.remote_event_id INNER JOIN ics_sources ON events.event_source_id = ics_sources.id AND ics_sources.persist_events = true")
                 .fetch_all(&data.conn)
                 .await
                 .expect("Failed to fetch local event attendance");
-        let bills: Vec<RawBill> = sqlx::query_as!(RawBill, "SELECT * FROM bills")
+        let bills: Vec<RawBill> = sqlx::query_as!(RawBill, "SELECT bills.* FROM bills INNER JOIN events ON events.id = bills.remote_event_id INNER JOIN ics_sources ON events.event_source_id = ics_sources.id AND ics_sources.persist_events = true")
             .fetch_all(&data.conn)
             .await
             .expect("Failed to fetch bills");
@@ -101,12 +107,13 @@ async fn export(data: web::Data<AppState>, req: HttpRequest) -> impl Responder {
             users,
             sources,
             source_priorities,
-            remote_events,
+            persisted_remote_events,
             local_events,
             tags,
             attendance,
             bills,
             public_links,
+            persisted_remote_event_occurrences,
         };
         return HttpResponse::Ok().json(backup);
     }
@@ -200,8 +207,14 @@ async fn restore(
         }
 
         tracing::info!("Restoring sources");
-        // id, user_id, is_public, name, url, created_at, last_fetched_at, file_hash, object_hash, updated_at, persist_events, all_as_allday, import_template
         for source in &body.sources {
+            // if persist_events is false, restoring file_hash would block updates to
+            // the source until the file changes
+            let file_hash = if source.persist_events {
+                source.file_hash.clone()
+            } else {
+                None
+            };
             sqlx::query!(
                 "INSERT INTO ics_sources (id, user_id, is_public, name, url, created_at, last_fetched_at, file_hash, object_hash, updated_at, persist_events, all_as_allday, import_template) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)",
                 source.id,
@@ -211,7 +224,7 @@ async fn restore(
                 source.url,
                 source.created_at,
                 source.last_fetched_at,
-                source.file_hash,
+                file_hash,
                 source.object_hash,
                 source.updated_at,
                 source.persist_events,
@@ -237,7 +250,7 @@ async fn restore(
         }
 
         tracing::info!("Restoring remote events");
-        for event in &body.remote_events {
+        for event in &body.persisted_remote_events {
             sqlx::query!(
                 "INSERT INTO events (id, event_source_id, priority_override, rrule, dt_stamp, all_day, duration, summary, description, location, uid) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
                 event.id,
@@ -255,6 +268,20 @@ async fn restore(
             .execute(&mut *txn)
             .await
             .expect("Failed to insert remote event");
+        }
+
+        tracing::info!("Restoring remote event occurrences");
+        for occurrence in &body.persisted_remote_event_occurrences {
+            sqlx::query!(
+                "INSERT INTO event_occurrences (id, event_id, starts_at, from_rrule) VALUES ($1, $2, $3, $4)",
+                occurrence.id,
+                occurrence.event_id,
+                occurrence.starts_at,
+                occurrence.from_rrule,
+            )
+            .execute(&mut *txn)
+            .await
+            .expect("Failed to insert remote event occurrence");
         }
 
         tracing::info!("Restoring event tags");

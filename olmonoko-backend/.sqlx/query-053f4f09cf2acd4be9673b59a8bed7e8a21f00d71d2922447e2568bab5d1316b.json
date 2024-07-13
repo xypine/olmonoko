@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT * FROM attendance",
+  "query": "SELECT attendance.* FROM attendance INNER JOIN events ON events.id = attendance.remote_event_id INNER JOIN ics_sources ON events.event_source_id = ics_sources.id AND ics_sources.persist_events = true",
   "describe": {
     "columns": [
       {
@@ -76,5 +76,5 @@
       false
     ]
   },
-  "hash": "789228ec8cd32a07701472de481473156f8772ce75c53f8122399d49f4a84250"
+  "hash": "053f4f09cf2acd4be9673b59a8bed7e8a21f00d71d2922447e2568bab5d1316b"
 }
