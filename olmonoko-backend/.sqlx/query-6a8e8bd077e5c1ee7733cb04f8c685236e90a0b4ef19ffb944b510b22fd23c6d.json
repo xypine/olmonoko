@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT * FROM event_tags WHERE remote_event_id IS NULL",
+  "query": "SELECT * FROM event_tags",
   "describe": {
     "columns": [
       {
@@ -34,5 +34,5 @@
       false
     ]
   },
-  "hash": "1793e43187abf1c0a66ecbb510402d3b45422c5510e72217e9b7235aa1adbf8a"
+  "hash": "6a8e8bd077e5c1ee7733cb04f8c685236e90a0b4ef19ffb944b510b22fd23c6d"
 }

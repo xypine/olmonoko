@@ -6,7 +6,7 @@ use crate::{
         bills::RawBill,
         event::{
             local::{LocalEventId, RawLocalEvent},
-            remote::RawRemoteEvent,
+            remote::{RawRemoteEvent, RemoteEventId},
             Priority,
         },
         ics_source::{IcsSourceId, RawIcsSource},
@@ -31,12 +31,12 @@ pub struct Backup {
     pub users: Vec<RawUser>,
     pub public_links: Vec<RawPublicLink>,
     pub local_events: Vec<RawLocalEvent>,
-    pub local_event_tags: Vec<(LocalEventId, String, i64)>, // local_event_id, tag, created_at
     pub sources: Vec<RawIcsSource>,
     pub source_priorities: Vec<(UserId, IcsSourceId, Priority)>, // user_id, ics_source_id, priority
     pub attendance: Vec<RawAttendance>,
     pub bills: Vec<RawBill>,
     pub remote_events: Vec<RawRemoteEvent>,
+    pub tags: Vec<(i64, Option<LocalEventId>, Option<RemoteEventId>, String)>, // created_at, local_event_id, remote_event_id, tag
 }
 
 #[get("/dump.json")]
@@ -71,13 +71,13 @@ async fn export(data: web::Data<AppState>, req: HttpRequest) -> impl Responder {
                 .fetch_all(&data.conn)
                 .await
                 .expect("Failed to fetch local events");
-        let local_event_tags: Vec<_> =
-            sqlx::query!("SELECT * FROM event_tags WHERE remote_event_id IS NULL")
+        let tags: Vec<(i64, Option<LocalEventId>, Option<RemoteEventId>, String)> =
+            sqlx::query!("SELECT * FROM event_tags")
                 .fetch_all(&data.conn)
                 .await
-                .expect("Failed to fetch local event tags")
+                .expect("Failed to fetch event tags")
                 .into_iter()
-                .map(|t| (t.local_event_id.unwrap(), t.tag, t.created_at))
+                .map(|t| (t.created_at, t.local_event_id, t.remote_event_id, t.tag))
                 .collect();
         let attendance: Vec<RawAttendance> =
             sqlx::query_as!(RawAttendance, "SELECT * FROM attendance")
@@ -103,7 +103,7 @@ async fn export(data: web::Data<AppState>, req: HttpRequest) -> impl Responder {
             source_priorities,
             remote_events,
             local_events,
-            local_event_tags,
+            tags,
             attendance,
             bills,
             public_links,
@@ -199,19 +199,6 @@ async fn restore(
             .expect("Failed to insert local event");
         }
 
-        tracing::info!("Restoring local event tags");
-        for (local_event_id, tag, created_at) in &body.local_event_tags {
-            sqlx::query!(
-                "INSERT INTO event_tags (local_event_id, tag, created_at) VALUES ($1, $2, $3)",
-                local_event_id,
-                tag,
-                created_at,
-            )
-            .execute(&mut *txn)
-            .await
-            .expect("Failed to insert local event tag");
-        }
-
         tracing::info!("Restoring sources");
         // id, user_id, is_public, name, url, created_at, last_fetched_at, file_hash, object_hash, updated_at, persist_events, all_as_allday, import_template
         for source in &body.sources {
@@ -247,6 +234,20 @@ async fn restore(
             .execute(&mut *txn)
             .await
             .expect("Failed to insert source priority");
+        }
+
+        tracing::info!("Restoring event tags");
+        for (created_at, local_event_id, remote_event_id, tag) in &body.tags {
+            sqlx::query!(
+                "INSERT INTO event_tags (created_at, local_event_id, remote_event_id, tag) VALUES ($1, $2, $3, $4)",
+                created_at,
+                *local_event_id,
+                *remote_event_id,
+                tag,
+            )
+            .execute(&mut *txn)
+            .await
+            .expect("Failed to insert local event tag");
         }
 
         // todo: attendance, bills, remote events
