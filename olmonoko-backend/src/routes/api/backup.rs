@@ -298,7 +298,48 @@ async fn restore(
             .expect("Failed to insert local event tag");
         }
 
-        // todo: attendance, bills, remote events
+        tracing::info!("Restoring attendance");
+        for attendance in &body.attendance {
+            sqlx::query!(
+                "INSERT INTO attendance (user_id, local_event_id, remote_event_id, planned, planned_starts_at, planned_duration, actual, actual_starts_at, actual_duration, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
+                attendance.user_id,
+                attendance.local_event_id,
+                attendance.remote_event_id,
+                attendance.planned,
+                attendance.planned_starts_at,
+                attendance.planned_duration,
+                attendance.actual,
+                attendance.actual_starts_at,
+                attendance.actual_duration,
+                attendance.created_at,
+                attendance.updated_at,
+            )
+            .execute(&mut *txn)
+            .await
+            .expect("Failed to insert attendance");
+        }
+
+        tracing::info!("Restoring bills");
+        for bill in &body.bills {
+            sqlx::query!(
+                "INSERT INTO bills (id, local_event_id, remote_event_id, payee_account_number, amount, reference, payee_name, payee_email, payee_address, payee_phone, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
+                bill.id,
+                bill.local_event_id,
+                bill.remote_event_id,
+                bill.payee_account_number,
+                bill.amount,
+                bill.reference,
+                bill.payee_name,
+                bill.payee_email,
+                bill.payee_address,
+                bill.payee_phone,
+                bill.created_at,
+                bill.updated_at,
+            )
+            .execute(&mut *txn)
+            .await
+            .expect("Failed to insert bill");
+        }
 
         tracing::info!("Committing transaction");
         txn.commit().await.expect("Failed to commit transaction");
