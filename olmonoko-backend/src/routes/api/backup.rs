@@ -4,7 +4,10 @@ use crate::{
     models::{
         attendance::RawAttendance,
         bills::RawBill,
-        event::{local::RawLocalEvent, remote::RawRemoteEvent},
+        event::{
+            local::RawLocalEvent,
+            remote::{RawRemoteEvent, RawRemoteEventOccurrence},
+        },
         ics_source::RawIcsSource,
         public_link::RawPublicLink,
         user::RawUser,
@@ -31,7 +34,8 @@ pub struct Backup {
     pub attendance: Vec<RawAttendance>,
     pub bills: Vec<RawBill>,
     pub public_links: Vec<RawPublicLink>,
-    pub remote_events: Vec<RawRemoteEvent>,
+    pub persisted_remote_events: Vec<RawRemoteEvent>,
+    pub persisted_remote_event_occurrences: Vec<RawRemoteEventOccurrence>,
     pub tags: Vec<(i64, Option<i64>, Option<i64>, String)>, // created_at, local_event_id, remote_event_id, tag
 }
 
@@ -58,18 +62,23 @@ async fn export(data: web::Data<AppState>, req: HttpRequest) -> impl Responder {
                 .into_iter()
                 .map(|p| (p.user_id, p.ics_source_id, p.priority))
                 .collect();
-        let remote_events: Vec<RawRemoteEvent> =
-            sqlx::query_as!(RawRemoteEvent, "SELECT * FROM events")
+        let persisted_remote_events: Vec<RawRemoteEvent> =
+            sqlx::query_as!(RawRemoteEvent, "SELECT events.* FROM events INNER JOIN ics_sources ON events.event_source_id = ics_sources.id AND ics_sources.persist_events = true")
                 .fetch_all(&data.conn)
                 .await
                 .expect("Failed to fetch remote events");
+        let persisted_remote_event_occurrences: Vec<RawRemoteEventOccurrence> =
+            sqlx::query_as!(RawRemoteEventOccurrence, "SELECT event_occurrences.* FROM event_occurrences INNER JOIN events ON events.id = event_occurrences.event_id INNER JOIN ics_sources ON events.event_source_id = ics_sources.id AND ics_sources.persist_events = true")
+                .fetch_all(&data.conn)
+                .await
+                .expect("Failed to fetch remote event occurrences");
         let local_events: Vec<RawLocalEvent> =
             sqlx::query_as!(RawLocalEvent, "SELECT * FROM local_events")
                 .fetch_all(&data.conn)
                 .await
                 .expect("Failed to fetch local events");
         let tags: Vec<(i64, Option<i64>, Option<i64>, String)> =
-            sqlx::query!("SELECT * FROM event_tags")
+            sqlx::query!("SELECT event_tags.* FROM event_tags INNER JOIN events ON events.id = event_tags.remote_event_id INNER JOIN ics_sources ON events.event_source_id = ics_sources.id AND ics_sources.persist_events = true")
                 .fetch_all(&data.conn)
                 .await
                 .expect("Failed to fetch event tags")
@@ -77,11 +86,11 @@ async fn export(data: web::Data<AppState>, req: HttpRequest) -> impl Responder {
                 .map(|t| (t.created_at, t.local_event_id, t.remote_event_id, t.tag))
                 .collect();
         let attendance: Vec<RawAttendance> =
-            sqlx::query_as!(RawAttendance, "SELECT * FROM attendance")
+            sqlx::query_as!(RawAttendance, "SELECT attendance.* FROM attendance INNER JOIN events ON events.id = attendance.remote_event_id INNER JOIN ics_sources ON events.event_source_id = ics_sources.id AND ics_sources.persist_events = true")
                 .fetch_all(&data.conn)
                 .await
                 .expect("Failed to fetch local event attendance");
-        let bills: Vec<RawBill> = sqlx::query_as!(RawBill, "SELECT * FROM bills")
+        let bills: Vec<RawBill> = sqlx::query_as!(RawBill, "SELECT bills.* FROM bills INNER JOIN events ON events.id = bills.remote_event_id INNER JOIN ics_sources ON events.event_source_id = ics_sources.id AND ics_sources.persist_events = true")
             .fetch_all(&data.conn)
             .await
             .expect("Failed to fetch bills");
@@ -98,12 +107,13 @@ async fn export(data: web::Data<AppState>, req: HttpRequest) -> impl Responder {
             users,
             sources,
             source_priorities,
-            remote_events,
+            persisted_remote_events,
             local_events,
             tags,
             attendance,
             bills,
             public_links,
+            persisted_remote_event_occurrences,
         };
         return HttpResponse::Ok().json(backup);
     }

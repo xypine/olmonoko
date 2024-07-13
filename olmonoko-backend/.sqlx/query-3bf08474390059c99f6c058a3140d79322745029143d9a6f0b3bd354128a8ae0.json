@@ -1,60 +1,60 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT * FROM attendance",
+  "query": "SELECT events.* FROM events INNER JOIN ics_sources ON events.event_source_id = ics_sources.id AND ics_sources.persist_events = true",
   "describe": {
     "columns": [
       {
-        "name": "user_id",
+        "name": "id",
         "ordinal": 0,
         "type_info": "Int64"
       },
       {
-        "name": "local_event_id",
+        "name": "event_source_id",
         "ordinal": 1,
         "type_info": "Int64"
       },
       {
-        "name": "remote_event_id",
+        "name": "dt_stamp",
         "ordinal": 2,
         "type_info": "Int64"
       },
       {
-        "name": "planned",
+        "name": "duration",
         "ordinal": 3,
-        "type_info": "Bool"
+        "type_info": "Int64"
       },
       {
-        "name": "planned_starts_at",
+        "name": "summary",
         "ordinal": 4,
-        "type_info": "Int64"
+        "type_info": "Text"
       },
       {
-        "name": "planned_duration",
+        "name": "description",
         "ordinal": 5,
-        "type_info": "Int64"
+        "type_info": "Text"
       },
       {
-        "name": "actual",
+        "name": "location",
         "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "uid",
+        "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "rrule",
+        "ordinal": 8,
+        "type_info": "Text"
+      },
+      {
+        "name": "all_day",
+        "ordinal": 9,
         "type_info": "Bool"
       },
       {
-        "name": "actual_starts_at",
-        "ordinal": 7,
-        "type_info": "Int64"
-      },
-      {
-        "name": "actual_duration",
-        "ordinal": 8,
-        "type_info": "Int64"
-      },
-      {
-        "name": "created_at",
-        "ordinal": 9,
-        "type_info": "Int64"
-      },
-      {
-        "name": "updated_at",
+        "name": "priority_override",
         "ordinal": 10,
         "type_info": "Int64"
       }
@@ -64,8 +64,6 @@
     },
     "nullable": [
       false,
-      true,
-      true,
       false,
       true,
       true,
@@ -73,8 +71,10 @@
       true,
       true,
       false,
-      false
+      true,
+      false,
+      true
     ]
   },
-  "hash": "789228ec8cd32a07701472de481473156f8772ce75c53f8122399d49f4a84250"
+  "hash": "3bf08474390059c99f6c058a3140d79322745029143d9a6f0b3bd354128a8ae0"
 }

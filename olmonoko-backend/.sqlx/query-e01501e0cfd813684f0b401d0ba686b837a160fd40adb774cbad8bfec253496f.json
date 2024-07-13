@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT * FROM event_tags",
+  "query": "SELECT event_tags.* FROM event_tags INNER JOIN events ON events.id = event_tags.remote_event_id INNER JOIN ics_sources ON events.event_source_id = ics_sources.id AND ics_sources.persist_events = true",
   "describe": {
     "columns": [
       {
@@ -34,5 +34,5 @@
       false
     ]
   },
-  "hash": "6a8e8bd077e5c1ee7733cb04f8c685236e90a0b4ef19ffb944b510b22fd23c6d"
+  "hash": "e01501e0cfd813684f0b401d0ba686b837a160fd40adb774cbad8bfec253496f"
 }

@@ -95,6 +95,14 @@ impl Hash for NewRemoteEvent {
 }
 
 #[derive(Debug, Clone, sqlx::FromRow, serde::Serialize, serde::Deserialize)]
+pub struct RawRemoteEventOccurrence {
+    pub id: i64,
+    pub event_id: i64,
+    pub from_rrule: bool,
+    pub starts_at: i64,
+}
+
+#[derive(Debug, Clone, sqlx::FromRow, serde::Serialize, serde::Deserialize)]
 pub struct RemoteEventOccurrence {
     pub id: i64,
     pub event_id: i64,
