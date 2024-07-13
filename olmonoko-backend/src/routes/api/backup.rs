@@ -77,23 +77,47 @@ async fn export(data: web::Data<AppState>, req: HttpRequest) -> impl Responder {
                 .fetch_all(&data.conn)
                 .await
                 .expect("Failed to fetch local events");
-        let tags: Vec<_> =
-            sqlx::query!("SELECT event_tags.* FROM event_tags INNER JOIN events ON events.id = event_tags.remote_event_id INNER JOIN ics_sources ON events.event_source_id = ics_sources.id AND ics_sources.persist_events = true")
-                .fetch_all(&data.conn)
-                .await
-                .expect("Failed to fetch event tags")
-                .into_iter()
-                .map(|t| (t.created_at, t.local_event_id, t.remote_event_id, t.tag))
-                .collect();
-        let attendance: Vec<RawAttendance> =
-            sqlx::query_as!(RawAttendance, "SELECT attendance.* FROM attendance INNER JOIN events ON events.id = attendance.remote_event_id INNER JOIN ics_sources ON events.event_source_id = ics_sources.id AND ics_sources.persist_events = true")
-                .fetch_all(&data.conn)
-                .await
-                .expect("Failed to fetch local event attendance");
-        let bills: Vec<RawBill> = sqlx::query_as!(RawBill, "SELECT bills.* FROM bills INNER JOIN events ON events.id = bills.remote_event_id INNER JOIN ics_sources ON events.event_source_id = ics_sources.id AND ics_sources.persist_events = true")
-            .fetch_all(&data.conn)
-            .await
-            .expect("Failed to fetch bills");
+        let tags: Vec<_> = sqlx::query!(
+            "
+                SELECT event_tags.*
+                FROM event_tags
+                LEFT JOIN events ON events.id = event_tags.remote_event_id
+                LEFT JOIN ics_sources ON events.event_source_id = ics_sources.id
+                WHERE (ics_sources.persist_events = true OR event_tags.local_event_id IS NOT NULL);
+            "
+        )
+        .fetch_all(&data.conn)
+        .await
+        .expect("Failed to fetch event tags")
+        .into_iter()
+        .map(|t| (t.created_at, t.local_event_id, t.remote_event_id, t.tag))
+        .collect();
+        let attendance: Vec<RawAttendance> = sqlx::query_as!(
+            RawAttendance,
+            "
+                SELECT attendance.*
+                FROM attendance
+                LEFT JOIN events ON events.id = attendance.remote_event_id
+                LEFT JOIN ics_sources ON events.event_source_id = ics_sources.id
+                WHERE (ics_sources.persist_events = true OR attendance.local_event_id IS NOT NULL);
+            "
+        )
+        .fetch_all(&data.conn)
+        .await
+        .expect("Failed to fetch local event attendance");
+        let bills: Vec<RawBill> = sqlx::query_as!(
+            RawBill,
+            "
+                SELECT bills.*
+                FROM bills
+                LEFT JOIN events ON events.id = bills.remote_event_id
+                LEFT JOIN ics_sources ON events.event_source_id = ics_sources.id
+                WHERE (ics_sources.persist_events = true OR bills.local_event_id IS NOT NULL);
+            "
+        )
+        .fetch_all(&data.conn)
+        .await
+        .expect("Failed to fetch bills");
         let public_links: Vec<RawPublicLink> =
             sqlx::query_as!(RawPublicLink, "SELECT * FROM public_calendar_links")
                 .fetch_all(&data.conn)

@@ -6,6 +6,8 @@ use crate::utils::time::from_timestamp;
 
 #[derive(Debug, Clone, sqlx::FromRow, serde::Serialize, serde::Deserialize)]
 pub struct RawAttendance {
+    #[serde(skip)]
+    pub id: i32,
     pub user_id: i32,
 
     pub local_event_id: Option<i32>,

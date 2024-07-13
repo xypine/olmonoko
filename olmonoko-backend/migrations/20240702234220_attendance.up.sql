@@ -1,4 +1,6 @@
 CREATE TABLE attendance (
+    id SERIAL PRIMARY KEY,
+
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     
     local_event_id INTEGER REFERENCES local_events(id) ON DELETE CASCADE,
@@ -23,10 +25,5 @@ CREATE TABLE attendance (
     CHECK ((planned_starts_at IS NULL AND planned_duration IS NULL) OR (planned IS TRUE)),
     -- if actual_starts_at or actual_duration are set, actual must be set
     CHECK ((actual_starts_at IS NULL AND actual_duration IS NULL) OR (actual IS TRUE)),
-    PRIMARY KEY (user_id, local_event_id, remote_event_id)
-);
-CREATE UNIQUE INDEX attendance_user_id_event_id ON attendance(
-    user_id,
-    COALESCE(local_event_id::TEXT, ''),
-    COALESCE(remote_event_id::TEXT, '')
+    UNIQUE (user_id, local_event_id, remote_event_id)
 );

@@ -37,7 +37,8 @@ pub async fn get_user_local_events(
             bill.payee_email as "payee_email?",
             bill.payee_address as "payee_address?",
             bill.payee_phone as "payee_phone?",
-            -- STRING_AGG(tag.tag, ',') AS tags,
+            STRING_AGG(tag.tag, ',') AS tags,
+            attendance.id as "attendance_id?",
             attendance.planned as "planned?",
             attendance.planned_starts_at as "planned_starts_at?",
             attendance.planned_duration as "planned_duration?",
@@ -66,7 +67,7 @@ pub async fn get_user_local_events(
                 WHERE tag.local_event_id = event.id
                 AND tag.tag = ANY($9)
             ) IS NULL)
-        -- GROUP BY event.id
+        GROUP BY event.id, bill.id, attendance.id
         ORDER BY event.starts_at;
         "#,
         user_id,
@@ -115,9 +116,10 @@ pub async fn get_user_local_events(
             payee_phone: event.payee_phone,
         });
         let attendance = event
-            .attendance_created_at
-            .map(|created_at| RawAttendance {
-                created_at,
+            .attendance_id
+            .map(|id| RawAttendance {
+                id,
+                created_at: event.attendance_created_at.unwrap(),
                 updated_at: event
                     .attendance_updated_at.unwrap(),
                 planned: event.planned.unwrap(),
@@ -133,8 +135,7 @@ pub async fn get_user_local_events(
             .map(|a| {
                 Attendance::from((a, event.starts_at, event.duration))
             });
-        // let tags = event.tags.unwrap_or_default();
-        let tags = "".to_string();
+        let tags = event.tags.unwrap_or_default();
         LocalEvent::from((
             raw_event,
             raw_bill,
@@ -174,6 +175,7 @@ async fn get_visible_remote_events(
             p.priority, 
             o.starts_at, 
             o.from_rrule,
+            attendance.id as "attendance_id?",
             attendance.planned as "planned?",
             attendance.planned_starts_at as "planned_starts_at?",
             attendance.planned_duration as "planned_duration?",
@@ -233,10 +235,11 @@ async fn get_visible_remote_events(
     .into_iter()
     .map(|event| {
         let attendance = event
-            .attendance_created_at
+            .attendance_id
             .and_then(|created_at| user_id.map(|user_id| (created_at, user_id)))
-            .map(|(created_at, user_id)| RawAttendance {
-                created_at,
+            .map(|(id, user_id)| RawAttendance {
+                id,
+                created_at: event.attendance_created_at.unwrap(),
                 updated_at: event
                     .attendance_updated_at.unwrap(),
                 planned: event.planned.unwrap(),

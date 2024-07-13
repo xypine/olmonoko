@@ -1,60 +1,65 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT attendance.* FROM attendance INNER JOIN events ON events.id = attendance.remote_event_id INNER JOIN ics_sources ON events.event_source_id = ics_sources.id AND ics_sources.persist_events = true",
+  "query": "\n                SELECT attendance.*\n                FROM attendance\n                LEFT JOIN events ON events.id = attendance.remote_event_id\n                LEFT JOIN ics_sources ON events.event_source_id = ics_sources.id\n                WHERE (ics_sources.persist_events = true OR attendance.local_event_id IS NOT NULL);\n            ",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "user_id",
+        "name": "id",
         "type_info": "Int4"
       },
       {
         "ordinal": 1,
-        "name": "local_event_id",
+        "name": "user_id",
         "type_info": "Int4"
       },
       {
         "ordinal": 2,
-        "name": "remote_event_id",
+        "name": "local_event_id",
         "type_info": "Int4"
       },
       {
         "ordinal": 3,
+        "name": "remote_event_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
         "name": "planned",
         "type_info": "Bool"
       },
       {
-        "ordinal": 4,
+        "ordinal": 5,
         "name": "planned_starts_at",
         "type_info": "Int8"
       },
       {
-        "ordinal": 5,
+        "ordinal": 6,
         "name": "planned_duration",
         "type_info": "Int4"
       },
       {
-        "ordinal": 6,
+        "ordinal": 7,
         "name": "actual",
         "type_info": "Bool"
       },
       {
-        "ordinal": 7,
+        "ordinal": 8,
         "name": "actual_starts_at",
         "type_info": "Int8"
       },
       {
-        "ordinal": 8,
+        "ordinal": 9,
         "name": "actual_duration",
         "type_info": "Int4"
       },
       {
-        "ordinal": 9,
+        "ordinal": 10,
         "name": "created_at",
         "type_info": "Int8"
       },
       {
-        "ordinal": 10,
+        "ordinal": 11,
         "name": "updated_at",
         "type_info": "Int8"
       }
@@ -65,7 +70,8 @@
     "nullable": [
       false,
       false,
-      false,
+      true,
+      true,
       false,
       true,
       true,
@@ -76,5 +82,5 @@
       false
     ]
   },
-  "hash": "053f4f09cf2acd4be9673b59a8bed7e8a21f00d71d2922447e2568bab5d1316b"
+  "hash": "de4934fd36c84d43e75b7ea58a5dc10f30da48ba1129f409d612a6624a323226"
 }

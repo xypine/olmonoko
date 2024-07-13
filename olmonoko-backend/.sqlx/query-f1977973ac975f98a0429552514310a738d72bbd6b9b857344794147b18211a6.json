@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT bills.* FROM bills INNER JOIN events ON events.id = bills.remote_event_id INNER JOIN ics_sources ON events.event_source_id = ics_sources.id AND ics_sources.persist_events = true",
+  "query": "\n                SELECT bills.*\n                FROM bills\n                LEFT JOIN events ON events.id = bills.remote_event_id\n                LEFT JOIN ics_sources ON events.event_source_id = ics_sources.id\n                WHERE (ics_sources.persist_events = true OR bills.local_event_id IS NOT NULL);\n            ",
   "describe": {
     "columns": [
       {
@@ -82,5 +82,5 @@
       false
     ]
   },
-  "hash": "4a06efa523e34cfbf5eec9121a1741d4c6d6d9c79547a882b432fee9ee11ee24"
+  "hash": "f1977973ac975f98a0429552514310a738d72bbd6b9b857344794147b18211a6"
 }
