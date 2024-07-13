@@ -1,0 +1,80 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT * FROM attendance",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "local_event_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "remote_event_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "planned",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 4,
+        "name": "planned_starts_at",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "planned_duration",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "actual",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 7,
+        "name": "actual_starts_at",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 8,
+        "name": "actual_duration",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 9,
+        "name": "created_at",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 10,
+        "name": "updated_at",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "789228ec8cd32a07701472de481473156f8772ce75c53f8122399d49f4a84250"
+}

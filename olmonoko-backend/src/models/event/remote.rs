@@ -13,7 +13,6 @@ pub type RemoteSourceId = i32;
 pub struct RawRemoteEvent {
     pub id: RemoteEventId,
     pub event_source_id: RemoteSourceId,
-    pub event_source_priority: Priority,
     pub priority_override: Option<Priority>,
     // Event data
     pub rrule: Option<String>,
@@ -41,12 +40,14 @@ pub struct RemoteEvent {
     pub location: Option<String>,
     pub uid: String,
 }
-impl From<(RawRemoteEvent, Option<Attendance>)> for RemoteEvent {
-    fn from((raw, attendance): (RawRemoteEvent, Option<Attendance>)) -> Self {
+impl From<(RawRemoteEvent, Priority, Option<Attendance>)> for RemoteEvent {
+    fn from(
+        (raw, event_source_priority, attendance): (RawRemoteEvent, Priority, Option<Attendance>),
+    ) -> Self {
         let priority = if let Some(priority_override) = raw.priority_override {
             priority_override
         } else {
-            raw.event_source_priority
+            event_source_priority
         };
         let priority = if priority == 0 { None } else { Some(priority) };
         Self {

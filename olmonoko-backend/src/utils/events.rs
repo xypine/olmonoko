@@ -258,7 +258,6 @@ async fn get_visible_remote_events(
                 rrule: event.rrule,
                 id: event.id,
                 event_source_id: event.event_source_id,
-                event_source_priority: event.priority,
                 uid: event.uid,
                 summary: event.summary,
                 dt_stamp: event.dt_stamp,
@@ -266,7 +265,7 @@ async fn get_visible_remote_events(
                 duration: event.duration,
                 location: event.location,
                 description: event.description,
-            }, attendance)), 
+            }, event.priority, attendance)), 
             event.starts_at,
             event.from_rrule,
         )
