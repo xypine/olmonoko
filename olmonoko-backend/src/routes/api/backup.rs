@@ -28,11 +28,11 @@ pub struct Backup {
     pub sources: Vec<RawIcsSource>,
     pub source_priorities: Vec<(i64, i64, i64)>, // user_id, ics_source_id, priority
     pub local_events: Vec<RawLocalEvent>,
-    pub local_event_tags: Vec<(i64, String, i64)>, // local_event_id, tag, created_at
     pub attendance: Vec<RawAttendance>,
     pub bills: Vec<RawBill>,
     pub public_links: Vec<RawPublicLink>,
     pub remote_events: Vec<RawRemoteEvent>,
+    pub tags: Vec<(i64, Option<i64>, Option<i64>, String)>, // created_at, local_event_id, remote_event_id, tag
 }
 
 #[get("/dump.json")]
@@ -68,13 +68,13 @@ async fn export(data: web::Data<AppState>, req: HttpRequest) -> impl Responder {
                 .fetch_all(&data.conn)
                 .await
                 .expect("Failed to fetch local events");
-        let local_event_tags: Vec<(i64, String, i64)> =
-            sqlx::query!("SELECT * FROM event_tags WHERE remote_event_id IS NULL")
+        let tags: Vec<(i64, Option<i64>, Option<i64>, String)> =
+            sqlx::query!("SELECT * FROM event_tags")
                 .fetch_all(&data.conn)
                 .await
-                .expect("Failed to fetch local event tags")
+                .expect("Failed to fetch event tags")
                 .into_iter()
-                .map(|t| (t.local_event_id.unwrap(), t.tag, t.created_at))
+                .map(|t| (t.created_at, t.local_event_id, t.remote_event_id, t.tag))
                 .collect();
         let attendance: Vec<RawAttendance> =
             sqlx::query_as!(RawAttendance, "SELECT * FROM attendance")
@@ -100,7 +100,7 @@ async fn export(data: web::Data<AppState>, req: HttpRequest) -> impl Responder {
             source_priorities,
             remote_events,
             local_events,
-            local_event_tags,
+            tags,
             attendance,
             bills,
             public_links,
