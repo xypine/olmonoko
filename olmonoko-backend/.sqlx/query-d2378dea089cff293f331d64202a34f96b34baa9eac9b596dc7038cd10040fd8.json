@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT event_tags.* FROM event_tags INNER JOIN events ON events.id = event_tags.remote_event_id INNER JOIN ics_sources ON events.event_source_id = ics_sources.id AND ics_sources.persist_events = true",
+  "query": "SELECT event_tags.* FROM event_tags INNER JOIN events ON events.id = event_tags.remote_event_id INNER JOIN ics_sources ON events.event_source_id = ics_sources.id AND ics_sources.persist_events = true UNION SELECT * FROM event_tags WHERE local_event_id IS NOT NULL",
   "describe": {
     "columns": [
       {
@@ -34,5 +34,5 @@
       false
     ]
   },
-  "hash": "e01501e0cfd813684f0b401d0ba686b837a160fd40adb774cbad8bfec253496f"
+  "hash": "d2378dea089cff293f331d64202a34f96b34baa9eac9b596dc7038cd10040fd8"
 }

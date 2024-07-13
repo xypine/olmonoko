@@ -78,7 +78,7 @@ async fn export(data: web::Data<AppState>, req: HttpRequest) -> impl Responder {
                 .await
                 .expect("Failed to fetch local events");
         let tags: Vec<(i64, Option<i64>, Option<i64>, String)> =
-            sqlx::query!("SELECT event_tags.* FROM event_tags INNER JOIN events ON events.id = event_tags.remote_event_id INNER JOIN ics_sources ON events.event_source_id = ics_sources.id AND ics_sources.persist_events = true")
+            sqlx::query!("SELECT event_tags.* FROM event_tags INNER JOIN events ON events.id = event_tags.remote_event_id INNER JOIN ics_sources ON events.event_source_id = ics_sources.id AND ics_sources.persist_events = true UNION SELECT * FROM event_tags WHERE local_event_id IS NOT NULL")
                 .fetch_all(&data.conn)
                 .await
                 .expect("Failed to fetch event tags")
@@ -86,11 +86,11 @@ async fn export(data: web::Data<AppState>, req: HttpRequest) -> impl Responder {
                 .map(|t| (t.created_at, t.local_event_id, t.remote_event_id, t.tag))
                 .collect();
         let attendance: Vec<RawAttendance> =
-            sqlx::query_as!(RawAttendance, "SELECT attendance.* FROM attendance INNER JOIN events ON events.id = attendance.remote_event_id INNER JOIN ics_sources ON events.event_source_id = ics_sources.id AND ics_sources.persist_events = true")
+            sqlx::query_as!(RawAttendance, "SELECT attendance.* FROM attendance INNER JOIN events ON events.id = attendance.remote_event_id INNER JOIN ics_sources ON events.event_source_id = ics_sources.id AND ics_sources.persist_events = true UNION SELECT * FROM attendance WHERE local_event_id IS NOT NULL")
                 .fetch_all(&data.conn)
                 .await
                 .expect("Failed to fetch local event attendance");
-        let bills: Vec<RawBill> = sqlx::query_as!(RawBill, "SELECT bills.* FROM bills INNER JOIN events ON events.id = bills.remote_event_id INNER JOIN ics_sources ON events.event_source_id = ics_sources.id AND ics_sources.persist_events = true")
+        let bills: Vec<RawBill> = sqlx::query_as!(RawBill, "SELECT bills.* FROM bills INNER JOIN events ON events.id = bills.remote_event_id INNER JOIN ics_sources ON events.event_source_id = ics_sources.id AND ics_sources.persist_events = true UNION SELECT * FROM bills WHERE local_event_id IS NOT NULL")
             .fetch_all(&data.conn)
             .await
             .expect("Failed to fetch bills");
