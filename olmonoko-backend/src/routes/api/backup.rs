@@ -236,6 +236,27 @@ async fn restore(
             .expect("Failed to insert source priority");
         }
 
+        tracing::info!("Restoring remote events");
+        for event in &body.remote_events {
+            sqlx::query!(
+                "INSERT INTO events (id, event_source_id, priority_override, rrule, dt_stamp, all_day, duration, summary, description, location, uid) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
+                event.id,
+                event.event_source_id,
+                event.priority_override,
+                event.rrule,
+                event.dt_stamp,
+                event.all_day,
+                event.duration,
+                event.summary,
+                event.description,
+                event.location,
+                event.uid,
+            )
+            .execute(&mut *txn)
+            .await
+            .expect("Failed to insert remote event");
+        }
+
         tracing::info!("Restoring event tags");
         for (created_at, local_event_id, remote_event_id, tag) in &body.tags {
             sqlx::query!(
