@@ -47,13 +47,13 @@ async fn main() -> Result<(), AppError> {
     tracing::info!("Migrations complete");
 
     tracing::info!("Starting scheduler");
-    logic::scheduler::init()
+    let scheduler = logic::scheduler::init()
         .await
         .expect("Failed to start scheduler");
     tracing::info!("Scheduler started");
 
     tracing::info!("Starting server");
-    routes::run_server(pool).await?;
+    routes::run_server(pool, scheduler).await?;
     Ok(())
 }
 

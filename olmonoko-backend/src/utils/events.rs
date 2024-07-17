@@ -6,8 +6,11 @@ use crate::{
         attendance::{Attendance, RawAttendance},
         bills::RawBill,
         event::{
-            local::{LocalEvent, RawLocalEvent}, remote::{RawRemoteEvent, RemoteEvent}, Event, EventOccurrence, Priority, DEFAULT_PRIORITY
-        }, user::UserId,
+            local::{LocalEvent, RawLocalEvent},
+            remote::{RawRemoteEvent, RemoteEvent},
+            Event, EventOccurrence, Priority, DEFAULT_PRIORITY,
+        },
+        user::UserId,
     },
     routes::AppState,
 };
@@ -103,9 +106,7 @@ pub async fn get_user_local_events(
             id: bill_id,
             local_event_id: Some(event.id),
             remote_event_id: None,
-            payee_account_number: event
-                .payee_account_number.unwrap()
-                ,
+            payee_account_number: event.payee_account_number.unwrap(),
             reference: event.reference.unwrap(),
             amount: event.amount.unwrap(),
             created_at: event.bill_created_at.unwrap(),
@@ -120,8 +121,7 @@ pub async fn get_user_local_events(
             .map(|id| RawAttendance {
                 id,
                 created_at: event.attendance_created_at.unwrap(),
-                updated_at: event
-                    .attendance_updated_at.unwrap(),
+                updated_at: event.attendance_updated_at.unwrap(),
                 planned: event.planned.unwrap(),
                 planned_starts_at: event.planned_starts_at,
                 planned_duration: event.planned_duration,
@@ -132,9 +132,7 @@ pub async fn get_user_local_events(
                 local_event_id: Some(event.id),
                 remote_event_id: None,
             })
-            .map(|a| {
-                Attendance::from((a, event.starts_at, event.duration))
-            });
+            .map(|a| Attendance::from((a, event.starts_at, event.duration)));
         let tags = event.tags.unwrap_or_default();
         LocalEvent::from((
             raw_event,
@@ -268,7 +266,7 @@ async fn get_visible_remote_events(
                 duration: event.duration,
                 location: event.location,
                 description: event.description,
-            }, event.priority, attendance)), 
+            }, event.priority, attendance)),
             event.starts_at,
             event.from_rrule,
         )

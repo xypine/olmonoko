@@ -365,9 +365,14 @@ async fn restore(
             .expect("Failed to insert bill");
         }
 
+        tracing::info!("Scheduling post-restore sync");
+        crate::logic::scheduler::schedule_sync_oneoff(&data.scheduler)
+            .await
+            .expect("Failed to schedule post-restore sync!");
+
         tracing::info!("Committing transaction");
         txn.commit().await.expect("Failed to commit transaction");
-        tracing::info!("Restore complete");
+        tracing::info!("Restore complete!");
         return HttpResponse::Ok().body("Restore complete");
     }
     deauth()

@@ -1,7 +1,11 @@
 use actix_web::web;
 
 use crate::{
-    models::{event::remote::RemoteSourceId, ics_source::{IcsSource, RawIcsSource}, user::UserId},
+    models::{
+        event::remote::RemoteSourceId,
+        ics_source::{IcsSource, RawIcsSource},
+        user::UserId,
+    },
     routes::AppState,
 };
 
@@ -30,7 +34,7 @@ pub async fn get_visible_sources(
             persist_events: source.persist_events,
             all_as_allday: source.all_as_allday,
             import_template: source.import_template,
-            file_hash: source.file_hash, 
+            file_hash: source.file_hash,
                 object_hash: source.object_hash,
         }, source.priority))
     })
@@ -133,5 +137,9 @@ pub async fn get_source_as_user_with_event_count(
         r.priority,
     ));
 
-    (ics_source, r.event_count.unwrap_or_default(), r.occurrence_count.unwrap_or_default())
+    (
+        ics_source,
+        r.event_count.unwrap_or_default(),
+        r.occurrence_count.unwrap_or_default(),
+    )
 }
