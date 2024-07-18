@@ -5,13 +5,13 @@
     <div id="me-container">
         {% if user %}
             <div id="me-left">
-                <h1>Hello, <span style="font-weight: 400;">{{ user.email }}</span>!</h1>
+            <h1><span style="view-transition-name: page-title;">Hello, <span style="font-weight: 400;">{{ user.email }}</span>!</span></h1>
                 {% include "components/auth/logout.html" %}
                 {% include "components/auth/change_timezone.html" %}
             </div>
             {% include "components/export_link.html" %}
         {% else %}
-            <h1>Hello, stranger!</h1>
+        <h1><span style="view-transition-name: page-title;">Hello, stranger!</span></h1>
             <div style="display: flex; gap: 2rem; flex-wrap: wrap; justify-content: center;">
                 {% include "components/auth/login.html" %}
                 {% include "components/auth/register.html" %}

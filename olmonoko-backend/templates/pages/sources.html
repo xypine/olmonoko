@@ -11,9 +11,9 @@
     <div style="display: flex; gap: 2.5rem; flex-wrap: wrap-reverse; justify-content: center;">
         <div style="flex: 1;">
             {% if user %}
-                <h1 style="margin-bottom:1rem; font-size:2em;">Available sources</h1>
+                    <h1 style="margin-bottom:1rem;"><span style="view-transition-name: page-title;">Available sources</span></h1>
             {% else %}
-                <h1 style="margin-bottom:1rem; font-size:2em;">Public sources</h1>
+                    <h1 style="margin-bottom:1rem;"><span style="view-transition-name: page-title;">Public sources</span></h1>
             {% endif %}
             {% if sources|length == 0 %}
                 <p>No sources available</p>
