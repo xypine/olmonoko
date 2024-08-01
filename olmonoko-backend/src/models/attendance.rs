@@ -64,7 +64,7 @@ pub struct NewAttendance {
     pub actual: Option<AttendanceDetails>,
 }
 impl NewAttendance {
-    pub async fn write<C>(&self, conn: &mut C) -> Result<(), sqlx::Error>
+    pub async fn write<C>(&self, conn: &mut C) -> Result<Option<Attendance>, sqlx::Error>
     where
         for<'e> &'e mut C: Executor<'e, Database = Postgres>,
     {
@@ -81,13 +81,14 @@ impl NewAttendance {
             _ => (false, None, None),
         };
         if planned || actual {
-            sqlx::query!(
+            let a = sqlx::query_as!(
+                RawAttendance,
                 r#"
                 INSERT INTO attendance
                     ( user_id, local_event_id, remote_event_id, planned, planned_starts_at, planned_duration, actual, actual_starts_at, actual_duration )
                 VALUES
                     ( $1, $2, $3, $4, $5, $6, $7, $8, $9 )
-                ON CONFLICT(user_id, coalesce(local_event_id,0), coalesce(remote_event_id,0)) DO UPDATE SET
+                ON CONFLICT(user_id, local_event_id, remote_event_id) DO UPDATE SET
                     planned = excluded.planned,
                     planned_starts_at = excluded.planned_starts_at,
                     planned_duration = excluded.planned_duration,
@@ -95,7 +96,7 @@ impl NewAttendance {
                     actual_starts_at = excluded.actual_starts_at,
                     actual_duration = excluded.actual_duration,
                     updated_at = EXTRACT(EPOCH FROM NOW())*1000
-
+                RETURNING *
             "#,
                 self.user_id,
                 local_event_id,
@@ -107,7 +108,7 @@ impl NewAttendance {
                 actual_starts_at,
                 actual_duration
             )
-            .execute(&mut *conn)
+            .fetch_one(&mut *conn)
             .await?;
         } else {
             sqlx::query!("DELETE FROM attendance WHERE user_id = $1 AND (local_event_id = $2 OR $2 IS NULL) AND (remote_event_id = $3 OR $3 IS NULL)", self.user_id, local_event_id, remote_event_id)
@@ -115,7 +116,7 @@ impl NewAttendance {
             .await?;
         }
 
-        Ok(())
+        Ok(None)
     }
 }
 
@@ -169,7 +170,7 @@ use crate::models::ics_source::serialize_checkbox;
 use serde_with::As;
 use serde_with::NoneAsEmptyString;
 
-use super::user::User;
+use super::user::UserPublic;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Default)]
 pub struct AttendanceForm {
@@ -195,11 +196,12 @@ pub struct AttendanceForm {
     pub attend_actual_end: Option<String>,
 }
 
-pub type AttendanceFormWithUserEventTz<'a> = (AttendanceForm, &'a User, i32, i64, i8);
+pub type AttendanceFormWithUserEventTz<'a> =
+    (AttendanceForm, &'a UserPublic, AttendanceEvent, i64, i8);
 impl<'a> TryFrom<AttendanceFormWithUserEventTz<'a>> for NewAttendance {
     type Error = &'static str;
     fn try_from(
-        (form, user, local_event_id, event_starts_at, tz_offset): AttendanceFormWithUserEventTz,
+        (form, user, event_id, event_starts_at, tz_offset): AttendanceFormWithUserEventTz,
     ) -> Result<Self, Self::Error> {
         let parse_time = |f: String| crate::utils::time::from_form(&f, tz_offset).timestamp();
         let calc_duration = |start: Option<i64>, end: i64| end - start.unwrap_or(event_starts_at);
@@ -230,7 +232,7 @@ impl<'a> TryFrom<AttendanceFormWithUserEventTz<'a>> for NewAttendance {
 
         Ok(Self {
             user_id: user.id,
-            event_id: AttendanceEvent::Local(local_event_id),
+            event_id,
             planned,
             actual,
         })
@@ -256,5 +258,10 @@ impl From<Attendance> for AttendanceForm {
             attend_actual_start: actual_start.and_then(to_form),
             attend_actual_end: actual_end.and_then(to_form),
         }
+    }
+}
+impl From<NewAttendance> for AttendanceForm {
+    fn from(value: NewAttendance) -> Self {
+        todo!()
     }
 }

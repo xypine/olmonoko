@@ -28,7 +28,7 @@
 				<span>
 					Summary:
 				</span>
-				<input type="text" name="summary" value="{{ selected.summary|default(value='') }}">
+				<input type="text" name="summary" value="{{ selected.summary|default(value='') }}" required>
 			</label>
 			<label>
 				<span>
@@ -51,7 +51,7 @@
 				<span>
 					Starts at:
 				</span>
-				<input type="datetime-local" name="starts_at"  value="{{ selected.starts_at|default(value='') }}">
+				<input type="datetime-local" name="starts_at"  value="{{ selected.starts_at|default(value='') }}" required>
 			</label>
 			<label>
 				<span>

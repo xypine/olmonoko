@@ -7,7 +7,7 @@
 - [x] ui for removing / updating local events
 - [x] bills
 - [-] barcode scanner for bills
-    - [ ] barcode scanning from images sucks, find a better way?
+  - [ ] barcode scanning from images sucks, find a better way?
 - [x] add all_day to events
 - [x] fix newlines in produced ics
 - [x] add date controls to default view
@@ -22,17 +22,18 @@
 - [-] keep track of uids so that we can present lately added / modified events
 - [-] import rules
 - [ ] change import templates to be per-user, don't modify original data
+  - either at runtime (prob not worth it) or import
 - [ ] allow "pinning" of events / moving them to the local calendar
-    - [ ] show modifications since pinning
+  - [ ] show modifications since pinning
 - [-] more homepage views / week overview
 - [x] week overview: handle overlapping events
 - [-] allow users to set a default timezone for ui
 - [-] local event tags
 - [x] local event filters
-    - [ ] ui
+  - [ ] ui
 - [-] local event bulk delete
-    - [ ] make sure is safe
 - [ ] soft delete for local events
+- [ ] local event RRULEs
 - [-] vim keybindings
 - [-] "scrubbable navigation with heatmap"
 - [ ] add proper error handling to frontend
@@ -44,10 +45,12 @@
 - [-] try automatically caching internal links on current page
 - [ ] automatic geolocation + manual override
 - [ ] remind when to leave / maps integration
-- [ ] clock-in-n-out 
-    - [-] teamwork integration
+- [ ] clock-in-n-out
+  - [-] teamwork integration
 - [ ] more default themes, custom theme support
-    - maybe try #D0A657
+  - maybe try #D0A657
+- [ ] automatic weather location based on planned event attendance
+  - [ ] allow for comparing location checks in import templates
 - [ ] automatically add events for all pictures in gallery / photos / photoprism integration
 - [ ] automatic syncing between instances / per user
 - [ ] embeddable export links / public calendar views with privacy options

@@ -131,6 +131,7 @@
                 <th>When</th>
                 <th>What</th>
                 <th>Where</th>
+                <th>Attachments</th>
             </tr>
             {% for event in events %}
             <tr id="event-{{ event.id }}">
@@ -148,6 +149,8 @@
                 </td>
                 <td>
                     {{ event.location }}
+                </td>
+                <td>
                     <b>Your Attendance:</b>
                     {% set standalone = true %}
                     {% set event_id = event.id %}

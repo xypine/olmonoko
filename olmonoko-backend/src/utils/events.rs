@@ -7,7 +7,7 @@ use crate::{
         bills::RawBill,
         event::{
             local::{LocalEvent, RawLocalEvent},
-            remote::{RawRemoteEvent, RemoteEvent},
+            remote::{RawRemoteEvent, RemoteEvent, RemoteEventId},
             Event, EventOccurrence, Priority, DEFAULT_PRIORITY,
         },
         user::UserId,

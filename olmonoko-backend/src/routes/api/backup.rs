@@ -1,6 +1,7 @@
 use actix_web::{get, post, web, HttpRequest, HttpResponse, Responder, Scope};
 
 use crate::{
+    middleware::autocacher::CACHE_RECURSION_PREVENTION_HEADER,
     models::{
         attendance::RawAttendance,
         bills::RawBill,
@@ -11,11 +12,11 @@ use crate::{
         },
         ics_source::{IcsSourceId, RawIcsSource},
         public_link::RawPublicLink,
-        user::{RawUser, UserId},
+        user::{RawUser, User, UserId},
     },
     routes::AppState,
     utils::{
-        request::{deauth, EnhancedRequest},
+        request::{deauth, EnhancedRequest, SESSION_COOKIE_NAME},
         time::timestamp,
     },
 };
@@ -144,42 +145,86 @@ async fn export(data: web::Data<AppState>, req: HttpRequest) -> impl Responder {
     deauth()
 }
 
-#[post("/restore.json")]
-async fn restore(
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+struct InstanceCloneForm {
+    instance_url: String,
+    session_id: String,
+}
+
+#[post("/clone")]
+async fn clone_instance(
     data: web::Data<AppState>,
     req: HttpRequest,
-    body: web::Json<Backup>,
+    form: web::Form<InstanceCloneForm>,
 ) -> impl Responder {
     if let Some(user) = req.get_session_user(&data).await {
-        tracing::info!(user.id, user.email, user.admin, "User requested a restore");
         if !user.admin {
             return deauth();
         }
-        tracing::info!("=== Backup Metadata ===");
-        tracing::info!("Created at: {}", body.created_at);
-        tracing::info!("Site URL: {}", body.site_url);
-        tracing::info!("Version: {}", body.version);
-        tracing::info!("Build info: {:?}", body.build_info);
-        tracing::info!("=== Restoring backup ===");
-        let mut txn = data
-            .conn
-            .begin()
+        let session_id = form.session_id.clone();
+        let instance_endpoint = format!("{}/api/backup/dump.json", form.instance_url);
+        let cookies = reqwest::cookie::Jar::default();
+        cookies.add_cookie_str(
+            &format!("{}={}", SESSION_COOKIE_NAME, session_id),
+            &reqwest::Url::parse(&form.instance_url).unwrap(),
+        );
+        let client = reqwest::Client::builder()
+            .cookie_provider(std::sync::Arc::new(cookies))
+            .build()
+            .unwrap();
+        let response = client
+            .get(&instance_endpoint)
+            .header(CACHE_RECURSION_PREVENTION_HEADER, "true")
+            .send()
             .await
-            .expect("Failed to start transaction");
-        tracing::info!("Removing all existing users");
-        sqlx::query!("DELETE FROM users")
-            .execute(&mut *txn)
-            .await
-            .expect("Failed to delete users");
-        tracing::info!("Removing all existing unverified users");
-        sqlx::query!("DELETE FROM unverified_users")
-            .execute(&mut *txn)
-            .await
-            .expect("Failed to delete unverified users");
+            .unwrap();
+        if !response.status().is_success() {
+            tracing::warn!("Failed to fetch instance backup: {}", response.status());
+            return HttpResponse::InternalServerError().body("failed to fetch instance backup");
+        }
+        let body: Backup = response.json().await.unwrap();
+        if !restore(data, &user, body).await.unwrap() {
+            return deauth();
+        }
+        return HttpResponse::Ok().body("Clone complete!");
+    }
+    return deauth();
+}
 
-        tracing::info!("Restoring users");
-        for user in &body.users {
-            sqlx::query!(
+async fn restore(
+    data: web::Data<AppState>,
+    user: &User,
+    body: Backup,
+) -> Result<bool, sqlx::Error> {
+    tracing::info!(user.id, user.email, user.admin, "User requested a restore");
+    if !user.admin {
+        return Ok(false);
+    }
+    tracing::info!("=== Backup Metadata ===");
+    tracing::info!("Created at: {}", body.created_at);
+    tracing::info!("Site URL: {}", body.site_url);
+    tracing::info!("Version: {}", body.version);
+    tracing::info!("Build info: {:?}", body.build_info);
+    tracing::info!("=== Restoring backup ===");
+    let mut txn = data
+        .conn
+        .begin()
+        .await
+        .expect("Failed to start transaction");
+    tracing::info!("Removing all existing users");
+    sqlx::query!("DELETE FROM users")
+        .execute(&mut *txn)
+        .await
+        .expect("Failed to delete users");
+    tracing::info!("Removing all existing unverified users");
+    sqlx::query!("DELETE FROM unverified_users")
+        .execute(&mut *txn)
+        .await
+        .expect("Failed to delete unverified users");
+
+    tracing::info!("Restoring users");
+    for user in &body.users {
+        sqlx::query!(
                 "INSERT INTO users (id, email, password_hash, admin, created_at, interface_timezone) VALUES ($1, $2, $3, $4, $5, $6)",
                 user.id,
                 user.email,
@@ -191,11 +236,11 @@ async fn restore(
             .execute(&mut *txn)
             .await
             .expect("Failed to insert user");
-        }
+    }
 
-        tracing::info!("Restoring public links");
-        for link in &body.public_links {
-            sqlx::query!(
+    tracing::info!("Restoring public links");
+    for link in &body.public_links {
+        sqlx::query!(
                 "INSERT INTO public_calendar_links (id, user_id, created_at, min_priority, max_priority) VALUES ($1, $2, $3, $4, $5)",
                 link.id,
                 link.user_id,
@@ -206,11 +251,11 @@ async fn restore(
             .execute(&mut *txn)
             .await
             .expect("Failed to insert public link");
-        }
+    }
 
-        tracing::info!("Restoring local events");
-        for event in &body.local_events {
-            sqlx::query!(
+    tracing::info!("Restoring local events");
+    for event in &body.local_events {
+        sqlx::query!(
                 "INSERT INTO local_events (id, user_id, created_at, updated_at, starts_at, duration, summary, description, location, uid, all_day, priority) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
                 event.id,
                 event.user_id,
@@ -228,18 +273,18 @@ async fn restore(
             .execute(&mut *txn)
             .await
             .expect("Failed to insert local event");
-        }
+    }
 
-        tracing::info!("Restoring sources");
-        for source in &body.sources {
-            // if persist_events is false, restoring file_hash would block updates to
-            // the source until the file changes
-            let file_hash = if source.persist_events {
-                source.file_hash.clone()
-            } else {
-                None
-            };
-            sqlx::query!(
+    tracing::info!("Restoring sources");
+    for source in &body.sources {
+        // if persist_events is false, restoring file_hash would block updates to
+        // the source until the file changes
+        let file_hash = if source.persist_events {
+            source.file_hash.clone()
+        } else {
+            None
+        };
+        sqlx::query!(
                 "INSERT INTO ics_sources (id, user_id, is_public, name, url, created_at, last_fetched_at, file_hash, object_hash, updated_at, persist_events, all_as_allday, import_template) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)",
                 source.id,
                 source.user_id,
@@ -258,11 +303,11 @@ async fn restore(
             .execute(&mut *txn)
             .await
             .expect("Failed to insert source");
-        }
+    }
 
-        tracing::info!("Restoring source priorities");
-        for (user_id, ics_source_id, priority) in &body.source_priorities {
-            sqlx::query!(
+    tracing::info!("Restoring source priorities");
+    for (user_id, ics_source_id, priority) in &body.source_priorities {
+        sqlx::query!(
                 "INSERT INTO ics_source_priorities (user_id, ics_source_id, priority) VALUES ($1, $2, $3)",
                 user_id,
                 ics_source_id,
@@ -271,11 +316,11 @@ async fn restore(
             .execute(&mut *txn)
             .await
             .expect("Failed to insert source priority");
-        }
+    }
 
-        tracing::info!("Restoring remote events");
-        for event in &body.persisted_remote_events {
-            sqlx::query!(
+    tracing::info!("Restoring remote events");
+    for event in &body.persisted_remote_events {
+        sqlx::query!(
                 "INSERT INTO events (id, event_source_id, priority_override, rrule, dt_stamp, all_day, duration, summary, description, location, uid) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
                 event.id,
                 event.event_source_id,
@@ -292,11 +337,11 @@ async fn restore(
             .execute(&mut *txn)
             .await
             .expect("Failed to insert remote event");
-        }
+    }
 
-        tracing::info!("Restoring remote event occurrences");
-        for occurrence in &body.persisted_remote_event_occurrences {
-            sqlx::query!(
+    tracing::info!("Restoring remote event occurrences");
+    for occurrence in &body.persisted_remote_event_occurrences {
+        sqlx::query!(
                 "INSERT INTO event_occurrences (id, event_id, starts_at, from_rrule) VALUES ($1, $2, $3, $4)",
                 occurrence.id,
                 occurrence.event_id,
@@ -306,11 +351,11 @@ async fn restore(
             .execute(&mut *txn)
             .await
             .expect("Failed to insert remote event occurrence");
-        }
+    }
 
-        tracing::info!("Restoring event tags");
-        for (created_at, local_event_id, remote_event_id, tag) in &body.tags {
-            sqlx::query!(
+    tracing::info!("Restoring event tags");
+    for (created_at, local_event_id, remote_event_id, tag) in &body.tags {
+        sqlx::query!(
                 "INSERT INTO event_tags (created_at, local_event_id, remote_event_id, tag) VALUES ($1, $2, $3, $4)",
                 created_at,
                 *local_event_id,
@@ -320,11 +365,11 @@ async fn restore(
             .execute(&mut *txn)
             .await
             .expect("Failed to insert local event tag");
-        }
+    }
 
-        tracing::info!("Restoring attendance");
-        for attendance in &body.attendance {
-            sqlx::query!(
+    tracing::info!("Restoring attendance");
+    for attendance in &body.attendance {
+        sqlx::query!(
                 "INSERT INTO attendance (user_id, local_event_id, remote_event_id, planned, planned_starts_at, planned_duration, actual, actual_starts_at, actual_duration, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
                 attendance.user_id,
                 attendance.local_event_id,
@@ -341,11 +386,11 @@ async fn restore(
             .execute(&mut *txn)
             .await
             .expect("Failed to insert attendance");
-        }
+    }
 
-        tracing::info!("Restoring bills");
-        for bill in &body.bills {
-            sqlx::query!(
+    tracing::info!("Restoring bills");
+    for bill in &body.bills {
+        sqlx::query!(
                 "INSERT INTO bills (id, local_event_id, remote_event_id, payee_account_number, amount, reference, payee_name, payee_email, payee_address, payee_phone, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
                 bill.id,
                 bill.local_event_id,
@@ -363,16 +408,32 @@ async fn restore(
             .execute(&mut *txn)
             .await
             .expect("Failed to insert bill");
-        }
+    }
 
-        tracing::info!("Scheduling post-restore sync");
-        crate::logic::scheduler::schedule_sync_oneoff(&data.scheduler)
+    tracing::info!("Scheduling post-restore sync");
+    crate::logic::scheduler::schedule_sync_oneoff(&data.scheduler)
+        .await
+        .expect("Failed to schedule post-restore sync!");
+
+    tracing::info!("Committing transaction");
+    txn.commit().await.expect("Failed to commit transaction");
+    tracing::info!("Restore complete!");
+    return Ok(true);
+}
+
+#[post("/restore.json")]
+async fn restore_json(
+    data: web::Data<AppState>,
+    req: HttpRequest,
+    body: web::Json<Backup>,
+) -> impl Responder {
+    if let Some(user) = req.get_session_user(&data).await {
+        let allowed = restore(data, &user, body.into_inner())
             .await
-            .expect("Failed to schedule post-restore sync!");
-
-        tracing::info!("Committing transaction");
-        txn.commit().await.expect("Failed to commit transaction");
-        tracing::info!("Restore complete!");
+            .expect("Failed to restore backup");
+        if !allowed {
+            return deauth();
+        }
         return HttpResponse::Ok().body("Restore complete");
     }
     deauth()
@@ -385,5 +446,6 @@ pub fn routes() -> Scope {
     web::scope("/backup")
         .app_data(json_cfg)
         .service(export)
-        .service(restore)
+        .service(restore_json)
+        .service(clone_instance)
 }

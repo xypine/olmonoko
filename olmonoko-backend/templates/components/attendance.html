@@ -1,7 +1,7 @@
 {% if standalone %}
 <form
 	id="attendance-form-{{ event_id }}"
-	hx-patch="{{ site_url | safe }}/api/event/{{ event_id }}/attendance"
+	hx-put="{{ site_url | safe }}/api/event/remote/{{ event_id }}/attendance"
 	hx-target="#attendance-form-{{ event_id }}"
 	hx-swap="outerHTML"
 	hx-disabled-elt="#attendance-form-{{ event_id }}"

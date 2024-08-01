@@ -10,8 +10,8 @@ use crate::models::attendance::AttendanceForm;
 use crate::models::bills::AutoDescription;
 use crate::models::bills::Bill;
 use crate::models::bills::RawBill;
-use crate::models::user::User;
 use crate::models::user::UserId;
+use crate::models::user::UserPublic;
 use crate::utils::time::from_timestamp;
 
 pub type LocalEventId = i32;
@@ -271,7 +271,7 @@ pub struct LocalEventForm {
     pub attendance: AttendanceForm,
 }
 
-pub type FormWithUser<'a> = (LocalEventForm, &'a User);
+pub type FormWithUser<'a> = (LocalEventForm, &'a UserPublic);
 impl<'a> From<FormWithUser<'a>> for NewLocalEvent {
     fn from((form, user): FormWithUser) -> Self {
         let raw_tz = form.starts_at_tz.unwrap_or(user.interface_timezone_h);
@@ -351,17 +351,17 @@ impl From<LocalEventWithAttendance> for LocalEventForm {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use crate::models::user::RawUser;
+    use crate::models::user::{RawUser, User};
 
-    fn test_user() -> User {
-        User::from(RawUser {
+    fn test_user() -> UserPublic {
+        UserPublic::from(User::from(RawUser {
             id: 1,
             interface_timezone: "UTC".to_string(),
             email: "tester@olmonoko.ruta.fi".to_string(),
             admin: false,
             created_at: 0,
             password_hash: "abc".to_string(),
-        })
+        }))
     }
 
     #[test]
