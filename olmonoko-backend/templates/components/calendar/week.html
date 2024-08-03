@@ -46,7 +46,7 @@
 			22, 23] %}
 			{% set hourstr = hour | as_str %}
 			{% if hour < 10 %} {% set hourstr="0" ~ hour %} {% endif %} <div aria-hidden="true"
-				class="calendar-week-event ghost" style="--event-start: {{ hour }};">
+				class="calendar-week-event ghost" style="--event-start: {{ hour }}; --event-priority: 1;">
 				{{ hourstr }}
 		</div>
 		{% endfor %}
@@ -59,12 +59,12 @@
 		{% set start_h = start_s / 3600 %}
 		{% if event.id == -1 %}
 		<div id="now" class="calendar-week-event"
-			style="--event-start: {{ start_h }}; --event-length: {{ length_h }};--overlap-total: {{ event.overlap_total }};--overlap-index: {{ event.overlap_index }};">
+			style="--event-start: {{ start_h }}; --event-length: {{ length_h }};--overlap-total: {{ event.overlap_total }};--overlap-index: {{ event.overlap_index }}; --event-priority: 1;">
 			Now
 		</div>
 		{% else %}
 		<a class="calendar-week-event"
-			style="--event-start: {{ start_h }}; --event-length: {{ length_h }};--overlap-total: {{ event.overlap_total }};--overlap-index: {{ event.overlap_index }};"
+			style="--event-start: {{ start_h }}; --event-length: {{ length_h }};--overlap-total: {{ event.overlap_total }};--overlap-index: {{ event.overlap_index }}; --event-priority: {{ event.priority }};"
 			href="#event-{{ event.id }}" title="{{ event.summary }}">
 			{{ event.summary }}
 		</a>
@@ -176,7 +176,9 @@
 		--event-height-clipped: calc(var(--hour-height) * var(--max-event-length));
 		height: var(--event-height-clipped);
 		line-height: max(var(--event-height-clipped), 1.5em);
-		border-top: 1px solid var(--primary);
+
+		--border-strength: calc(calc(9 - var(--event-priority)) / 9);
+		border-top: 1px solid color-mix(in oklab, var(--primary) calc(100% * var(--border-strength)), transparent);
 
 		text-overflow: ellipsis;
 		overflow: hidden;
