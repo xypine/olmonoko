@@ -62,7 +62,7 @@ async fn delete_link(
         .expect("Failed to delete public link");
         HttpResponse::Ok().body("link deleted")
     } else {
-        deauth()
+        deauth(&request)
     }
 }
 
@@ -103,7 +103,7 @@ async fn change_filters(
             .unwrap();
         return HttpResponse::Ok().body(content);
     }
-    deauth()
+    deauth(&request)
 }
 
 #[post("")]

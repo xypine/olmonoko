@@ -648,7 +648,7 @@ pub async fn timeline(
             .unwrap();
         return HttpResponse::Ok().body(content);
     }
-    deauth()
+    deauth(&request)
 }
 
 pub fn routes() -> Scope {

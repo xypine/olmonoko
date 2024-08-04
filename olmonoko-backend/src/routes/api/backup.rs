@@ -46,7 +46,7 @@ async fn export(data: web::Data<AppState>, req: HttpRequest) -> impl Responder {
     if let Some(user) = req.get_session_user(&data).await {
         tracing::info!(user.id, user.email, user.admin, "User requested a backup");
         if !user.admin {
-            return deauth();
+            return deauth(&req);
         }
         let users: Vec<RawUser> = sqlx::query_as!(RawUser, "SELECT * FROM users")
             .fetch_all(&data.conn)
@@ -142,7 +142,7 @@ async fn export(data: web::Data<AppState>, req: HttpRequest) -> impl Responder {
         };
         return HttpResponse::Ok().json(backup);
     }
-    deauth()
+    deauth(&req)
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -159,7 +159,7 @@ async fn clone_instance(
 ) -> impl Responder {
     if let Some(user) = req.get_session_user(&data).await {
         if !user.admin {
-            return deauth();
+            return deauth(&req);
         }
         let session_id = form.session_id.clone();
         let instance_endpoint = format!("{}/api/backup/dump.json", form.instance_url);
@@ -184,11 +184,11 @@ async fn clone_instance(
         }
         let body: Backup = response.json().await.unwrap();
         if !restore(data, &user, body).await.unwrap() {
-            return deauth();
+            return deauth(&req);
         }
         return HttpResponse::Ok().body("Clone complete!");
     }
-    return deauth();
+    return deauth(&req);
 }
 
 async fn restore(
@@ -432,11 +432,11 @@ async fn restore_json(
             .await
             .expect("Failed to restore backup");
         if !allowed {
-            return deauth();
+            return deauth(&req);
         }
         return HttpResponse::Ok().body("Restore complete");
     }
-    deauth()
+    deauth(&req)
 }
 
 pub fn routes() -> Scope {

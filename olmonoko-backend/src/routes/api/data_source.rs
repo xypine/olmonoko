@@ -80,7 +80,7 @@ async fn create_source(
             .with_flash_message(FlashMessage::info("Source added"))
             .finish();
     }
-    deauth()
+    deauth(&request)
 }
 
 #[delete("/{id}")]
@@ -101,7 +101,7 @@ async fn delete_source(
         .expect("Failed to delete source");
         return HttpResponse::Ok().body("Deleted");
     }
-    deauth()
+    deauth(&request)
 }
 
 use serde_with::As;
@@ -167,7 +167,7 @@ async fn change_priority(
             .unwrap();
         return HttpResponse::Ok().body(component);
     }
-    deauth()
+    deauth(&request)
 }
 
 use crate::models::ics_source::deserialize_checkbox;
@@ -221,7 +221,7 @@ async fn change_persist_events(
             .unwrap();
         return HttpResponse::Ok().body(component);
     }
-    deauth()
+    deauth(&request)
 }
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ChangeAllAsAlldayForm {
@@ -276,7 +276,7 @@ async fn change_all_as_allday(
             .unwrap();
         return HttpResponse::Ok().body(component);
     }
-    deauth()
+    deauth(&request)
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -332,7 +332,7 @@ async fn change_import_template(
             .unwrap();
         return HttpResponse::Ok().body(component);
     }
-    deauth()
+    deauth(&request)
 }
 
 #[post("/{id}/sync")]
@@ -342,7 +342,7 @@ async fn force_sync(
     request: HttpRequest,
 ) -> impl Responder {
     if (get_user_from_request(&data, &request).await).is_none() {
-        return deauth();
+        return deauth(&request);
     }
     let id = path.into_inner();
     let mut txn = data
