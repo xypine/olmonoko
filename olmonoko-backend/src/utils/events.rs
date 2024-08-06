@@ -7,7 +7,7 @@ use crate::{
         bills::RawBill,
         event::{
             local::{LocalEvent, RawLocalEvent},
-            remote::{RawRemoteEvent, RemoteEvent, RemoteEventId},
+            remote::{RawRemoteEvent, RemoteEvent},
             Event, EventOccurrence, Priority, DEFAULT_PRIORITY,
         },
         user::UserId,
@@ -43,11 +43,7 @@ pub async fn get_user_local_events(
             STRING_AGG(tag.tag, ',') AS tags,
             attendance.id as "attendance_id?",
             attendance.planned as "planned?",
-            attendance.planned_starts_at as "planned_starts_at?",
-            attendance.planned_duration as "planned_duration?",
             attendance.actual as "actual?",
-            attendance.actual_starts_at as "actual_starts_at?",
-            attendance.actual_duration as "actual_duration?",
             attendance.created_at as "attendance_created_at?",
             attendance.updated_at as "attendance_updated_at?"
         FROM local_events AS event
@@ -123,16 +119,12 @@ pub async fn get_user_local_events(
                 created_at: event.attendance_created_at.unwrap(),
                 updated_at: event.attendance_updated_at.unwrap(),
                 planned: event.planned.unwrap(),
-                planned_starts_at: event.planned_starts_at,
-                planned_duration: event.planned_duration,
                 actual: event.actual.unwrap(),
-                actual_starts_at: event.actual_starts_at,
-                actual_duration: event.actual_duration,
                 user_id: event.user_id,
                 local_event_id: Some(event.id),
                 remote_event_id: None,
             })
-            .map(|a| Attendance::from((a, event.starts_at, event.duration)));
+            .map(Attendance::from);
         let tags = event.tags.unwrap_or_default();
         LocalEvent::from((
             raw_event,
@@ -175,11 +167,7 @@ async fn get_visible_remote_events(
             o.from_rrule,
             attendance.id as "attendance_id?",
             attendance.planned as "planned?",
-            attendance.planned_starts_at as "planned_starts_at?",
-            attendance.planned_duration as "planned_duration?",
             attendance.actual as "actual?",
-            attendance.actual_starts_at as "actual_starts_at?",
-            attendance.actual_duration as "actual_duration?",
             attendance.created_at as "attendance_created_at?",
             attendance.updated_at as "attendance_updated_at?"
         FROM 
@@ -241,18 +229,12 @@ async fn get_visible_remote_events(
                 updated_at: event
                     .attendance_updated_at.unwrap(),
                 planned: event.planned.unwrap(),
-                planned_starts_at: event.planned_starts_at,
-                planned_duration: event.planned_duration,
                 actual: event.actual.unwrap(),
-                actual_starts_at: event.actual_starts_at,
-                actual_duration: event.actual_duration,
                 user_id,
-                local_event_id: Some(event.id),
-                remote_event_id: None,
+                local_event_id: None,
+                remote_event_id: Some(event.id),
             })
-            .map(|a| {
-                Attendance::from((a, event.starts_at, event.duration))
-            });
+            .map(Attendance::from);
         (
             RemoteEvent::from((RawRemoteEvent {
                 priority_override: event.priority_override,
@@ -281,6 +263,8 @@ pub async fn get_visible_events(
 ) -> Vec<Event> {
     // remote
     let remote_events = get_visible_remote_events(data, user_id, filter).await;
+    // FIXME: Add documentation, what does this do?
+    // Forms Events from RemoteEvents?
     let mut events: Vec<Event> = remote_events
         .into_iter()
         .sorted_by_key(|(event, _, _)| event.id)

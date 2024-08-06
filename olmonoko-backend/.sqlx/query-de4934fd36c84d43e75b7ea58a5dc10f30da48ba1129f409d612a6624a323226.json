@@ -30,36 +30,16 @@
       },
       {
         "ordinal": 5,
-        "name": "planned_starts_at",
-        "type_info": "Int8"
-      },
-      {
-        "ordinal": 6,
-        "name": "planned_duration",
-        "type_info": "Int4"
-      },
-      {
-        "ordinal": 7,
         "name": "actual",
         "type_info": "Bool"
       },
       {
-        "ordinal": 8,
-        "name": "actual_starts_at",
-        "type_info": "Int8"
-      },
-      {
-        "ordinal": 9,
-        "name": "actual_duration",
-        "type_info": "Int4"
-      },
-      {
-        "ordinal": 10,
+        "ordinal": 6,
         "name": "created_at",
         "type_info": "Int8"
       },
       {
-        "ordinal": 11,
+        "ordinal": 7,
         "name": "updated_at",
         "type_info": "Int8"
       }
@@ -73,11 +53,7 @@
       true,
       true,
       false,
-      true,
-      true,
       false,
-      true,
-      true,
       false,
       false
     ]

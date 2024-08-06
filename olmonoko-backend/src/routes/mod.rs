@@ -4,12 +4,14 @@ use actix_web::{web, App, HttpServer};
 use api::meta::BuildInformation;
 use chrono::Datelike;
 use tokio_cron_scheduler::JobScheduler;
+use tracing::info;
 use tracing_actix_web::TracingLogger;
 
 mod api;
 mod ui;
 
 use crate::middleware::autocache_responder;
+use crate::middleware::autocacher::PREDICTIVE_CACHE_ENABLED;
 use crate::middleware::AutoCacher;
 use actix_web_lab::middleware::from_fn;
 
@@ -128,6 +130,9 @@ pub async fn run_server(conn: DatabaseConnection, scheduler: JobScheduler) -> st
         scheduler,
         templates,
     };
+    if PREDICTIVE_CACHE_ENABLED {
+        info!("Predictive Caching enabled")
+    }
     HttpServer::new(move || {
         let cors = Cors::default()
             .allow_any_origin()

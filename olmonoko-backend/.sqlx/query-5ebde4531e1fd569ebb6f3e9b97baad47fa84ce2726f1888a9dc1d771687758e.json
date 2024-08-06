@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT * FROM attendance WHERE user_id = $1 AND local_event_id = $2",
+  "query": "\n                INSERT INTO attendance\n                    ( user_id, local_event_id, remote_event_id, planned, actual )\n                VALUES\n                    ( $1, $2, $3, $4, $5 )\n                ON CONFLICT(user_id, coalesce(local_event_id, -1), coalesce(remote_event_id, -1)) DO UPDATE SET\n                    planned = excluded.planned,\n                    actual = excluded.actual,\n                    updated_at = EXTRACT(EPOCH FROM NOW())*1000\n                RETURNING *\n            ",
   "describe": {
     "columns": [
       {
@@ -47,7 +47,10 @@
     "parameters": {
       "Left": [
         "Int4",
-        "Int4"
+        "Int4",
+        "Int4",
+        "Bool",
+        "Bool"
       ]
     },
     "nullable": [
@@ -61,5 +64,5 @@
       false
     ]
   },
-  "hash": "0af8bc3f18ecc9bc5158503c05e630cc1c724167a17245d40bcb6710fa78148e"
+  "hash": "5ebde4531e1fd569ebb6f3e9b97baad47fa84ce2726f1888a9dc1d771687758e"
 }

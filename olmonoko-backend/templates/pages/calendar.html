@@ -127,6 +127,7 @@
             <table>
             <tr>
                 <th>P</th>
+                <th>Source</th>
                 <th>What</th>
                 <th>When</th>
                 <th>What</th>
@@ -136,7 +137,16 @@
             {% for event in events %}
             <tr id="event-{{ event.id }}">
                 <td ><div style="display:flex;justify-content:center;align-items:center;">{{ event.priority|default(value=' ') }}</div></td>
-                <td>{{ event.summary }}</td>
+                <td>
+                    {% if event.source.type == "Remote" %}
+                        <a href="{{ site_url }}/remote/sources/{{ event.source.source_id }}">Remote</a>
+                    {% else %}
+                        <p>Local</p> 
+                    {% endif %}
+                </td>
+                <td>
+                    {{ event.summary }}
+                </td>
                 <td>
                     {{ event.starts_at_human }}
                     {% if event.duration_human %}
@@ -151,10 +161,10 @@
                     {{ event.location }}
                 </td>
                 <td>
-                    <b>Your Attendance:</b>
                     {% set standalone = true %}
                     {% set event_id = event.id %}
                     {% set event = event.attendance_form %}
+                    {% set event_source_type = event.source.type %}
                     {% include "components/attendance.html" %}
                 </td>
             </tr>

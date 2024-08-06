@@ -113,7 +113,7 @@ async fn local(
             .fetch_optional(&data.conn)
             .await
             .expect("Failed to fetch attendance for local event")
-            .map(|raw| Attendance::from((raw, event.starts_at.timestamp(), event.duration)));
+            .map(Attendance::from);
 
             let selected_id = event.id;
             let pair = (event, attendance);

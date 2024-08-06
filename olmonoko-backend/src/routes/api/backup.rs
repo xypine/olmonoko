@@ -370,16 +370,12 @@ async fn restore(
     tracing::info!("Restoring attendance");
     for attendance in &body.attendance {
         sqlx::query!(
-                "INSERT INTO attendance (user_id, local_event_id, remote_event_id, planned, planned_starts_at, planned_duration, actual, actual_starts_at, actual_duration, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
+                "INSERT INTO attendance (user_id, local_event_id, remote_event_id, planned, actual, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7)",
                 attendance.user_id,
                 attendance.local_event_id,
                 attendance.remote_event_id,
                 attendance.planned,
-                attendance.planned_starts_at,
-                attendance.planned_duration,
                 attendance.actual,
-                attendance.actual_starts_at,
-                attendance.actual_duration,
                 attendance.created_at,
                 attendance.updated_at,
             )

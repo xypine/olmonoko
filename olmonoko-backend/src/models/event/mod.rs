@@ -25,6 +25,7 @@ pub struct SourceRemote {
 }
 
 #[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
+#[serde(tag = "type")]
 pub enum EventSource {
     Local(SourceLocal),
     Remote(SourceRemote),
@@ -129,8 +130,8 @@ impl From<(RemoteEvent, Vec<i64>)> for Event {
                 source_id: remote.event_source_id,
             }),
             priority: remote.priority.unwrap_or(DEFAULT_PRIORITY),
-            tags: vec![],     // TODO: Implement tags for remote events
-            attendance: None, // TODO  Implement attendance for remote events
+            tags: vec![], // TODO: Implement tags for remote events
+            attendance: remote.attendance,
             starts_at: starts_at.into_iter().map(from_timestamp).collect(),
             all_day: remote.all_day,
             duration: remote.duration,
