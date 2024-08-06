@@ -277,13 +277,9 @@ async fn restore(
 
     tracing::info!("Restoring sources");
     for source in &body.sources {
-        // if persist_events is false, restoring file_hash would block updates to
-        // the source until the file changes
-        let file_hash = if source.persist_events {
-            source.file_hash.clone()
-        } else {
-            None
-        };
+        // Restoring file_hash would block updates to the source untill the file changes
+        let file_hash: Option<String> = None;
+
         sqlx::query!(
                 "INSERT INTO ics_sources (id, user_id, is_public, name, url, created_at, last_fetched_at, file_hash, object_hash, updated_at, persist_events, all_as_allday, import_template) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)",
                 source.id,
