@@ -25,8 +25,6 @@ pub async fn get_user_local_events(
 ) -> Vec<LocalEvent> {
     let min_priority = parse_priority(filter.min_priority);
     let max_priority = parse_priority(filter.max_priority);
-    // let tags = filter.tags.clone().map(|tags| tags.join(","));
-    // let exclude_tags = filter.exclude_tags.clone().map(|tags| tags.join(","));
     sqlx::query!(
         r#"
         SELECT event.*, 
@@ -156,8 +154,7 @@ async fn get_visible_remote_events(
 ) -> Vec<(RemoteEvent, i64, bool)> {
     let min_priority = parse_priority(filter.min_priority);
     let max_priority = parse_priority(filter.max_priority);
-    // let tags = filter.tags.clone().map(|tags| tags.join(","));
-    // let exclude_tags = filter.exclude_tags.clone().map(|tags| tags.join(","));
+
     sqlx::query!(
         r#"
         SELECT 
@@ -263,8 +260,8 @@ pub async fn get_visible_events(
 ) -> Vec<Event> {
     // remote
     let remote_events = get_visible_remote_events(data, user_id, filter).await;
-    // FIXME: Add documentation, what does this do?
-    // Forms Events from RemoteEvents?
+    // NOTE: Add documentation, what does this do?
+    // Does it just form Events from RemoteEvents?
     let mut events: Vec<Event> = remote_events
         .into_iter()
         .sorted_by_key(|(event, _, _)| event.id)

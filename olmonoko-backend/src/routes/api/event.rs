@@ -122,8 +122,7 @@ async fn delete_local_event(
         let filter = EventFilter::from(query.filter);
         let min_priority = parse_priority(filter.min_priority);
         let max_priority = parse_priority(filter.max_priority);
-        // let tags = filter.tags.map(|tags| tags.join(","));
-        // let exclude_tags = filter.exclude_tags.map(|tags| tags.join(","));
+
         let deleted = sqlx::query_as!(
             RawLocalEvent,
             r#"
