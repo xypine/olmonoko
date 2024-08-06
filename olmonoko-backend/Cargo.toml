@@ -48,7 +48,6 @@ sqlx = { version = "0.7.4", default-features = false, features = [
 	"migrate",
 	"macros",
 	"uuid",
-	"sqlite",
 	"postgres",
 	"chrono",
 	"time",

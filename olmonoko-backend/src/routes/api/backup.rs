@@ -277,8 +277,9 @@ async fn restore(
 
     tracing::info!("Restoring sources");
     for source in &body.sources {
-        // Restoring file_hash would block updates to the source untill the file changes
+        // Restoring file or object hashes would block updates to the source untill the file changes
         let file_hash: Option<String> = None;
+        let object_hash: Option<String> = None;
 
         sqlx::query!(
                 "INSERT INTO ics_sources (id, user_id, is_public, name, url, created_at, last_fetched_at, file_hash, object_hash, updated_at, persist_events, all_as_allday, import_template) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)",
@@ -290,7 +291,7 @@ async fn restore(
                 source.created_at,
                 source.last_fetched_at,
                 file_hash,
-                source.object_hash,
+                object_hash,
                 source.updated_at,
                 source.persist_events,
                 source.all_as_allday,
