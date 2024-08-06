@@ -14,6 +14,8 @@ use rrule::RRuleSet;
 use sha2::Digest;
 use sqlx::Executor;
 use sqlx::Postgres;
+use tracing::info_span;
+use tracing::Instrument;
 
 use crate::models::event::remote::NewRemoteEvent;
 use crate::models::event::remote::NewRemoteEventOccurrence;
@@ -274,31 +276,18 @@ pub async fn sync_all() -> Result<(), anyhow::Error> {
         .map(IcsSource::from)
         .collect();
 
-    // sync
-    // for source in sources {
-    //     let mut tx = conn.begin().await?;
-    //     if let Err(e) = sync_source(&mut *tx, source.id).await {
-    //         let source_id = source.id;
-    //         let source_name = source.name;
-    //         tracing::error!(source_id, source_name, "Failed to sync source: {}", e);
-    //         tx.rollback().await?;
-    //     } else {
-    //         tx.commit().await?;
-    //     }
-    // }
-
-    // async
     let mut tasks = vec![];
     for source in sources {
         let source_id = source.id;
         let source_name = source.name;
         let conn = conn.clone();
         tasks.push(tokio::spawn(async move {
-            let log_ctx = tracing::info_span!("sync_source", source_id, source_name);
-            let _log_ctx_enter = log_ctx.enter();
             let mut tx = conn.begin().await?;
-            if let Err(e) = sync_source(&mut *tx, source_id).await {
-                tracing::error!("Failed to sync source: {}", e);
+            if let Err(e) = sync_source(&mut *tx, source_id)
+                .instrument(info_span!("sync_source", source_id, source_name))
+                .await
+            {
+                tracing::error!(source_id, source_name, "Failed to sync source: {}", e,);
                 tx.rollback().await?;
             } else {
                 tx.commit().await?;
