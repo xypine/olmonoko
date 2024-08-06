@@ -1,71 +1,71 @@
 {
-  "db_name": "SQLite",
+  "db_name": "PostgreSQL",
   "query": "SELECT * FROM local_events",
   "describe": {
     "columns": [
       {
-        "name": "id",
         "ordinal": 0,
-        "type_info": "Int64"
+        "name": "id",
+        "type_info": "Int4"
       },
       {
-        "name": "user_id",
         "ordinal": 1,
-        "type_info": "Int64"
+        "name": "user_id",
+        "type_info": "Int4"
       },
       {
-        "name": "created_at",
         "ordinal": 2,
-        "type_info": "Int64"
+        "name": "created_at",
+        "type_info": "Int8"
       },
       {
-        "name": "updated_at",
         "ordinal": 3,
-        "type_info": "Int64"
+        "name": "updated_at",
+        "type_info": "Int8"
       },
       {
-        "name": "starts_at",
         "ordinal": 4,
-        "type_info": "Int64"
+        "name": "starts_at",
+        "type_info": "Int8"
       },
       {
-        "name": "duration",
         "ordinal": 5,
-        "type_info": "Int64"
+        "name": "duration",
+        "type_info": "Int4"
       },
       {
-        "name": "summary",
         "ordinal": 6,
+        "name": "summary",
         "type_info": "Text"
       },
       {
-        "name": "description",
         "ordinal": 7,
+        "name": "description",
         "type_info": "Text"
       },
       {
-        "name": "location",
         "ordinal": 8,
+        "name": "location",
         "type_info": "Text"
       },
       {
-        "name": "uid",
         "ordinal": 9,
+        "name": "uid",
         "type_info": "Text"
       },
       {
-        "name": "all_day",
         "ordinal": 10,
+        "name": "all_day",
         "type_info": "Bool"
       },
       {
-        "name": "priority",
         "ordinal": 11,
-        "type_info": "Int64"
+        "name": "priority",
+        "type_info": "Int4"
       }
     ],
     "parameters": {
-      "Right": 0
+      "Left": []
     },
     "nullable": [
       false,

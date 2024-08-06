@@ -1,5 +1,5 @@
 <div class="partial-data-source">
-    <a class="btn border-only" href="{{ site_url }}/remote#source-{{ source.id }}" style="width:fit-content;">Back to source list</a>
+    <a class="btn border-only" href="{{ site_url }}/remote#source-{{ source.id }}" style="width:fit-content;"><span style="view-transition-name: page-title;">Back to source list</span></a>
     <h2>iCalendar data source</h2>
     <h1>
         <span style="view-transition-name: source-name-{{ source.id }}">{{ source.name }}</span>
@@ -8,6 +8,7 @@
         <span style="view-transition-name: source-ec-{{ source.id }}">{{ event_count }} events</span>
         <span style="view-transition-name: source-oc-{{ source.id }}">with {{ occurrence_count }} occurrences</span>
     </span>
+    <div style="view-transition-name: source-details;">
     <p><b>URL</b>: {{ source.url }}</p>
     <p><b>Created</b>: {{ source.created_at }}</p>
     {% if source.is_public %}
@@ -29,6 +30,7 @@
             <button id="sync-{{ source.id }}" type="submit" class="btn">Sync</button>
         </form>
     {% endif %}
+    <div>
 </div>
 
 <style>

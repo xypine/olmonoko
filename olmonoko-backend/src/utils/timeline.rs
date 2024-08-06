@@ -3,6 +3,7 @@ use std::collections::BTreeMap;
 use actix_web::web;
 
 use crate::{
+    models::user::UserId,
     routes::AppState,
     utils::{event_filters::EventFilter, events::get_visible_event_occurrences},
 };
@@ -24,7 +25,7 @@ pub enum TimelineCompilationError {
 
 pub async fn compile_timeline(
     data: &web::Data<AppState>,
-    user_id: i64,
+    user_id: UserId,
     filter: &EventFilter,
     chunk_size_seconds: i64,
 ) -> Result<Timeline, TimelineCompilationError> {

@@ -3,8 +3,8 @@ pub struct EventFilter {
     pub summary_like: Option<String>,
     pub after: Option<i64>,
     pub before: Option<i64>,
-    pub min_priority: Option<i64>,
-    pub max_priority: Option<i64>,
+    pub min_priority: Option<Priority>,
+    pub max_priority: Option<Priority>,
     pub tags: Option<Vec<String>>,
     pub exclude_tags: Option<Vec<String>>,
     pub show_filter: bool,
@@ -23,6 +23,8 @@ impl EventFilter {
 
 use serde_with::As;
 use serde_with::NoneAsEmptyString;
+
+use crate::models::event::Priority;
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Default, PartialEq)]
 pub struct RawEventFilter {
     #[serde(default, with = "As::<NoneAsEmptyString>")]

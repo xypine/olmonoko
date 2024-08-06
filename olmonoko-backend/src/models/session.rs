@@ -2,17 +2,19 @@ use uuid::Uuid;
 
 use crate::utils::time::from_timestamp;
 
+use super::user::UserId;
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct SessionRaw {
     pub id: String,
-    pub user_id: i64,
+    pub user_id: UserId,
     pub expires_at: i64,
     pub created_at: i64,
 }
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Session {
     pub id: Uuid,
-    pub user_id: i64,
+    pub user_id: UserId,
     pub expires_at: chrono::DateTime<chrono::Utc>,
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
@@ -30,6 +32,6 @@ impl From<SessionRaw> for Session {
 #[derive(Debug, Clone, sqlx::FromRow, serde::Serialize, serde::Deserialize)]
 pub struct NewSession {
     pub id: String,
-    pub user_id: i64,
+    pub user_id: UserId,
     pub expires_at: i64,
 }

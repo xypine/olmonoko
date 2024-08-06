@@ -1,0 +1,86 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                SELECT bills.*\n                FROM bills\n                LEFT JOIN events ON events.id = bills.remote_event_id\n                LEFT JOIN ics_sources ON events.event_source_id = ics_sources.id\n                WHERE (ics_sources.persist_events = true OR bills.local_event_id IS NOT NULL);\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "local_event_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "remote_event_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "payee_account_number",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "amount",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "reference",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "payee_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "payee_email",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "payee_address",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "payee_phone",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "created_at",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 11,
+        "name": "updated_at",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "f1977973ac975f98a0429552514310a738d72bbd6b9b857344794147b18211a6"
+}

@@ -7,6 +7,20 @@
         {% if user and user.admin %}
             {% include "components/admin/user_list.html" %}
             {% include "components/admin/pending_list.html" %}
+            <form hx-post="{{ site_url }}/api/backup/clone">
+                <fieldset>
+                    <legend>Clone instance</legend>
+                    <label>
+                        <span>Primary Instance URL</span>
+                        <input name="instance_url" required placeholder="https://olmonoko.example.com" />
+                    </label>
+                    <label>
+                        <span>Session ID</span>
+                        <input name="session_id" required />
+                    </label>
+                    <button style="width:auto;align-self:end;" class="btn variant-danger" type="submit">Clone</button>
+                </fieldset>
+            </form>
         {% else %}
             <p style="text-align: center;">You are not authorized to view this page.</p>
         {% endif %}

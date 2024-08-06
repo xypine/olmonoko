@@ -1,16 +1,20 @@
 {
-  "db_name": "SQLite",
+  "db_name": "PostgreSQL",
   "query": "UPDATE ics_sources SET persist_events = $1 WHERE id = $2 AND user_id = $3 RETURNING persist_events",
   "describe": {
     "columns": [
       {
-        "name": "persist_events",
         "ordinal": 0,
+        "name": "persist_events",
         "type_info": "Bool"
       }
     ],
     "parameters": {
-      "Right": 3
+      "Left": [
+        "Bool",
+        "Int4",
+        "Int4"
+      ]
     },
     "nullable": [
       false

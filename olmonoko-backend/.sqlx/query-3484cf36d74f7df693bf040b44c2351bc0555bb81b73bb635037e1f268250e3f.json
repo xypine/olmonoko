@@ -1,10 +1,20 @@
 {
-  "db_name": "SQLite",
+  "db_name": "PostgreSQL",
   "query": "\n                UPDATE local_events\n                SET starts_at = $1, all_day = $2, duration = $3, summary = $4, description = $5, location = $6, priority = $7\n                WHERE id = $8 AND user_id = $9\n            ",
   "describe": {
     "columns": [],
     "parameters": {
-      "Right": 9
+      "Left": [
+        "Int8",
+        "Bool",
+        "Int4",
+        "Text",
+        "Text",
+        "Text",
+        "Int4",
+        "Int4",
+        "Int4"
+      ]
     },
     "nullable": []
   },

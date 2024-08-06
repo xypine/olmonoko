@@ -11,39 +11,43 @@
     <div style="display: flex; gap: 2.5rem; flex-wrap: wrap-reverse; justify-content: center;">
         <div style="flex: 1;">
             {% if user %}
-                <h1 style="margin-bottom:1rem; font-size:2em;">Available sources</h1>
+                    <h1 style="margin-bottom:1rem;"><span style="view-transition-name: page-title;">Available sources</span></h1>
             {% else %}
-                <h1 style="margin-bottom:1rem; font-size:2em;">Public sources</h1>
+                    <h1 style="margin-bottom:1rem;"><span style="view-transition-name: page-title;">Public sources</span></h1>
             {% endif %}
-            <ul class="source-list">
-                {% for tuple in sources %}
-                    {% set source = tuple[0] %}
-                    {% set event_count = tuple[1] %}
-                    {% set occurrence_count = tuple[2] %}
-                        <li id="source-{{ source.id }}" style="display: flex; gap: 0.5em; flex-wrap: wrap;justify-content: end;" id="source-{{ source.id }}">
-                        <a 
-                            href="/remote/sources/{{ source.id }}"
-                            style="flex: 1; min-width: 300px;"
-                        >
-                            <span style="view-transition-name: source-name-{{ source.id }}">{{ source.name }}</span>
-                        </a>
-                        <div class="item-details">
-                            <span style="view-transition-name: source-ec-{{ source.id }}">{{ event_count }} events</span>
-                            <span style="view-transition-name: source-oc-{{ source.id }}">with {{ occurrence_count }} occurrences</span>
-                            {% if user %}
-                                {% include 'components/data_source/priority_selector.html' %}
-                                {% if source.user_id == user.id %}
-                                    <form hx-delete="/api/source/{{ source.id }}" hx-replace="innerHtml" hx-target="#source-{{ source.id }}" hx-disabled-elt="#delete-{{ source.id }}" hx-confirm="Delete source {{ source.name}}?">
-                                        <button type="submit" id="delete-{{ source.id }}">Delete</button>
-                                    </form>
-                                {% else %}
-                                    <p>public</p>
+            {% if sources|length == 0 %}
+                <p>No sources available</p>
+            {% else %}
+                <ul class="source-list">
+                    {% for tuple in sources %}
+                        {% set source = tuple[0] %}
+                        {% set event_count = tuple[1] %}
+                        {% set occurrence_count = tuple[2] %}
+                            <li id="source-{{ source.id }}" style="display: flex; gap: 0.5em; flex-wrap: wrap;justify-content: end;" id="source-{{ source.id }}">
+                            <a 
+                                href="/remote/sources/{{ source.id }}"
+                                style="flex: 1; min-width: 300px;"
+                            >
+                                <span style="view-transition-name: source-name-{{ source.id }}">{{ source.name }}</span>
+                            </a>
+                            <div class="item-details">
+                                <span style="view-transition-name: source-ec-{{ source.id }}">{{ event_count }} events</span>
+                                <span style="view-transition-name: source-oc-{{ source.id }}">with {{ occurrence_count }} occurrences</span>
+                                {% if user %}
+                                    {% include 'components/data_source/priority_selector.html' %}
+                                    {% if source.user_id == user.id %}
+                                        <form hx-delete="/api/source/{{ source.id }}" hx-replace="innerHtml" hx-target="#source-{{ source.id }}" hx-disabled-elt="#delete-{{ source.id }}" hx-confirm="Delete source {{ source.name}}?">
+                                            <button type="submit" id="delete-{{ source.id }}">Delete</button>
+                                        </form>
+                                    {% else %}
+                                        <p>public</p>
+                                    {% endif %}
                                 {% endif %}
-                            {% endif %}
-                        </div>
-                    </li>
-                {% endfor %}
-            </ul>
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
         </div>
         {% if user %}
             {% include 'components/data_source/new_ics.html' %}

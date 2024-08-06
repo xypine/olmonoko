@@ -13,10 +13,13 @@ use icalendar::EventLike;
 use rrule::RRuleSet;
 use sha2::Digest;
 use sqlx::Executor;
-use sqlx::Sqlite;
+use sqlx::Postgres;
+use tracing::info_span;
+use tracing::Instrument;
 
 use crate::models::event::remote::NewRemoteEvent;
 use crate::models::event::remote::NewRemoteEventOccurrence;
+use crate::models::event::Priority;
 use crate::models::event::DEFAULT_PRIORITY;
 use crate::models::ics_source::IcsSource;
 use crate::models::ics_source::RawIcsSource;
@@ -69,7 +72,7 @@ pub(crate) fn process_events(source: &IcsSource, events: Vec<VEvent>, tz: Tz) ->
                 uid: uid.clone(),
                 dt_stamp,
                 all_day,
-                duration,
+                duration: duration.map(|d| d as i32),
                 summary,
                 location,
                 description,
@@ -116,9 +119,9 @@ pub enum SyncError {
     #[error("Failed to insert events: {0}")]
     InsertEventsError(#[from] sqlx::Error),
 }
-pub(crate) async fn sync_source<C>(conn: &mut C, source_id: i64) -> Result<bool, SyncError>
+pub(crate) async fn sync_source<C>(conn: &mut C, source_id: i32) -> Result<bool, SyncError>
 where
-    for<'e> &'e mut C: Executor<'e, Database = Sqlite>,
+    for<'e> &'e mut C: Executor<'e, Database = Postgres>,
 {
     let source = sqlx::query_as!(
         RawIcsSource,
@@ -149,7 +152,7 @@ where
     if source.object_hash.is_some_and(|hash| hash == object_hash) {
         tracing::info!("No new events (object hash match)");
         sqlx::query!(
-            "UPDATE ics_sources SET last_fetched_at = ?1, file_hash = ?2 WHERE id = ?3",
+            "UPDATE ics_sources SET last_fetched_at = $1, file_hash = $2 WHERE id = $3",
             fetched_at,
             new_hash,
             source_id
@@ -195,7 +198,7 @@ where
         let inserted_id = sqlx::query_scalar!(r#"
             INSERT INTO events (event_source_id, uid, dt_stamp, all_day, duration, summary, location, description, rrule, priority_override)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-            ON CONFLICT(event_source_id, uid, coalesce(rrule,"")) DO UPDATE SET
+            ON CONFLICT(event_source_id, uid, coalesce(rrule, '')) DO UPDATE SET
                 dt_stamp = excluded.dt_stamp,
                 priority_override = excluded.priority_override,
                 all_day = excluded.all_day,
@@ -251,7 +254,7 @@ where
 
     // update source last fetched and file hash
     sqlx::query!(
-        "UPDATE ics_sources SET last_fetched_at = ?1, file_hash = ?2, object_hash = ?3 WHERE id = ?4",
+        "UPDATE ics_sources SET last_fetched_at = $1, file_hash = $2, object_hash = $3 WHERE id = $4",
         fetched_at,
         new_hash,
         object_hash,
@@ -273,15 +276,30 @@ pub async fn sync_all() -> Result<(), anyhow::Error> {
         .map(IcsSource::from)
         .collect();
 
+    let mut tasks = vec![];
     for source in sources {
-        let mut tx = conn.begin().await?;
-        if let Err(e) = sync_source(&mut *tx, source.id).await {
-            let source_id = source.id;
-            let source_name = source.name;
-            tracing::error!(source_id, source_name, "Failed to sync source: {}", e);
-            tx.rollback().await?;
-        } else {
-            tx.commit().await?;
+        let source_id = source.id;
+        let source_name = source.name;
+        let conn = conn.clone();
+        tasks.push(tokio::spawn(async move {
+            let mut tx = conn.begin().await?;
+            if let Err(e) = sync_source(&mut *tx, source_id)
+                .instrument(info_span!("sync_source", source_id, source_name))
+                .await
+            {
+                tracing::error!(source_id, source_name, "Failed to sync source: {}", e,);
+                tx.rollback().await?;
+            } else {
+                tx.commit().await?;
+            }
+            Ok::<_, anyhow::Error>(())
+        }));
+    }
+    for task in tasks {
+        let res = task.await?;
+        if let Err(e) = res {
+            // do nothing
+            tracing::error!("Failed to sync source: {}", e);
         }
     }
 
@@ -329,7 +347,7 @@ fn get_event_occurrences(event: VEvent, start: Option<i64>) -> Vec<NewRemoteEven
                     // might make automations harder in the future?
                     let rrule = rrule.after(rrule_min).before(rrule_max);
                     let rrule_result = rrule.all(MAX_OCCURRENCES);
-                    tracing::info!("Rrule will add {} events", rrule_result.dates.len(),);
+                    tracing::trace!("Rrule will add {} events", rrule_result.dates.len(),);
                     for date in rrule_result.dates {
                         let ts = date.timestamp();
                         if ts == start {
@@ -434,7 +452,7 @@ pub fn render_import_template(
     let mut ongoing = vec![];
     for occurrence in occurrences {
         if occurrence < now {
-            if occurrence + event.duration.unwrap_or(0) > now {
+            if occurrence + event.duration.unwrap_or(0) as i64 > now {
                 ongoing.push(occurrence);
             } else {
                 past.push(occurrence);
@@ -474,11 +492,11 @@ pub struct ImportTemplateDelta {
     #[serde(default)]
     pub skip: bool,
     #[serde(default)]
-    pub priority_override: Option<i64>,
+    pub priority_override: Option<Priority>,
     #[serde(default)]
     pub all_day: Option<bool>,
     #[serde(default)]
-    pub duration: Option<i64>,
+    pub duration: Option<i32>,
     #[serde(default)]
     pub summary: Option<String>,
     #[serde(default)]

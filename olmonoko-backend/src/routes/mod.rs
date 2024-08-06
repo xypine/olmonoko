@@ -3,19 +3,21 @@ use actix_files::Files;
 use actix_web::{web, App, HttpServer};
 use api::meta::BuildInformation;
 use chrono::Datelike;
+use tokio_cron_scheduler::JobScheduler;
+use tracing::info;
 use tracing_actix_web::TracingLogger;
 
 mod api;
 mod ui;
 
 use crate::middleware::autocache_responder;
+use crate::middleware::autocacher::PREDICTIVE_CACHE_ENABLED;
 use crate::middleware::AutoCacher;
 use actix_web_lab::middleware::from_fn;
 
-pub type DatabaseConnection = sqlx::SqlitePool;
+pub type DatabaseConnection = sqlx::PgPool;
 
-#[derive(Debug, Clone)]
-#[allow(dead_code)]
+#[derive(Clone)]
 pub(crate) struct AppState {
     pub site_url: String,
     pub version: String,
@@ -23,6 +25,7 @@ pub(crate) struct AppState {
     pub build_info: BuildInformation,
 
     pub conn: DatabaseConnection,
+    pub scheduler: JobScheduler,
     pub templates: tera::Tera,
 }
 
@@ -82,7 +85,7 @@ pub fn get_source_commit() -> Option<String> {
         .or(std::env::var("SOURCE_COMMIT").ok())
 }
 
-pub async fn run_server(conn: DatabaseConnection) -> std::io::Result<()> {
+pub async fn run_server(conn: DatabaseConnection, scheduler: JobScheduler) -> std::io::Result<()> {
     let templates = tera::Tera::new("templates/**/*").unwrap();
     let site_url = get_site_url();
     fn to_two_digits(n: u32) -> String {
@@ -124,8 +127,12 @@ pub async fn run_server(conn: DatabaseConnection) -> std::io::Result<()> {
         },
 
         conn,
+        scheduler,
         templates,
     };
+    if PREDICTIVE_CACHE_ENABLED {
+        info!("Predictive Caching enabled")
+    }
     HttpServer::new(move || {
         let cors = Cors::default()
             .allow_any_origin()

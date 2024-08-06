@@ -1,19 +1,19 @@
 {
-  "db_name": "SQLite",
+  "db_name": "PostgreSQL",
   "query": "SELECT COUNT(*) FROM users",
   "describe": {
     "columns": [
       {
-        "name": "COUNT(*)",
         "ordinal": 0,
-        "type_info": "Int"
+        "name": "count",
+        "type_info": "Int8"
       }
     ],
     "parameters": {
-      "Right": 0
+      "Left": []
     },
     "nullable": [
-      false
+      null
     ]
   },
   "hash": "dc64e1d25d9ced3a49130cee99f6edc3f70a4917910cf3b76faefc24ac32159d"

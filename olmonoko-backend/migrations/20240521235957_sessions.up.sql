@@ -1,6 +1,6 @@
 CREATE TABLE sessions (
     id TEXT NOT NULL PRIMARY KEY,
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE NOT NULL,
-    expires_at INTEGER NOT NULL,
-    created_at INTEGER DEFAULT (strftime('%s', 'now')) NOT NULL
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    expires_at BIGINT NOT NULL,
+    created_at BIGINT DEFAULT EXTRACT(EPOCH FROM NOW())*1000 NOT NULL
 );

@@ -4,16 +4,21 @@ use std::hash::Hasher;
 
 use crate::{models::attendance::Attendance, utils::time::from_timestamp};
 
+use super::Priority;
+
+pub type RemoteEventId = i32;
+pub type RemoteSourceId = i32;
+
 #[derive(Debug, Clone, sqlx::FromRow, serde::Serialize, serde::Deserialize)]
 pub struct RawRemoteEvent {
-    pub id: i64,
-    pub event_source_id: i64,
-    pub priority_override: Option<i64>,
+    pub id: RemoteEventId,
+    pub event_source_id: RemoteSourceId,
+    pub priority_override: Option<Priority>,
     // Event data
     pub rrule: Option<String>,
     pub dt_stamp: Option<i64>,
     pub all_day: bool,
-    pub duration: Option<i64>,
+    pub duration: Option<i32>,
     pub summary: String,
     pub description: Option<String>,
     pub location: Option<String>,
@@ -21,23 +26,23 @@ pub struct RawRemoteEvent {
 }
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct RemoteEvent {
-    pub id: i64,
-    pub event_source_id: i64,
-    pub priority: Option<i64>,
+    pub id: RemoteEventId,
+    pub event_source_id: RemoteSourceId,
+    pub priority: Option<Priority>,
     pub attendance: Option<Attendance>,
     // Event data
     pub rrule: Option<String>,
     pub dt_stamp: Option<chrono::DateTime<Utc>>,
-    pub duration: Option<i64>,
+    pub duration: Option<i32>,
     pub all_day: bool,
     pub summary: String,
     pub description: Option<String>,
     pub location: Option<String>,
     pub uid: String,
 }
-impl From<(RawRemoteEvent, i64, Option<Attendance>)> for RemoteEvent {
+impl From<(RawRemoteEvent, Priority, Option<Attendance>)> for RemoteEvent {
     fn from(
-        (raw, event_source_priority, attendance): (RawRemoteEvent, i64, Option<Attendance>),
+        (raw, event_source_priority, attendance): (RawRemoteEvent, Priority, Option<Attendance>),
     ) -> Self {
         let priority = if let Some(priority_override) = raw.priority_override {
             priority_override
@@ -64,13 +69,13 @@ impl From<(RawRemoteEvent, i64, Option<Attendance>)> for RemoteEvent {
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct NewRemoteEvent {
-    pub event_source_id: i64,
-    pub priority_override: Option<i64>,
+    pub event_source_id: RemoteSourceId,
+    pub priority_override: Option<Priority>,
     // Event data
     pub rrule: Option<String>,
     pub dt_stamp: Option<i64>,
     pub all_day: bool,
-    pub duration: Option<i64>,
+    pub duration: Option<i32>,
     pub summary: Option<String>,
     pub description: Option<String>,
     pub location: Option<String>,
@@ -94,24 +99,26 @@ impl Hash for NewRemoteEvent {
     }
 }
 
+pub type RemoteEventOccurrenceId = i32;
+
 #[derive(Debug, Clone, sqlx::FromRow, serde::Serialize, serde::Deserialize)]
 pub struct RawRemoteEventOccurrence {
-    pub id: i64,
-    pub event_id: i64,
+    pub id: i32,
+    pub event_id: RemoteEventId,
     pub from_rrule: bool,
     pub starts_at: i64,
 }
 
 #[derive(Debug, Clone, sqlx::FromRow, serde::Serialize, serde::Deserialize)]
 pub struct RemoteEventOccurrence {
-    pub id: i64,
-    pub event_id: i64,
+    pub id: RemoteEventOccurrenceId,
+    pub event_id: RemoteEventId,
     pub from_rrule: bool,
     pub starts_at: chrono::DateTime<Utc>,
 }
 #[derive(Debug, Clone, sqlx::FromRow, serde::Serialize, serde::Deserialize, PartialEq, Hash)]
 pub struct NewRemoteEventOccurrence {
-    pub event_id: i64,
+    pub event_id: RemoteEventId,
     pub starts_at: i64,
     pub from_rrule: bool,
 }

@@ -16,6 +16,7 @@ use crate::{
 use actix_web::{web, HttpRequest, HttpResponse, HttpResponseBuilder};
 
 pub(crate) const SESSION_COOKIE_NAME: &str = "session_id";
+pub(crate) const RESPONSE_TYPE_HEADER: &str = "HX-Request";
 
 pub async fn get_user_from_request(data: &web::Data<AppState>, req: &HttpRequest) -> Option<User> {
     let session_cookie = req.cookie(SESSION_COOKIE_NAME);
@@ -101,6 +102,7 @@ pub(crate) trait EnhancedRequest {
     fn get_session_id(&self) -> Option<String>;
     async fn get_session_user(&self, data: &web::Data<AppState>) -> Option<User>;
     async fn get_session_context(&self, data: &web::Data<AppState>) -> SessionContext;
+    fn is_frontend_request(&self) -> bool;
 }
 
 impl EnhancedRequest for HttpRequest {
@@ -118,12 +120,24 @@ impl EnhancedRequest for HttpRequest {
     async fn get_session_context(&self, data: &web::Data<AppState>) -> SessionContext {
         get_session_context(data, self).await
     }
+    fn is_frontend_request(&self) -> bool {
+        if let Some(header) = self.headers().get(RESPONSE_TYPE_HEADER) {
+            if header == "true" {
+                return true;
+            }
+        }
+        false
+    }
 }
 
-pub fn deauth() -> HttpResponse {
+pub fn deauth(req: &HttpRequest) -> HttpResponse {
     let mut removal_cookie = actix_web::cookie::Cookie::build(SESSION_COOKIE_NAME, "").finish();
     removal_cookie.make_removal();
-    HttpResponse::Unauthorized().cookie(removal_cookie).finish()
+    if req.is_frontend_request() {
+        HttpResponse::Unauthorized().cookie(removal_cookie).finish()
+    } else {
+        HttpResponse::Unauthorized().cookie(removal_cookie).finish()
+    }
 }
 pub fn redirect(location: &str) -> HttpResponseBuilder {
     tracing::info!("Redirecting to: {location}");

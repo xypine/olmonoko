@@ -1,16 +1,20 @@
 {
-  "db_name": "SQLite",
+  "db_name": "PostgreSQL",
   "query": "UPDATE ics_sources SET all_as_allday = $1 WHERE id = $2 AND user_id = $3 RETURNING all_as_allday",
   "describe": {
     "columns": [
       {
-        "name": "all_as_allday",
         "ordinal": 0,
+        "name": "all_as_allday",
         "type_info": "Bool"
       }
     ],
     "parameters": {
-      "Right": 3
+      "Left": [
+        "Bool",
+        "Int4",
+        "Int4"
+      ]
     },
     "nullable": [
       false

@@ -1,20 +1,22 @@
 use actix_web::{
-    post,
+    post, put,
     web::{self, Path},
     HttpRequest, HttpResponse, Responder, Scope,
 };
 
 use crate::{
     models::{
-        attendance::{AttendanceFormWithUserEventTz, NewAttendance},
+        attendance::{AttendanceEvent, AttendanceForm, NewAttendance},
         bills::{
             from_barcode::{NewBillBarcodeForm, NewBillBarcodeFormWithUserId},
             EventId, NewBillWithEvent,
         },
         event::{
-            local::{LocalEvent, LocalEventForm, NewLocalEvent, RawLocalEvent},
+            local::{LocalEvent, LocalEventForm, LocalEventId, NewLocalEvent, RawLocalEvent},
+            remote::RemoteEventId,
             DEFAULT_PRIORITY,
         },
+        user::UserPublic,
     },
     routes::AppState,
     utils::{
@@ -32,11 +34,10 @@ async fn new_local_event(
     request: HttpRequest,
 ) -> impl Responder {
     tracing::info!("Creating new local event: {:?}", form);
-    let user_opt = request.get_session_user(&data).await;
+    let user_opt = request.get_session_user(&data).await.map(UserPublic::from);
     if let Some(user) = user_opt {
         let form = form.into_inner();
         let attendance_form = form.attendance.clone();
-        let form_tz = form.starts_at_tz.unwrap_or(user.interface_timezone_h);
 
         let new = NewLocalEvent::from((form, &user));
 
@@ -80,9 +81,12 @@ async fn new_local_event(
             .expect("Failed to insert tag");
         }
         // insert attendance
-        let attendance_params: AttendanceFormWithUserEventTz =
-            (attendance_form, &user, inserted.id, new.starts_at, form_tz);
-        let attendance: NewAttendance = NewAttendance::try_from(attendance_params).unwrap();
+        let attendance_params = (
+            attendance_form,
+            user.id,
+            AttendanceEvent::Local(inserted.id),
+        );
+        let attendance: NewAttendance = NewAttendance::from(attendance_params);
         attendance
             .write(&mut *txn)
             .await
@@ -102,7 +106,7 @@ async fn new_local_event(
 
 #[derive(Debug, serde::Deserialize)]
 struct DeleteQuery {
-    id: Option<i64>,
+    id: Option<i32>,
     #[serde(flatten)]
     filter: RawEventFilter,
 }
@@ -118,30 +122,29 @@ async fn delete_local_event(
         let filter = EventFilter::from(query.filter);
         let min_priority = parse_priority(filter.min_priority);
         let max_priority = parse_priority(filter.max_priority);
-        let tags = filter.tags.map(|tags| tags.join(","));
-        let exclude_tags = filter.exclude_tags.map(|tags| tags.join(","));
+
         let deleted = sqlx::query_as!(
             RawLocalEvent,
             r#"
                 DELETE FROM local_events
-                WHERE user_id = $2
-                    AND ($1 IS NULL OR id = $1) 
-                    AND ($3 IS NULL OR starts_at > $3) 
-                    AND ($4 IS NULL OR starts_at < $4) 
+                WHERE user_id = $2::integer
+                    AND ($1::integer IS NULL OR id = $1) 
+                    AND ($3::bigint IS NULL OR starts_at > $3) 
+                    AND ($4::bigint IS NULL OR starts_at < $4) 
                     AND (COALESCE(NULLIF(priority, 0), $7) >= $5 OR $5 IS NULL)
                     AND (COALESCE(NULLIF(priority, 0), $7) <= $6 OR $6 IS NULL)
-                    AND ($8 IS NULL OR summary LIKE $8)
-                    AND ($9 IS NULL OR (
+                    AND ($8::text IS NULL OR summary LIKE $8)
+                    AND ($9::text[] IS NULL OR (
                         SELECT tag.tag
                         FROM event_tags AS tag
                         WHERE tag.local_event_id = id
-                        AND tag.tag IN ($9)
+                        AND tag.tag = ANY($9)
                     ) IS NOT NULL)
-                    AND ($10 IS NULL OR (
+                    AND ($10::text[] IS NULL OR (
                         SELECT tag.tag
                         FROM event_tags AS tag
                         WHERE tag.local_event_id = id
-                        AND tag.tag IN ($10)
+                        AND tag.tag = ANY($10)
                     ) IS NULL)
                 RETURNING *
             "#,
@@ -153,8 +156,8 @@ async fn delete_local_event(
             max_priority,
             DEFAULT_PRIORITY,
             filter.summary_like,
-            tags,
-            exclude_tags,
+            filter.tags.as_deref(),
+            filter.exclude_tags.as_deref(),
         )
         .fetch_all(&data.conn)
         .await
@@ -179,15 +182,14 @@ async fn delete_local_event(
 async fn update_local_event(
     data: web::Data<AppState>,
     request: HttpRequest,
-    id: Path<i64>,
+    id: Path<LocalEventId>,
     form: web::Form<LocalEventForm>,
 ) -> impl Responder {
-    let user_opt = request.get_session_user(&data).await;
+    let user_opt = request.get_session_user(&data).await.map(UserPublic::from);
     if let Some(user) = user_opt {
         let id = id.into_inner();
         let form = form.into_inner();
         let attendance_form = form.attendance.clone();
-        let form_tz = form.starts_at_tz.unwrap_or(user.interface_timezone_h);
 
         // begin transaction
         let mut txn = data
@@ -233,9 +235,8 @@ async fn update_local_event(
             .expect("Failed to insert tag");
         }
         // update attendance
-        let attendance_params: AttendanceFormWithUserEventTz =
-            (attendance_form, &user, id, new.starts_at, form_tz);
-        let attendance: NewAttendance = NewAttendance::try_from(attendance_params).unwrap();
+        let attendance_params = (attendance_form, user.id, AttendanceEvent::Local(id));
+        let attendance: NewAttendance = NewAttendance::from(attendance_params);
         attendance
             .write(&mut *txn)
             .await
@@ -247,6 +248,85 @@ async fn update_local_event(
         return reload(&request)
             .with_flash_message(FlashMessage::info(&format!("Event {} updated", id)))
             .finish();
+    }
+    HttpResponse::Unauthorized().finish()
+}
+
+#[put("/local/{id}/attendance")]
+async fn update_local_attendance(
+    data: web::Data<AppState>,
+    request: HttpRequest,
+    id: Path<LocalEventId>,
+    form: web::Form<AttendanceForm>,
+) -> impl Responder {
+    let (mut context, user_opt) = request.get_session_context(&data).await;
+    if let Some(user) = user_opt {
+        let id = id.into_inner();
+        let form = form.into_inner();
+        let mut txn = data
+            .conn
+            .begin()
+            .await
+            .expect("Failed to begin transaction");
+
+        let attendance_params = (form, user.id, AttendanceEvent::Local(id));
+        let attendance: NewAttendance = NewAttendance::from(attendance_params);
+        attendance
+            .write(&mut *txn)
+            .await
+            .expect("Failed to upsert attendance");
+
+        context.insert("standalone", &true);
+        context.insert("event_id", &id);
+        context.insert("event", &AttendanceForm::from(attendance));
+        context.insert("event_source_type", "Local");
+        let content = data
+            .templates
+            .render("components/attendance.html", &context)
+            .unwrap();
+
+        txn.commit().await.expect("Failed to commit transaction");
+        return HttpResponse::Ok().body(content);
+    }
+    HttpResponse::Unauthorized().finish()
+}
+
+#[put("/remote/{id}/attendance")]
+async fn update_remote_attendance(
+    data: web::Data<AppState>,
+    request: HttpRequest,
+    id: Path<RemoteEventId>,
+    form: web::Form<AttendanceForm>,
+) -> impl Responder {
+    let (mut context, user_opt) = request.get_session_context(&data).await;
+    if let Some(user) = user_opt {
+        let id = id.into_inner();
+        let form = form.into_inner();
+        let mut txn = data
+            .conn
+            .begin()
+            .await
+            .expect("Failed to begin transaction");
+        let attendance_params = (form, user.id, AttendanceEvent::Remote(id));
+        let attendance: NewAttendance = NewAttendance::from(attendance_params);
+        let inserted_into_db = attendance
+            .write(&mut *txn)
+            .await
+            .expect("Failed to upsert attendance");
+
+        context.insert("event_id", &id);
+        if let Some(attendance_from_db) = inserted_into_db {
+            context.insert("event", &AttendanceForm::from(attendance_from_db));
+        }
+        context.insert("standalone", &true);
+        context.insert("event_source_type", "Remote");
+        let content = data
+            .templates
+            .render("components/attendance.html", &context)
+            .unwrap();
+
+        txn.commit().await.expect("Failed to commit transaction");
+        return HttpResponse::Ok().body(content);
     }
     HttpResponse::Unauthorized().finish()
 }
@@ -326,4 +406,6 @@ pub fn routes() -> Scope {
         .service(delete_local_event)
         .service(update_local_event)
         .service(new_bill_from_barcode)
+        .service(update_local_attendance)
+        .service(update_remote_attendance)
 }

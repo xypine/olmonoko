@@ -1,7 +1,10 @@
 use crate::{
     models::{
         attendance::{Attendance, RawAttendance},
-        event::{local::LocalEventForm, EventOccurrenceHuman},
+        event::{
+            local::{LocalEventForm, LocalEventId},
+            EventOccurrenceHuman, Priority,
+        },
         user::{RawUser, UnverifiedUser, UserPublic},
     },
     routes::AppState,
@@ -61,7 +64,7 @@ async fn sources(data: web::Data<AppState>, request: HttpRequest) -> impl Respon
 
 #[derive(Debug, serde::Deserialize)]
 struct LocalQuery {
-    selected: Option<i64>,
+    selected: Option<LocalEventId>,
     #[serde(flatten)]
     filter: RawEventFilterWithDate,
 }
@@ -103,14 +106,14 @@ async fn local(
         let selected = if let Some(event) = selected {
             let attendance: Option<Attendance> = sqlx::query_as!(
                 RawAttendance,
-                "SELECT * FROM attendance WHERE user_id = ?1 AND local_event_id = ?2",
+                "SELECT * FROM attendance WHERE user_id = $1 AND local_event_id = $2",
                 user.id,
                 event.id
             )
             .fetch_optional(&data.conn)
             .await
             .expect("Failed to fetch attendance for local event")
-            .map(|raw| Attendance::from((raw, event.starts_at.timestamp(), event.duration)));
+            .map(Attendance::from);
 
             let selected_id = event.id;
             let pair = (event, attendance);
@@ -197,8 +200,8 @@ async fn me(data: web::Data<AppState>, request: HttpRequest) -> impl Responder {
 struct IndexQuery {
     year: Option<i32>,
     month: Option<u32>,
-    min_priority: Option<i64>,
-    max_priority: Option<i64>,
+    min_priority: Option<Priority>,
+    max_priority: Option<Priority>,
 }
 #[get("/list")]
 async fn list(
@@ -368,7 +371,7 @@ impl From<CalendarQueryPosition> for Option<CalendarPosition> {
     }
 }
 
-const INTERFACE_MIN_EVENT_LENGTH: i64 = 3600; // 1 hour
+const INTERFACE_MIN_EVENT_LENGTH: i32 = 3600; // 1 hour
 
 #[derive(Debug, serde::Deserialize, PartialEq)]
 struct CalendarQuery {
@@ -464,6 +467,8 @@ async fn calendar(
                         crate::models::event::SourceLocal { user_id: -1 },
                     ),
                     tags: vec![],
+                    attendance: None,
+                    attendance_form: None,
                     priority: 1,
                     starts_at_utc: now.with_timezone(&chrono::Utc),
                     starts_at_human: "".to_string(),
@@ -506,10 +511,10 @@ async fn calendar(
                     let event = &day_events[i];
                     let other = &day_events[j];
                     if (event.starts_at_seconds <= other.starts_at_seconds
-                        && event.starts_at_seconds + event.duration.unwrap_or(0)
+                        && event.starts_at_seconds + event.duration.unwrap_or(0) as i64
                             > other.starts_at_seconds)
                         || (other.starts_at_seconds <= event.starts_at_seconds
-                            && other.starts_at_seconds + other.duration.unwrap_or(0)
+                            && other.starts_at_seconds + other.duration.unwrap_or(0) as i64
                                 > event.starts_at_seconds)
                     {
                         overlap_total += 1;
@@ -643,7 +648,7 @@ pub async fn timeline(
             .unwrap();
         return HttpResponse::Ok().body(content);
     }
-    deauth()
+    deauth(&request)
 }
 
 pub fn routes() -> Scope {

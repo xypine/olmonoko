@@ -21,7 +21,7 @@ pub async fn create_unverified_user(
     sqlx::query!(
         r#"
         INSERT INTO unverified_users (email, password_hash, admin, secret)
-        VALUES (?, ?, ?, ?)
+        VALUES ($1, $2, $3, $4)
         ON CONFLICT (email) DO UPDATE SET secret = EXCLUDED.secret
         "#,
         user.email,
@@ -40,7 +40,7 @@ pub async fn verify_user(data: &AppState, secret: &str) -> Result<User, sqlx::Er
         r#"
         DELETE
         FROM unverified_users
-        WHERE secret = ?
+        WHERE secret = $1
         RETURNING *
         "#,
         secret
@@ -51,7 +51,7 @@ pub async fn verify_user(data: &AppState, secret: &str) -> Result<User, sqlx::Er
         RawUser,
         r#"
         INSERT INTO users (email, password_hash, admin)
-        VALUES (?, ?, ?)
+        VALUES ($1, $2, $3)
         RETURNING *
         "#,
         user.email,

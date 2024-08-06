@@ -1,41 +1,41 @@
 {
-  "db_name": "SQLite",
+  "db_name": "PostgreSQL",
   "query": "SELECT * FROM users",
   "describe": {
     "columns": [
       {
-        "name": "id",
         "ordinal": 0,
-        "type_info": "Int64"
+        "name": "id",
+        "type_info": "Int4"
       },
       {
-        "name": "email",
         "ordinal": 1,
-        "type_info": "Text"
+        "name": "email",
+        "type_info": "Varchar"
       },
       {
-        "name": "password_hash",
         "ordinal": 2,
-        "type_info": "Text"
+        "name": "password_hash",
+        "type_info": "Varchar"
       },
       {
-        "name": "admin",
         "ordinal": 3,
+        "name": "admin",
         "type_info": "Bool"
       },
       {
-        "name": "created_at",
         "ordinal": 4,
-        "type_info": "Int64"
+        "name": "created_at",
+        "type_info": "Int8"
       },
       {
-        "name": "interface_timezone",
         "ordinal": 5,
+        "name": "interface_timezone",
         "type_info": "Text"
       }
     ],
     "parameters": {
-      "Right": 0
+      "Left": []
     },
     "nullable": [
       false,

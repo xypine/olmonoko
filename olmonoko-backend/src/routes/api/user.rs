@@ -4,7 +4,7 @@ use actix_web::{delete, get, patch, post, web, HttpResponse, Responder, Scope};
 use uuid::Uuid;
 
 use crate::models::session::{NewSession, SessionRaw};
-use crate::models::user::{NewUser, RawUser, UserForm, UserPublic};
+use crate::models::user::{NewUser, RawUser, UserForm, UserId, UserPublic};
 use crate::routes::AppState;
 use crate::utils::flash::{FlashMessage, WithFlashMessage};
 use crate::utils::request::{deauth, redirect, reload, EnhancedRequest, SESSION_COOKIE_NAME};
@@ -25,7 +25,7 @@ async fn users(data: web::Data<AppState>, req: HttpRequest) -> impl Responder {
             .collect();
         return HttpResponse::Ok().json(users);
     }
-    deauth()
+    deauth(&req)
 }
 
 const MIN_PASSWORD_LENGTH: usize = 32; // We set this high to prevent brute force attacks as we don't have rate limiting yet
@@ -56,9 +56,9 @@ async fn register(
         .fetch_one(&data.conn)
         .await;
     let unreliable_user_count = if let Ok(count) = unreliable_user_count {
-        count
+        count.expect("Failed to count users (2)")
     } else {
-        tracing::error!("Failed to count users");
+        tracing::error!("Failed to count users (1)");
         1
     };
     if unreliable_user_count == 0 {
@@ -121,7 +121,7 @@ async fn verify_user(data: web::Data<AppState>, secret: web::Path<String>) -> im
 async fn remove_user(
     data: web::Data<AppState>,
     req: HttpRequest,
-    id: web::Path<i64>,
+    id: web::Path<UserId>,
 ) -> impl Responder {
     let (mut context, user) = req.get_session_context(&data).await;
     if let Some(user) = user {
@@ -132,7 +132,8 @@ async fn remove_user(
         let user_count = sqlx::query_scalar!("SELECT COUNT(*) FROM users")
             .fetch_one(&data.conn)
             .await
-            .expect("Failed to count users");
+            .expect("Failed to count users (3)")
+            .expect("Failed to count users (4)");
         if user_count == 1 {
             return HttpResponse::Forbidden().body("Cannot remove the last user");
         }
@@ -158,7 +159,7 @@ async fn remove_user(
         tracing::error!("Failed to remove user: {:?}", result);
         return HttpResponse::InternalServerError().body("Failed to remove user");
     }
-    deauth()
+    deauth(&req)
 }
 
 #[post("/login")]
@@ -175,9 +176,12 @@ async fn login(
     {
         if !bcrypt::verify(&user_input.password, &user.password_hash).unwrap() {
             tracing::warn!("Failed login attempt for {}", user.email);
-            return reload(&req)
-                .with_flash_message(FlashMessage::error("Invalid email or password"))
-                .finish();
+            if req.is_frontend_request() {
+                return reload(&req)
+                    .with_flash_message(FlashMessage::error("Invalid email or password"))
+                    .finish();
+            }
+            return HttpResponse::Forbidden().body("Invalid email or password");
         }
         let five_days_from_now = chrono::Utc::now() + chrono::Duration::days(5);
         let new_session = NewSession {
@@ -201,11 +205,17 @@ async fn login(
             .http_only(true)
             .expires(None) // Change later
             .finish();
-        return redirect("/").cookie(cookie).finish();
+        if req.is_frontend_request() {
+            return redirect("/").cookie(cookie).finish();
+        }
+        return HttpResponse::Ok().cookie(cookie).body(created.id.clone());
     }
-    reload(&req)
-        .with_flash_message(FlashMessage::error("Invalid email or password"))
-        .finish()
+    if req.is_frontend_request() {
+        return reload(&req)
+            .with_flash_message(FlashMessage::error("Invalid email or password"))
+            .finish();
+    }
+    return HttpResponse::Forbidden().body("Invalid email or password");
 }
 
 #[post("/logout")]
@@ -218,10 +228,13 @@ async fn logout(data: web::Data<AppState>, req: HttpRequest) -> impl Responder {
         .unwrap();
     let mut removal_cookie = Cookie::build(SESSION_COOKIE_NAME, "").finish();
     removal_cookie.make_removal();
-    reload(&req)
-        .with_flash_message(FlashMessage::info("Goodbye!"))
-        .cookie(removal_cookie)
-        .finish()
+    if req.is_frontend_request() {
+        return reload(&req)
+            .with_flash_message(FlashMessage::info("Goodbye!"))
+            .cookie(removal_cookie)
+            .finish();
+    }
+    return HttpResponse::Ok().cookie(removal_cookie).body("Goodbye!");
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -264,7 +277,7 @@ async fn change_user_interface_timezone(
             .unwrap();
         return HttpResponse::Ok().body(component);
     }
-    HttpResponse::Unauthorized().finish()
+    deauth(&req)
 }
 
 #[get("/me")]
@@ -272,7 +285,7 @@ async fn me(data: web::Data<AppState>, req: HttpRequest) -> impl Responder {
     if let Some(user) = req.get_session_user(&data).await {
         return HttpResponse::Ok().json(user);
     }
-    deauth()
+    deauth(&req)
 }
 
 pub fn routes() -> Scope {

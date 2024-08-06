@@ -1,11 +1,14 @@
 use actix_web::web;
 
 use crate::{
-    models::public_link::{PublicLink, RawPublicLink},
+    models::{
+        public_link::{PublicLink, RawPublicLink},
+        user::UserId,
+    },
     routes::AppState,
 };
 
-pub async fn get_user_export_links(data: &web::Data<AppState>, user_id: i64) -> Vec<PublicLink> {
+pub async fn get_user_export_links(data: &web::Data<AppState>, user_id: UserId) -> Vec<PublicLink> {
     sqlx::query_as!(
         RawPublicLink,
         "SELECT * FROM public_calendar_links WHERE user_id = $1",

@@ -3,56 +3,63 @@ pub mod remote;
 
 use chrono::{TimeZone, Timelike, Utc};
 use chrono_humanize::Tense;
+use remote::{RemoteEventId, RemoteSourceId};
 
 use crate::utils::time::from_timestamp;
 
 use self::{local::LocalEvent, remote::RemoteEvent};
 
-use super::attendance::Attendance;
+use super::{
+    attendance::{Attendance, AttendanceForm},
+    user::UserId,
+};
 
 #[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub struct SourceLocal {
-    pub user_id: i64,
+    pub user_id: UserId,
 }
 
 #[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub struct SourceRemote {
-    pub source_id: i64,
+    pub source_id: RemoteSourceId,
 }
 
 #[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
+#[serde(tag = "type")]
 pub enum EventSource {
     Local(SourceLocal),
     Remote(SourceRemote),
 }
 
+pub type EventId = i32;
 #[allow(dead_code)]
 pub trait EventLike {
-    fn id(&self) -> i64;
+    fn id(&self) -> EventId;
     fn source(&self) -> EventSource;
     fn all_day(&self) -> bool;
     fn starts_at(&self) -> Vec<i64>;
-    fn duration(&self) -> Option<i64>;
+    fn duration(&self) -> Option<i32>;
     fn summary(&self) -> &str;
     fn description(&self) -> Option<&str>;
     fn location(&self) -> Option<&str>;
-    fn priority(&self) -> Option<i64>;
+    fn priority(&self) -> Option<Priority>;
     fn tags(&self) -> Vec<String>;
 }
 
-pub const DEFAULT_PRIORITY: i64 = 5;
-pub const PRIORITY_OPTIONS: [i64; 9] = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+pub type Priority = i32;
+pub const DEFAULT_PRIORITY: Priority = 5;
+pub const PRIORITY_OPTIONS: [Priority; 9] = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Event {
-    pub id: i64,
+    pub id: EventId,
     pub source: EventSource,
-    pub priority: i64,
+    pub priority: Priority,
     pub tags: Vec<String>,
     pub attendance: Option<Attendance>,
     // Event data
     pub starts_at: Vec<chrono::DateTime<Utc>>,
     pub all_day: bool,
-    pub duration: Option<i64>,
+    pub duration: Option<i32>,
     pub rrule: Option<String>,
 
     pub summary: String,
@@ -61,13 +68,13 @@ pub struct Event {
     pub uid: String,
 }
 impl EventLike for Event {
-    fn id(&self) -> i64 {
+    fn id(&self) -> EventId {
         self.id
     }
     fn source(&self) -> EventSource {
         self.source
     }
-    fn priority(&self) -> Option<i64> {
+    fn priority(&self) -> Option<Priority> {
         Some(self.priority)
     }
     fn tags(&self) -> Vec<String> {
@@ -79,7 +86,7 @@ impl EventLike for Event {
     fn starts_at(&self) -> Vec<i64> {
         self.starts_at.iter().map(|s| s.timestamp()).collect()
     }
-    fn duration(&self) -> Option<i64> {
+    fn duration(&self) -> Option<i32> {
         self.duration
     }
     fn summary(&self) -> &str {
@@ -123,8 +130,8 @@ impl From<(RemoteEvent, Vec<i64>)> for Event {
                 source_id: remote.event_source_id,
             }),
             priority: remote.priority.unwrap_or(DEFAULT_PRIORITY),
-            tags: vec![],     // TODO: Implement tags for remote events
-            attendance: None, // TODO  Implement attendance for remote events
+            tags: vec![], // TODO: Implement tags for remote events
+            attendance: remote.attendance,
             starts_at: starts_at.into_iter().map(from_timestamp).collect(),
             all_day: remote.all_day,
             duration: remote.duration,
@@ -139,15 +146,15 @@ impl From<(RemoteEvent, Vec<i64>)> for Event {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct EventOccurrence {
-    pub id: i64, // event id, not specific to this occurrence
+    pub id: RemoteEventId, // event id, not specific to this occurrence
     pub source: EventSource,
-    pub priority: i64,
+    pub priority: Priority,
     pub tags: Vec<String>,
     pub attendance: Option<Attendance>,
     // Event data
     pub starts_at: chrono::DateTime<Utc>,
     pub all_day: bool,
-    pub duration: Option<i64>,
+    pub duration: Option<i32>,
     pub rrule: Option<String>,
     pub from_rrule: bool,
 
@@ -157,13 +164,13 @@ pub struct EventOccurrence {
     pub uid: String,
 }
 impl EventLike for EventOccurrence {
-    fn id(&self) -> i64 {
+    fn id(&self) -> EventId {
         self.id
     }
     fn source(&self) -> EventSource {
         self.source
     }
-    fn priority(&self) -> Option<i64> {
+    fn priority(&self) -> Option<Priority> {
         Some(self.priority)
     }
     fn tags(&self) -> Vec<String> {
@@ -175,7 +182,7 @@ impl EventLike for EventOccurrence {
     fn starts_at(&self) -> Vec<i64> {
         vec![self.starts_at.timestamp()]
     }
-    fn duration(&self) -> Option<i64> {
+    fn duration(&self) -> Option<i32> {
         self.duration
     }
     fn summary(&self) -> &str {
@@ -216,10 +223,12 @@ impl From<Event> for Vec<EventOccurrence> {
 
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct EventOccurrenceHuman {
-    pub id: i64, // event id, not specific to this occurrence
+    pub id: RemoteEventId, // event id, not specific to this occurrence
     pub source: EventSource,
-    pub priority: i64,
+    pub priority: Priority,
     pub tags: Vec<String>,
+    pub attendance: Option<Attendance>,
+    pub attendance_form: Option<AttendanceForm>,
     // Event data
     pub starts_at_human: String,
     pub starts_at_seconds: i64,
@@ -229,7 +238,7 @@ pub struct EventOccurrenceHuman {
     pub overlap_index: usize,
 
     pub all_day: bool,
-    pub duration: Option<i64>,
+    pub duration: Option<i32>,
     pub duration_human: Option<String>,
     pub rrule: Option<String>,
     pub from_rrule: bool,
@@ -242,7 +251,7 @@ pub struct EventOccurrenceHuman {
 impl EventOccurrenceHuman {
     // returns the start time in seconds since midnight and the duration in seconds
     // if the event doesn't span that day, returns None
-    pub fn interface_span(&self, day_start: i64, day_end: i64) -> Option<(i64, Option<i64>)> {
+    pub fn interface_span(&self, day_start: i64, day_end: i64) -> Option<(i64, Option<i32>)> {
         let start = self.starts_at_utc.timestamp();
         // check if the event starts after the day ends
         if self.starts_at_utc.timestamp() > day_end {
@@ -250,7 +259,7 @@ impl EventOccurrenceHuman {
         }
 
         if let Some(duration) = self.duration {
-            let end = start + duration;
+            let end = start + duration as i64;
 
             // check if the event ends before the day starts
             if end < day_start {
@@ -268,7 +277,7 @@ impl EventOccurrenceHuman {
                 return None;
             }
 
-            Some((start, Some(duration)))
+            Some((start, Some(duration as i32)))
         } else {
             if start < day_start {
                 return None;
@@ -295,11 +304,14 @@ where
         } else {
             0
         };
+        let attendance_form = occurrence.attendance.clone().map(AttendanceForm::from);
         Self {
             id: occurrence.id,
             source: occurrence.source,
             priority: occurrence.priority,
             tags: occurrence.tags.clone(),
+            attendance: occurrence.attendance.clone(),
+            attendance_form,
 
             starts_at_human: if occurrence.all_day {
                 starts_at.format("%Y-%m-%d").to_string()
@@ -315,7 +327,8 @@ where
             all_day: occurrence.all_day,
             duration: occurrence.duration,
             duration_human: occurrence.duration.map(|duration| {
-                let ht = chrono_humanize::HumanTime::from(chrono::Duration::seconds(duration));
+                let ht =
+                    chrono_humanize::HumanTime::from(chrono::Duration::seconds(duration as i64));
                 ht.to_text_en(chrono_humanize::Accuracy::Precise, Tense::Present)
             }),
             rrule: occurrence.rrule.clone(),
@@ -328,7 +341,7 @@ where
     }
 }
 impl EventLike for EventOccurrenceHuman {
-    fn id(&self) -> i64 {
+    fn id(&self) -> EventId {
         self.id
     }
 
@@ -344,7 +357,7 @@ impl EventLike for EventOccurrenceHuman {
         vec![self.starts_at_utc.timestamp()]
     }
 
-    fn duration(&self) -> Option<i64> {
+    fn duration(&self) -> Option<i32> {
         self.duration
     }
 
@@ -360,7 +373,7 @@ impl EventLike for EventOccurrenceHuman {
         self.location.as_deref()
     }
 
-    fn priority(&self) -> Option<i64> {
+    fn priority(&self) -> Option<Priority> {
         Some(self.priority)
     }
 

@@ -1,4 +1,6 @@
 use crate::models::event::local::NewLocalEvent;
+use crate::models::event::Priority;
+use crate::models::user::UserId;
 
 use super::EventId;
 use super::NewBill;
@@ -26,11 +28,11 @@ pub struct NewBillBarcodeForm {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct NewBillBarcodeFormWithUserId {
-    pub user_id: i64,
+    pub user_id: UserId,
     pub form: NewBillBarcodeForm,
 }
 
-const BILL_DEFAULT_PRIORITY: i64 = 1; // Highest possible priority
+const BILL_DEFAULT_PRIORITY: Priority = 1; // Highest possible priority
 impl TryFrom<NewBillBarcodeFormWithUserId> for NewBillWithEvent {
     type Error = &'static str;
 
@@ -102,7 +104,7 @@ impl From<SupportedBarcodeVersion> for u8 {
 pub struct Barcode {
     pub version: SupportedBarcodeVersion,
     pub payee_account_number: String,
-    pub amount_cents: i64,
+    pub amount_cents: i32,
     pub reference: String,
     pub due: Option<chrono::NaiveDate>,
 }

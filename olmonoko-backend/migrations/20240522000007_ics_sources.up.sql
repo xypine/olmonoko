@@ -1,9 +1,9 @@
 CREATE TABLE ics_sources (
-    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     is_public BOOLEAN DEFAULT FALSE NOT NULL,
     name VARCHAR(255) NOT NULL,
     url VARCHAR(255) NOT NULL,
-    created_at INTEGER DEFAULT (strftime('%s', 'now')) NOT NULL,
-    last_fetched_at INTEGER 
+    created_at BIGINT DEFAULT EXTRACT(EPOCH FROM NOW())*1000 NOT NULL,
+    last_fetched_at BIGINT
 );

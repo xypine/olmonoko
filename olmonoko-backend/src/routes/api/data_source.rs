@@ -2,6 +2,8 @@ use actix_web::{delete, patch, HttpRequest};
 use actix_web::{get, post, web, HttpResponse, Responder, Scope};
 
 use crate::logic::source_processing::sync_source;
+use crate::models::event::remote::RemoteSourceId;
+use crate::models::event::Priority;
 use crate::models::ics_source::{IcsSource, IcsSourceForm, NewIcsSource};
 use crate::routes::AppState;
 use crate::utils::flash::{FlashMessage, WithFlashMessage};
@@ -78,7 +80,7 @@ async fn create_source(
             .with_flash_message(FlashMessage::info("Source added"))
             .finish();
     }
-    deauth()
+    deauth(&request)
 }
 
 #[delete("/{id}")]
@@ -99,7 +101,7 @@ async fn delete_source(
         .expect("Failed to delete source");
         return HttpResponse::Ok().body("Deleted");
     }
-    deauth()
+    deauth(&request)
 }
 
 use serde_with::As;
@@ -107,7 +109,7 @@ use serde_with::NoneAsEmptyString;
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ChangePriorityForm {
     #[serde(default, with = "As::<NoneAsEmptyString>")]
-    pub priority: Option<i64>,
+    pub priority: Option<Priority>,
 }
 #[patch("/{id}/priority")]
 async fn change_priority(
@@ -144,7 +146,7 @@ async fn change_priority(
             "source",
             &IcsSource {
                 user_id: user.id,
-                id: id as i64,
+                id,
                 chosen_priority: form.priority,
                 is_public: false,
                 url: "".to_string(),
@@ -165,7 +167,7 @@ async fn change_priority(
             .unwrap();
         return HttpResponse::Ok().body(component);
     }
-    deauth()
+    deauth(&request)
 }
 
 use crate::models::ics_source::deserialize_checkbox;
@@ -198,7 +200,7 @@ async fn change_persist_events(
             "source",
             &IcsSource {
                 user_id: user.id,
-                id: id as i64,
+                id,
                 chosen_priority: None,
                 is_public: false,
                 url: "".to_string(),
@@ -219,7 +221,7 @@ async fn change_persist_events(
             .unwrap();
         return HttpResponse::Ok().body(component);
     }
-    deauth()
+    deauth(&request)
 }
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ChangeAllAsAlldayForm {
@@ -250,7 +252,7 @@ async fn change_all_as_allday(
             "source",
             &IcsSource {
                 user_id: user.id,
-                id: id as i64,
+                id,
                 chosen_priority: None,
                 is_public: false,
                 url: "".to_string(),
@@ -274,7 +276,7 @@ async fn change_all_as_allday(
             .unwrap();
         return HttpResponse::Ok().body(component);
     }
-    deauth()
+    deauth(&request)
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -306,7 +308,7 @@ async fn change_import_template(
             "source",
             &IcsSource {
                 user_id: user.id,
-                id: id as i64,
+                id,
                 chosen_priority: None,
                 is_public: false,
                 url: "".to_string(),
@@ -330,17 +332,17 @@ async fn change_import_template(
             .unwrap();
         return HttpResponse::Ok().body(component);
     }
-    deauth()
+    deauth(&request)
 }
 
 #[post("/{id}/sync")]
 async fn force_sync(
     data: web::Data<AppState>,
-    path: web::Path<i64>,
+    path: web::Path<RemoteSourceId>,
     request: HttpRequest,
 ) -> impl Responder {
     if (get_user_from_request(&data, &request).await).is_none() {
-        return deauth();
+        return deauth(&request);
     }
     let id = path.into_inner();
     let mut txn = data

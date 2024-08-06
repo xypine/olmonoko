@@ -1,6 +1,6 @@
 [package]
 name = "olmonoko-backend"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 build = "build.rs"
 
@@ -49,6 +49,7 @@ sqlx = { version = "0.7.4", default-features = false, features = [
 	"macros",
 	"uuid",
 	"sqlite",
+	"postgres",
 	"chrono",
 	"time",
 ] }

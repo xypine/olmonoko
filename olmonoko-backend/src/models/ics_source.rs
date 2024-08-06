@@ -1,9 +1,11 @@
 use crate::utils::time::from_timestamp;
 
+pub type IcsSourceId = i32;
+
 #[derive(Debug, Clone, sqlx::FromRow, serde::Serialize, serde::Deserialize)]
 pub struct RawIcsSource {
-    pub id: i64,
-    pub user_id: i64,
+    pub id: IcsSourceId,
+    pub user_id: UserId,
     pub is_public: bool,
     pub name: String,
     pub url: String,
@@ -18,8 +20,8 @@ pub struct RawIcsSource {
 }
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct IcsSource {
-    pub id: i64,
-    pub user_id: i64,
+    pub id: IcsSourceId,
+    pub user_id: UserId,
     pub is_public: bool,
     pub name: String,
     pub url: String,
@@ -29,12 +31,12 @@ pub struct IcsSource {
     pub persist_events: bool,
     pub all_as_allday: bool,
     pub import_template: Option<String>,
-    pub chosen_priority: Option<i64>,
+    pub chosen_priority: Option<Priority>,
     pub file_hash: Option<String>,
     pub object_hash: Option<String>,
 }
-impl From<(RawIcsSource, Option<i64>)> for IcsSource {
-    fn from((raw, chosen_priority): (RawIcsSource, Option<i64>)) -> Self {
+impl From<(RawIcsSource, Option<Priority>)> for IcsSource {
+    fn from((raw, chosen_priority): (RawIcsSource, Option<Priority>)) -> Self {
         Self {
             id: raw.id,
             user_id: raw.user_id,
@@ -56,7 +58,7 @@ impl From<(RawIcsSource, Option<i64>)> for IcsSource {
 
 #[derive(Debug, Clone, sqlx::FromRow, serde::Serialize, serde::Deserialize)]
 pub struct NewIcsSource {
-    pub user_id: i64,
+    pub user_id: UserId,
     pub is_public: bool,
     pub name: String,
     pub url: String,
@@ -77,6 +79,9 @@ pub struct IcsSourceForm {
 }
 
 use serde::de;
+
+use super::event::Priority;
+use super::user::UserId;
 
 pub fn deserialize_checkbox<'de, D>(deserializer: D) -> Result<bool, D::Error>
 where

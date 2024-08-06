@@ -8,8 +8,9 @@ use crate::{
         event::{
             local::{LocalEvent, RawLocalEvent},
             remote::{RawRemoteEvent, RemoteEvent},
-            Event, EventOccurrence, DEFAULT_PRIORITY,
+            Event, EventOccurrence, Priority, DEFAULT_PRIORITY,
         },
+        user::UserId,
     },
     routes::AppState,
 };
@@ -18,36 +19,31 @@ use super::event_filters::EventFilter;
 
 pub async fn get_user_local_events(
     data: &web::Data<AppState>,
-    user_id: i64,
+    user_id: UserId,
     autodescription: bool,
     filter: &EventFilter,
 ) -> Vec<LocalEvent> {
     let min_priority = parse_priority(filter.min_priority);
     let max_priority = parse_priority(filter.max_priority);
-    let tags = filter.tags.clone().map(|tags| tags.join(","));
-    let exclude_tags = filter.exclude_tags.clone().map(|tags| tags.join(","));
     sqlx::query!(
         r#"
         SELECT event.*, 
             bill.id as "bill_id?", 
-            bill.payee_account_number, 
-            bill.reference, 
-            bill.amount, 
-            bill.created_at as bill_created_at, 
-            bill.updated_at as bill_updated_at,
-            bill.payee_name,
-            bill.payee_email,
-            bill.payee_address,
-            bill.payee_phone,
-            GROUP_CONCAT(tag.tag, ',') AS tags,
-            attendance.planned,
-            attendance.planned_starts_at,
-            attendance.planned_duration,
-            attendance.actual,
-            attendance.actual_starts_at,
-            attendance.actual_duration,
-            attendance.created_at as attendance_created_at,
-            attendance.updated_at as attendance_updated_at
+            bill.payee_account_number as "payee_account_number?", 
+            bill.reference as "reference?", 
+            bill.amount as "amount?",
+            bill.created_at as "bill_created_at?", 
+            bill.updated_at as "bill_updated_at?",
+            bill.payee_name as "payee_name?",
+            bill.payee_email as "payee_email?",
+            bill.payee_address as "payee_address?",
+            bill.payee_phone as "payee_phone?",
+            STRING_AGG(tag.tag, ',') AS tags,
+            attendance.id as "attendance_id?",
+            attendance.planned as "planned?",
+            attendance.actual as "actual?",
+            attendance.created_at as "attendance_created_at?",
+            attendance.updated_at as "attendance_updated_at?"
         FROM local_events AS event
         LEFT JOIN bills AS bill 
             ON bill.local_event_id = event.id 
@@ -56,19 +52,19 @@ pub async fn get_user_local_events(
         LEFT JOIN event_tags AS tag 
             ON tag.local_event_id = event.id
         WHERE event.user_id = $1 
-            AND ($2 IS NULL OR event.starts_at + COALESCE(event.duration, 0) > $2)
-            AND ($3 IS NULL OR event.starts_at < $3) 
+            AND ($2::bigint IS NULL OR event.starts_at + COALESCE(event.duration, 0) > $2)
+            AND ($3::bigint IS NULL OR event.starts_at < $3) 
             AND (COALESCE(NULLIF(event.priority, 0), $6) >= $4 OR $4 IS NULL)
             AND (COALESCE(NULLIF(event.priority, 0), $6) <= $5 OR $5 IS NULL)
-            AND ($7 IS NULL OR event.summary LIKE $7)
-            AND ($8 IS NULL OR tag.tag IN ($8))
-            AND ($9 IS NULL OR tag IS NULL OR (
+            AND ($7::text IS NULL OR event.summary LIKE $7)
+            AND ($8::text[] IS NULL OR tag.tag = ANY($8))
+            AND ($9::text[] IS NULL OR tag IS NULL OR (
                 SELECT tag.tag
                 FROM event_tags AS tag
                 WHERE tag.local_event_id = event.id
-                AND tag.tag IN ($9)
+                AND tag.tag = ANY($9)
             ) IS NULL)
-        GROUP BY event.id
+        GROUP BY event.id, bill.id, attendance.id
         ORDER BY event.starts_at;
         "#,
         user_id,
@@ -78,8 +74,8 @@ pub async fn get_user_local_events(
         max_priority,
         DEFAULT_PRIORITY,
         filter.summary_like,
-        tags,
-        exclude_tags,
+        filter.tags.as_deref(),
+        filter.exclude_tags.as_deref(),
     )
     .fetch_all(&data.conn)
     .await
@@ -104,38 +100,29 @@ pub async fn get_user_local_events(
             id: bill_id,
             local_event_id: Some(event.id),
             remote_event_id: None,
-            payee_account_number: event
-                .payee_account_number
-                .expect("Missing bill_payee_account_number"),
-            reference: event.reference.expect("Missing bill_reference"),
-            amount: event.amount.expect("Missing bill_amount"),
-            created_at: event.bill_created_at.expect("Missing bill_created_at"),
-            updated_at: event.bill_updated_at.expect("Missing bill_updated_at"),
+            payee_account_number: event.payee_account_number.unwrap(),
+            reference: event.reference.unwrap(),
+            amount: event.amount.unwrap(),
+            created_at: event.bill_created_at.unwrap(),
+            updated_at: event.bill_updated_at.unwrap(),
             payee_name: event.payee_name,
             payee_email: event.payee_email,
             payee_address: event.payee_address,
             payee_phone: event.payee_phone,
         });
         let attendance = event
-            .attendance_created_at
-            .map(|created_at| RawAttendance {
-                created_at,
-                updated_at: event
-                    .attendance_updated_at
-                    .expect("Missing attendance_updated_at"),
-                planned: event.planned.expect("Missing attendance_planned"),
-                planned_starts_at: event.planned_starts_at,
-                planned_duration: event.planned_duration,
-                actual: event.actual.expect("Missing attendance_actual"),
-                actual_starts_at: event.actual_starts_at,
-                actual_duration: event.actual_duration,
+            .attendance_id
+            .map(|id| RawAttendance {
+                id,
+                created_at: event.attendance_created_at.unwrap(),
+                updated_at: event.attendance_updated_at.unwrap(),
+                planned: event.planned.unwrap(),
+                actual: event.actual.unwrap(),
                 user_id: event.user_id,
                 local_event_id: Some(event.id),
                 remote_event_id: None,
             })
-            .map(|a| {
-                Attendance::from((a, event.starts_at, event.duration))
-            });
+            .map(Attendance::from);
         let tags = event.tags.unwrap_or_default();
         LocalEvent::from((
             raw_event,
@@ -148,7 +135,7 @@ pub async fn get_user_local_events(
     .collect()
 }
 
-pub fn parse_priority(priority: Option<i64>) -> Option<i64> {
+pub fn parse_priority(priority: Option<i32>) -> Option<Priority> {
     if let Some(priority) = priority {
         if priority == 0 {
             Some(DEFAULT_PRIORITY)
@@ -162,13 +149,12 @@ pub fn parse_priority(priority: Option<i64>) -> Option<i64> {
 
 async fn get_visible_remote_events(
     data: &web::Data<AppState>,
-    user_id: Option<i64>,
+    user_id: Option<UserId>,
     filter: &EventFilter,
 ) -> Vec<(RemoteEvent, i64, bool)> {
     let min_priority = parse_priority(filter.min_priority);
     let max_priority = parse_priority(filter.max_priority);
-    let tags = filter.tags.clone().map(|tags| tags.join(","));
-    let exclude_tags = filter.exclude_tags.clone().map(|tags| tags.join(","));
+
     sqlx::query!(
         r#"
         SELECT 
@@ -176,14 +162,11 @@ async fn get_visible_remote_events(
             p.priority, 
             o.starts_at, 
             o.from_rrule,
-            attendance.planned,
-            attendance.planned_starts_at,
-            attendance.planned_duration,
-            attendance.actual,
-            attendance.actual_starts_at,
-            attendance.actual_duration,
-            attendance.created_at as attendance_created_at,
-            attendance.updated_at as attendance_updated_at
+            attendance.id as "attendance_id?",
+            attendance.planned as "planned?",
+            attendance.actual as "actual?",
+            attendance.created_at as "attendance_created_at?",
+            attendance.updated_at as "attendance_updated_at?"
         FROM 
             events AS e 
         INNER JOIN 
@@ -198,23 +181,23 @@ async fn get_visible_remote_events(
             ON p.user_id = $1 
             AND p.ics_source_id = s.id 
             -- min_priority is null or (source_in_calendar and event_priority_override >= min_priority) or source_priority >= min_priority
-            AND ($4 IS NULL OR (p.priority IS NOT NULL AND COALESCE(NULLIF(e.priority_override, 0), $6) >= $4) OR COALESCE(NULLIF(p.priority, 0), $6) >= $4)
+            AND ($4::integer IS NULL OR (p.priority IS NOT NULL AND COALESCE(NULLIF(e.priority_override, 0), $6) >= $4) OR COALESCE(NULLIF(p.priority, 0), $6) >= $4)
             -- max_priority is null or (source_in_calendar and event_priority_override <= max_priority) and source_priority <= max_priority
-            AND ($5 IS NULL OR (p.priority IS NOT NULL AND COALESCE(NULLIF(e.priority_override, 0), $6) <= $5) AND COALESCE(NULLIF(p.priority, 0), $6) <= $5)
+            AND ($5::integer IS NULL OR (p.priority IS NOT NULL AND COALESCE(NULLIF(e.priority_override, 0), $6) <= $5) AND COALESCE(NULLIF(p.priority, 0), $6) <= $5)
         LEFT JOIN event_tags AS tag
             ON tag.remote_event_id = e.id
         LEFT JOIN attendance
             ON attendance.remote_event_id = e.id
         WHERE 
-            ($2 IS NULL OR o.starts_at + COALESCE(e.duration, 0) > $2) 
-            AND ($3 IS NULL OR o.starts_at < $3) 
-            AND ($7 IS NULL OR e.summary LIKE $7)
-            AND ($8 IS NULL OR tag.tag IN ($8))
-            AND ($9 IS NULL OR tag IS NULL OR (
+            ($2::bigint IS NULL OR o.starts_at + COALESCE(e.duration, 0) > $2::bigint) 
+            AND ($3::bigint IS NULL OR o.starts_at < $3) 
+            AND ($7::text IS NULL OR e.summary LIKE $7)
+            AND ($8::text[] IS NULL OR tag.tag = ANY($8))
+            AND ($9::text[] IS NULL OR tag IS NULL OR (
                 SELECT tag.tag
                 FROM event_tags AS tag
                 WHERE tag.remote_event_id = e.id
-                AND tag.tag IN ($9)
+                AND tag.tag = ANY($9)
             ) IS NULL)
         ORDER BY 
             o.starts_at;
@@ -226,8 +209,8 @@ async fn get_visible_remote_events(
         max_priority,
         DEFAULT_PRIORITY,
         filter.summary_like,
-        tags,
-        exclude_tags,
+        filter.tags.as_deref(),
+        filter.exclude_tags.as_deref(),
     )
     .fetch_all(&data.conn)
     .await
@@ -235,26 +218,20 @@ async fn get_visible_remote_events(
     .into_iter()
     .map(|event| {
         let attendance = event
-            .attendance_created_at
+            .attendance_id
             .and_then(|created_at| user_id.map(|user_id| (created_at, user_id)))
-            .map(|(created_at, user_id)| RawAttendance {
-                created_at,
+            .map(|(id, user_id)| RawAttendance {
+                id,
+                created_at: event.attendance_created_at.unwrap(),
                 updated_at: event
-                    .attendance_updated_at
-                    .expect("Missing attendance_updated_at"),
-                planned: event.planned.expect("Missing attendance_planned"),
-                planned_starts_at: event.planned_starts_at,
-                planned_duration: event.planned_duration,
-                actual: event.actual.expect("Missing attendance_actual"),
-                actual_starts_at: event.actual_starts_at,
-                actual_duration: event.actual_duration,
+                    .attendance_updated_at.unwrap(),
+                planned: event.planned.unwrap(),
+                actual: event.actual.unwrap(),
                 user_id,
-                local_event_id: Some(event.id),
-                remote_event_id: None,
+                local_event_id: None,
+                remote_event_id: Some(event.id),
             })
-            .map(|a| {
-                Attendance::from((a, event.starts_at, event.duration))
-            });
+            .map(Attendance::from);
         (
             RemoteEvent::from((RawRemoteEvent {
                 priority_override: event.priority_override,
@@ -268,7 +245,7 @@ async fn get_visible_remote_events(
                 duration: event.duration,
                 location: event.location,
                 description: event.description,
-            }, event.priority, attendance)), 
+            }, event.priority, attendance)),
             event.starts_at,
             event.from_rrule,
         )
@@ -277,12 +254,14 @@ async fn get_visible_remote_events(
 }
 pub async fn get_visible_events(
     data: &web::Data<AppState>,
-    user_id: Option<i64>,
+    user_id: Option<UserId>,
     autodescription: bool,
     filter: &EventFilter,
 ) -> Vec<Event> {
     // remote
     let remote_events = get_visible_remote_events(data, user_id, filter).await;
+    // NOTE: Add documentation, what does this do?
+    // Does it just form Events from RemoteEvents?
     let mut events: Vec<Event> = remote_events
         .into_iter()
         .sorted_by_key(|(event, _, _)| event.id)
@@ -323,7 +302,7 @@ pub async fn get_visible_events(
 }
 pub async fn get_visible_event_occurrences(
     data: &web::Data<AppState>,
-    user_id: Option<i64>,
+    user_id: Option<UserId>,
     autodescription: bool,
     filter: &EventFilter,
 ) -> Vec<EventOccurrence> {

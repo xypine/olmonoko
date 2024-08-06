@@ -1,16 +1,23 @@
 {
-  "db_name": "SQLite",
+  "db_name": "PostgreSQL",
   "query": "INSERT INTO ics_sources (name, url, user_id, last_fetched_at, is_public, import_template) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
   "describe": {
     "columns": [
       {
-        "name": "id",
         "ordinal": 0,
-        "type_info": "Int64"
+        "name": "id",
+        "type_info": "Int4"
       }
     ],
     "parameters": {
-      "Right": 6
+      "Left": [
+        "Varchar",
+        "Varchar",
+        "Int4",
+        "Int8",
+        "Bool",
+        "Text"
+      ]
     },
     "nullable": [
       false

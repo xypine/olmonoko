@@ -1,10 +1,15 @@
 {
-  "db_name": "SQLite",
+  "db_name": "PostgreSQL",
   "query": "UPDATE public_calendar_links SET min_priority = $1, max_priority = $2 WHERE id = $3 AND user_id = $4",
   "describe": {
     "columns": [],
     "parameters": {
-      "Right": 4
+      "Left": [
+        "Int4",
+        "Int4",
+        "Text",
+        "Int4"
+      ]
     },
     "nullable": []
   },

@@ -1,65 +1,41 @@
 {% if standalone %}
-<form
-	id="attendance-form"
-	action="{{ site_url | safe }}/api/event/{{ event_id }}/attendance"
-	method="post"
-	style="display: flex; flex-direction: column; gap: 1rem;"
->
-{% endif %}
-	<fieldset>
-		<legend>
-			Planned
-		</legend>
-		<label>
-			<span>
-				Plan to attend:
-			</span>
-			<input type="checkbox" name="attend_plan" autocomplete="off"
-				{% if event.attend_plan and event.attend_plan == "on" %}
-					checked
-				{% endif %}
-			>
-		</label>
-		<label>
-			<span>
-				Override From:
-			</span>
-			<input type="datetime-local" name="attend_plan_start" autocomplete="off" value="{{ event.attend_plan_start|default(value='') }}">
-		</label>
-		<label>
-			<span>
-				Override Till:
-			</span>
-			<input type="datetime-local" name="attend_plan_end" autocomplete="off" value="{{ event.attend_plan_end|default(value='') }}">
-		</label>
-	</fieldset>
-	<fieldset>
-		<legend>
-			Actual
-		</legend>
-		<label>
-			<span>
-				Attended:
-			</span>
-			<input type="checkbox" name="attend_actual" autocomplete="off"
-				{% if event.attend_actual and event.attend_actual == "on" %}
-					checked
-				{% endif %}
-			>
-		</label>
-		<label>
-			<span>
-				Override From:
-			</span>
-			<input type="datetime-local" name="attend_actual_start" autocomplete="off" value="{{ event.attend_actual_start|default(value='') }}">
-		</label>
-		<label>
-			<span>
-				Override Till:
-			</span>
-			<input type="datetime-local" name="attend_actual_end" autocomplete="off" value="{{ event.attend_actual_end|default(value='') }}">
-		</label>
-	</fieldset>
-{% if standalone %}
-</form>
+  {% set source_endpoint = "local" %}
+  {% if event_source_type == "Remote" %}
+    {% set source_endpoint = "remote" %}
+  {% endif %}
+  <form
+    id="attendance-form-{{ event_id }}"
+    hx-put="{{ site_url | safe }}/api/event/{{ source_endpoint }}/{{ event_id }}/attendance"
+    hx-target="#attendance-form-{{ event_id }}"
+    hx-swap="outerHTML"
+    hx-disabled-elt="#attendance-fields-{{ event_id }}"
+    hx-trigger="change"
+    style="display: flex; flex-direction: column; gap: 1rem;"
+  >
+  <fieldset id="attendance-fields-{{ event_id }}">
+    <legend>Your Attendance</legend>
+  {% endif %}
+    <label>
+      <span>
+        Plan to attend:
+      </span>
+      <input type="checkbox" name="attend_plan" autocomplete="off"
+        {% if event.attend_plan and event.attend_plan == "on" %}
+          checked
+        {% endif %}
+      >
+    </label>
+    <label>
+      <span>
+        Attended:
+      </span>
+      <input type="checkbox" name="attend_actual" autocomplete="off"
+        {% if event.attend_actual and event.attend_actual == "on" %}
+          checked
+        {% endif %}
+      >
+    </label>
+  {% if standalone %}
+  </fieldset>
+  </form>
 {% endif %}
