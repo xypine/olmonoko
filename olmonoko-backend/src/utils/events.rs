@@ -64,6 +64,8 @@ pub async fn get_user_local_events(
                 WHERE tag.local_event_id = event.id
                 AND tag.tag = ANY($9)
             ) IS NULL)
+            AND ($10::boolean IS NULL OR attendance.planned = $10)
+            AND ($11::boolean IS NULL OR attendance.actual = $11)
         GROUP BY event.id, bill.id, attendance.id
         ORDER BY event.starts_at;
         "#,
@@ -76,6 +78,8 @@ pub async fn get_user_local_events(
         filter.summary_like,
         filter.tags.as_deref(),
         filter.exclude_tags.as_deref(),
+        filter.attendance_planned,
+        filter.attendance_actual
     )
     .fetch_all(&data.conn)
     .await
@@ -199,6 +203,8 @@ async fn get_visible_remote_events(
                 WHERE tag.remote_event_id = e.id
                 AND tag.tag = ANY($9)
             ) IS NULL)
+            AND ($10::boolean IS NULL OR attendance.planned = $10)
+            AND ($11::boolean IS NULL OR attendance.actual = $11)
         ORDER BY 
             o.starts_at;
         "#,
@@ -211,6 +217,8 @@ async fn get_visible_remote_events(
         filter.summary_like,
         filter.tags.as_deref(),
         filter.exclude_tags.as_deref(),
+        filter.attendance_planned,
+        filter.attendance_actual,
     )
     .fetch_all(&data.conn)
     .await

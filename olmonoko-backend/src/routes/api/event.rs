@@ -1,5 +1,5 @@
 use actix_web::{
-    post, put,
+    get, post, put,
     web::{self, Path},
     HttpRequest, HttpResponse, Responder, Scope,
 };
@@ -14,14 +14,14 @@ use crate::{
         event::{
             local::{LocalEvent, LocalEventForm, LocalEventId, NewLocalEvent, RawLocalEvent},
             remote::RemoteEventId,
-            DEFAULT_PRIORITY,
+            EventOccurrenceHuman, DEFAULT_PRIORITY,
         },
         user::UserPublic,
     },
     routes::AppState,
     utils::{
         event_filters::{EventFilter, RawEventFilter},
-        events::parse_priority,
+        events::{get_visible_event_occurrences, parse_priority},
         flash::{FlashMessage, WithFlashMessage},
         request::{reload, EnhancedRequest},
     },
@@ -400,6 +400,25 @@ async fn new_bill_from_barcode(
     HttpResponse::Unauthorized().finish()
 }
 
+#[get("/occurrences/planning_to_attend")]
+async fn planning_to_attend(data: web::Data<AppState>, request: HttpRequest) -> impl Responder {
+    let user_opt = request.get_session_user(&data).await;
+    if let Some(user) = user_opt {
+        let filter = EventFilter {
+            attendance_planned: Some(true),
+
+            ..Default::default()
+        };
+        let events = get_visible_event_occurrences(&data, Some(user.id), true, &filter).await;
+        let events = events
+            .into_iter()
+            .map(|e| EventOccurrenceHuman::from((e, &user.interface_timezone_parsed)))
+            .collect::<Vec<_>>();
+        return HttpResponse::Ok().json(events);
+    }
+    HttpResponse::Unauthorized().finish()
+}
+
 pub fn routes() -> Scope {
     web::scope("/event")
         .service(new_local_event)
@@ -408,4 +427,5 @@ pub fn routes() -> Scope {
         .service(new_bill_from_barcode)
         .service(update_local_attendance)
         .service(update_remote_attendance)
+        .service(planning_to_attend)
 }

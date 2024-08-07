@@ -7,6 +7,8 @@ pub struct EventFilter {
     pub max_priority: Option<Priority>,
     pub tags: Option<Vec<String>>,
     pub exclude_tags: Option<Vec<String>>,
+    pub attendance_planned: Option<bool>,
+    pub attendance_actual: Option<bool>,
     pub show_filter: bool,
 }
 impl EventFilter {
@@ -25,6 +27,8 @@ use serde_with::As;
 use serde_with::NoneAsEmptyString;
 
 use crate::models::event::Priority;
+use crate::models::ics_source::deserialize_checkbox;
+use crate::models::ics_source::serialize_checkbox;
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Default, PartialEq)]
 pub struct RawEventFilter {
     #[serde(default, with = "As::<NoneAsEmptyString>")]
@@ -37,6 +41,30 @@ pub struct RawEventFilter {
     pub tags: Option<String>,
     #[serde(default, with = "As::<NoneAsEmptyString>")]
     pub exclude_tags: Option<String>,
+    #[serde(
+        deserialize_with = "deserialize_checkbox",
+        serialize_with = "serialize_checkbox",
+        default
+    )]
+    pub attendance_planned: bool,
+    #[serde(
+        deserialize_with = "deserialize_checkbox",
+        serialize_with = "serialize_checkbox",
+        default
+    )]
+    pub attendance_planned_filter_enabled: bool,
+    #[serde(
+        deserialize_with = "deserialize_checkbox",
+        serialize_with = "serialize_checkbox",
+        default
+    )]
+    pub attendance_actual: bool,
+    #[serde(
+        deserialize_with = "deserialize_checkbox",
+        serialize_with = "serialize_checkbox",
+        default
+    )]
+    pub attendance_actual_filter_enabled: bool,
     #[serde(default, with = "As::<NoneAsEmptyString>")]
     pub show_filter: Option<String>,
 }
@@ -60,6 +88,16 @@ impl From<RawEventFilter> for EventFilter {
                     .filter(|s| !s.is_empty())
                     .collect()
             }),
+            attendance_actual: if raw.attendance_actual_filter_enabled {
+                Some(raw.attendance_actual)
+            } else {
+                None
+            },
+            attendance_planned: if raw.attendance_planned_filter_enabled {
+                Some(raw.attendance_planned)
+            } else {
+                None
+            },
             show_filter: raw.show_filter.map(|s| s == "true").unwrap_or(false),
         }
     }
