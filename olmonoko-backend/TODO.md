@@ -39,6 +39,10 @@
 - [ ] add proper error handling to frontend
 - [ ] i18n
 - [ ] track user attendance of events / maybe automatically based on location?
+  - [-] native app
+    - [ ] geofencing
+    - [ ] clock-in-n-out
+    - [ ] notifications
 - [ ] api keys
 - [ ] headless mode / system user dictated by a config file
 - [ ] turn persist_events automatically off / on based on source behaviour
