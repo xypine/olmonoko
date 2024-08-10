@@ -1,7 +1,8 @@
 use actix_web::{delete, patch, HttpRequest};
 use actix_web::{get, post, web, HttpResponse, Responder, Scope};
+use tracing::warn;
 
-use crate::logic::source_processing::sync_source;
+use crate::logic::source_processing::{sync_source, test_import_template};
 use crate::models::event::remote::RemoteSourceId;
 use crate::models::event::Priority;
 use crate::models::ics_source::{IcsSource, IcsSourceForm, NewIcsSource};
@@ -295,6 +296,14 @@ async fn change_import_template(
     if let Some(user) = user_opt {
         let id = path.into_inner();
         let form = form.into_inner();
+        if let Some(template) = &form.import_template {
+            let test_result = test_import_template(template);
+            if let Err(e) = test_result {
+                warn!(user.id, "Import test did not pass tests: {e}");
+                return HttpResponse::BadRequest().body(e.to_string());
+            }
+        }
+
         let new_value = sqlx::query_scalar!(
             "UPDATE ics_sources SET import_template = $1 WHERE id = $2 AND user_id = $3 RETURNING import_template",
             form.import_template,

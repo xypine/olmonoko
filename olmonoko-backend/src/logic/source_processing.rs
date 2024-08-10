@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::hash::DefaultHasher;
 use std::hash::Hash;
 use std::hash::Hasher;
@@ -10,6 +11,7 @@ use icalendar::Component;
 use icalendar::DatePerhapsTime;
 use icalendar::Event as VEvent;
 use icalendar::EventLike;
+use regex::Regex;
 use rrule::RRuleSet;
 use sha2::Digest;
 use sqlx::Executor;
@@ -287,7 +289,7 @@ pub async fn sync_all() -> Result<(), anyhow::Error> {
                 .instrument(info_span!("sync_source", source_id, source_name))
                 .await
             {
-                tracing::error!(source_id, source_name, "Failed to sync source: {}", e,);
+                tracing::error!(source_id, source_name, "Failed to sync source: {e:?}");
                 tx.rollback().await?;
             } else {
                 tx.commit().await?;
@@ -416,10 +418,10 @@ async fn fetch_source(url: &str, previous_hash: Option<String>) -> Result<FetchR
 
 #[derive(Debug, thiserror::Error)]
 pub enum ImportTemplateError {
-    #[error("Failed to render template: {0}")]
+    #[error("Failed to render template: {0:#?}")]
     RenderError(#[from] tera::Error),
-    #[error("Failed to parse rendered template: {0}")]
-    ParseError(#[from] serde_json::Error),
+    #[error("Failed to parse rendered template \"{1}\": {0:#?}")]
+    ParseError(serde_json::Error, String),
 }
 pub fn render_import_template(
     template: &str,
@@ -437,7 +439,10 @@ pub fn render_import_template(
     context.insert("duration", &event.duration);
 
     context.insert("summary", &event.summary);
-    context.insert("description", &event.description);
+    context.insert(
+        "description",
+        &event.description.as_ref().map(|s| s.replace('\n', "\\n")),
+    );
     context.insert("location", &event.location);
     context.insert("uid", &event.uid);
 
@@ -468,9 +473,35 @@ pub fn render_import_template(
     // disallow env access
     // see https://github.com/Keats/tera/issues/677
     tera.register_function("get_env", |_: &_| Ok(serde_json::json!("")));
+    // handy for removing timestamps from descriptions
+    fn replace_rg(
+        v: &tera::Value,
+        map: &HashMap<String, tera::Value>,
+    ) -> tera::Result<tera::Value> {
+        if let tera::Value::String(s) = v {
+            if let Some(tera::Value::String(regex)) = map.get("regex") {
+                if let Some(tera::Value::String(target)) = map.get("target") {
+                    match Regex::new(regex) {
+                        Ok(re) => {
+                            let result = re.replace_all(s, target).to_string();
+                            return tera::Result::Ok(tera::Value::String(result));
+                        }
+                        Err(_) => {
+                            return tera::Result::Err(tera::Error::msg("invalid regex"));
+                        }
+                    }
+                }
+                return tera::Result::Err(tera::Error::msg("missing target"));
+            }
+            return tera::Result::Err(tera::Error::msg("missing regex"));
+        }
+        tera::Result::Err(tera::Error::msg("replace_rg: value must be a string"))
+    }
+    tera.register_filter("replace_rg", replace_rg);
 
     let result = tera.render_str(template, &context)?;
-    let parsed: ImportTemplateDelta = serde_json::from_str(&result)?;
+    let parsed: ImportTemplateDelta =
+        serde_json::from_str(&result).map_err(|e| ImportTemplateError::ParseError(e, result))?;
     if parsed.skip {
         return Ok(None);
     }
@@ -505,6 +536,45 @@ pub struct ImportTemplateDelta {
     pub location: Option<String>,
     #[serde(default)]
     pub tags: Vec<String>,
+}
+
+pub fn test_import_template(template: &str) -> Result<(), ImportTemplateError> {
+    let test_rrule = "FREQ=DAILY".to_string();
+    let test_summary = "OLMONOKO::TEST".to_string();
+    let event = crate::models::event::remote::NewRemoteEvent {
+        event_source_id: 1,
+        priority_override: Some(1),
+        rrule: Some(test_rrule),
+        dt_stamp: Some(1234567890),
+        all_day: true,
+        duration: Some(3600),
+        summary: Some(test_summary),
+        description: Some("Test".to_string()),
+        location: Some("Test".to_string()),
+        uid: "test".to_string(),
+        tags: vec![],
+    };
+    let _result =
+        crate::logic::source_processing::render_import_template(template, &event, vec![])?;
+    //    .context("Template didn't return anything")?;
+    //assert_eq!(
+    //    result,
+    //    crate::models::event::remote::NewRemoteEvent {
+    //        event_source_id: 1,
+    //        priority_override: Some(1),
+    //        rrule: Some("FREQ=DAILY".to_string()),
+    //        dt_stamp: Some(1234567890),
+    //        all_day: true,
+    //        duration: Some(3600),
+    //        summary: Some("Test".to_string()),
+    //        description: Some("Test".to_string()),
+    //        location: Some("Test".to_string()),
+    //        uid: "test".to_string(),
+    //        tags: vec![],
+    //    }
+    //);
+
+    Ok(())
 }
 
 #[cfg(test)]
