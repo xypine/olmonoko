@@ -30,12 +30,14 @@
 - [-] allow users to set a default timezone for ui
 - [-] local event tags
 - [x] local event filters
-  - [ ] ui
+  - [x] ui
 - [-] local event bulk delete
 - [ ] soft delete for local events
-- [ ] local event RRULEs
+- [-] local event RRULEs
+  - [ ] Convert local events to an event source generated locally
 - [-] vim keybindings
 - [-] "scrubbable navigation with heatmap"
+- [ ] import ics files that aren't hosted anywhere
 - [ ] add proper error handling to frontend
 - [ ] i18n
 - [ ] track user attendance of events / maybe automatically based on location?

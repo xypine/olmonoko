@@ -92,6 +92,7 @@ pub async fn get_user_local_events(
             created_at: event.created_at,
             updated_at: event.updated_at,
             priority: event.priority,
+            rrule: event.rrule,
             starts_at: event.starts_at,
             all_day: event.all_day,
             uid: event.uid,

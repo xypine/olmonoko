@@ -34,6 +34,7 @@ pub struct NavigationEntry<'a> {
     pub name: &'a str,
     pub path: &'a str,
     pub active: Option<bool>,
+    pub position: isize,
 }
 
 // Navigation entries must be listed in [most --> least specific] order
@@ -44,34 +45,40 @@ pub const APP_NAVIGATION_ENTRIES_ADMIN: [NavigationEntry; 1] = [NavigationEntry 
     name: "Admin",
     path: "/admin",
     active: None,
+    position: 10, // Last
 }];
 pub const APP_NAVIGATION_ENTRIES_LOGGEDIN: [NavigationEntry; 2] = [
     NavigationEntry {
         name: "Profile",
         path: "/me",
         active: None,
+        position: 8, // Second Last
     },
     NavigationEntry {
         name: "Local",
         path: "/local",
         active: None,
+        position: 3, // Second
     },
 ];
 pub const APP_NAVIGATION_ENTRIES_LOGGEDOUT: [NavigationEntry; 1] = [NavigationEntry {
     name: "Sign in",
     path: "/me",
     active: None,
+    position: 8, // Second last
 }];
 pub const APP_NAVIGATION_ENTRIES_PUBLIC: [NavigationEntry; 2] = [
     NavigationEntry {
         name: "Sources",
         path: "/remote",
         active: None,
+        position: 5, // Middle
     },
     NavigationEntry {
         name: "Home",
         path: "/",
         active: None,
+        position: 1, // First
     },
 ];
 

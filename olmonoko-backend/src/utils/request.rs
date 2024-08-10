@@ -92,7 +92,7 @@ pub(crate) async fn get_session_context(
             nav_entry.active = Some(false);
         }
     }
-    nav_entries.reverse();
+    nav_entries.sort_by_key(|e| e.position);
     context.insert("nav_entries", &nav_entries);
     (context, user)
 }

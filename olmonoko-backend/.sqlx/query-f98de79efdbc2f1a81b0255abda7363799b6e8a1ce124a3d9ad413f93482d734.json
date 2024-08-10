@@ -65,81 +65,86 @@
       },
       {
         "ordinal": 12,
+        "name": "rrule",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 13,
         "name": "bill_id?",
         "type_info": "Int4"
       },
       {
-        "ordinal": 13,
+        "ordinal": 14,
         "name": "payee_account_number?",
         "type_info": "Text"
       },
       {
-        "ordinal": 14,
+        "ordinal": 15,
         "name": "reference?",
         "type_info": "Text"
       },
       {
-        "ordinal": 15,
+        "ordinal": 16,
         "name": "amount?",
         "type_info": "Int4"
       },
       {
-        "ordinal": 16,
+        "ordinal": 17,
         "name": "bill_created_at?",
         "type_info": "Int8"
       },
       {
-        "ordinal": 17,
+        "ordinal": 18,
         "name": "bill_updated_at?",
         "type_info": "Int8"
       },
       {
-        "ordinal": 18,
+        "ordinal": 19,
         "name": "payee_name?",
         "type_info": "Text"
       },
       {
-        "ordinal": 19,
+        "ordinal": 20,
         "name": "payee_email?",
         "type_info": "Text"
       },
       {
-        "ordinal": 20,
+        "ordinal": 21,
         "name": "payee_address?",
         "type_info": "Text"
       },
       {
-        "ordinal": 21,
+        "ordinal": 22,
         "name": "payee_phone?",
         "type_info": "Text"
       },
       {
-        "ordinal": 22,
+        "ordinal": 23,
         "name": "tags",
         "type_info": "Text"
       },
       {
-        "ordinal": 23,
+        "ordinal": 24,
         "name": "attendance_id?",
         "type_info": "Int4"
       },
       {
-        "ordinal": 24,
+        "ordinal": 25,
         "name": "planned?",
         "type_info": "Bool"
       },
       {
-        "ordinal": 25,
+        "ordinal": 26,
         "name": "actual?",
         "type_info": "Bool"
       },
       {
-        "ordinal": 26,
+        "ordinal": 27,
         "name": "attendance_created_at?",
         "type_info": "Int8"
       },
       {
-        "ordinal": 27,
+        "ordinal": 28,
         "name": "attendance_updated_at?",
         "type_info": "Int8"
       }
@@ -171,6 +176,7 @@
       true,
       false,
       false,
+      true,
       true,
       false,
       false,
