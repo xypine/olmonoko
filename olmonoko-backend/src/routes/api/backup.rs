@@ -277,7 +277,7 @@ async fn restore(
 
     tracing::info!("Restoring sources");
     for source in &body.sources {
-        // Restoring file or object hashes would block updates to the source untill the file changes
+        // Restoring file or object hashes would block updates to the source until the file changes
         let file_hash: Option<String> = None;
         let object_hash: Option<String> = None;
 
@@ -401,6 +401,38 @@ async fn restore(
             .execute(&mut *txn)
             .await
             .expect("Failed to insert bill");
+    }
+
+    // NOTE See https://wiki.postgresql.org/wiki/Fixing_Sequences
+    tracing::info!("Resyncing Sequences");
+    let statements: Vec<String> = sqlx::query_scalar(r#"SELECT
+    'SELECT SETVAL(' ||
+       quote_literal(quote_ident(sequence_namespace.nspname) || '.' || quote_ident(class_sequence.relname)) ||
+       ', COALESCE(MAX(' ||quote_ident(pg_attribute.attname)|| '), 1) ) FROM ' ||
+       quote_ident(table_namespace.nspname)|| '.'||quote_ident(class_table.relname)|| ';'
+FROM pg_depend
+    INNER JOIN pg_class AS class_sequence
+        ON class_sequence.oid = pg_depend.objid
+            AND class_sequence.relkind = 'S'
+    INNER JOIN pg_class AS class_table
+        ON class_table.oid = pg_depend.refobjid
+    INNER JOIN pg_attribute
+        ON pg_attribute.attrelid = class_table.oid
+            AND pg_depend.refobjsubid = pg_attribute.attnum
+    INNER JOIN pg_namespace as table_namespace
+        ON table_namespace.oid = class_table.relnamespace
+    INNER JOIN pg_namespace AS sequence_namespace
+        ON sequence_namespace.oid = class_sequence.relnamespace
+ORDER BY sequence_namespace.nspname, class_sequence.relname;"#)
+            .fetch_all(&mut *txn)
+            .await
+            .expect("Failed to query sequences to resync");
+    for statement in statements {
+        println!("executing statement: {}", statement);
+        sqlx::query(&statement)
+            .execute(&mut *txn)
+            .await
+            .expect("Failed to resync sequences");
     }
 
     tracing::info!("Scheduling post-restore sync");
