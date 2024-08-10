@@ -39,6 +39,7 @@
 - [ ] add proper error handling to frontend
 - [ ] i18n
 - [ ] track user attendance of events / maybe automatically based on location?
+  - [ ] addressbook
   - [-] native app
     - [ ] geofencing
     - [ ] clock-in-n-out
