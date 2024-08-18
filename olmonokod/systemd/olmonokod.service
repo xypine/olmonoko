@@ -1,0 +1,12 @@
+[Unit]
+Description=OLMONOKOd - daemon for interacting with the olmonoko calendar
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/olmonokod daemon
+KillMode=mixed
+TimeoutStopSec=2s
+SendSIGHUP=yes
+
+[Install]
+WantedBy=default.target

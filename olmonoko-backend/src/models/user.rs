@@ -17,6 +17,7 @@ pub struct RawUser {
 pub struct User {
     pub id: UserId,
     pub email: String,
+    #[serde(skip)]
     pub password_hash: String,
     pub admin: bool,
     pub created_at: chrono::DateTime<Utc>,

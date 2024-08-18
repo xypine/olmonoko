@@ -15,10 +15,9 @@ use actix_web::{
     Error,
 };
 
-use crate::{
-    routes::get_site_url,
-    utils::request::{EnhancedRequest, SESSION_COOKIE_NAME},
-};
+use olmonoko_backend::get_site_url;
+
+use crate::db_utils::request::{EnhancedRequest, SESSION_COOKIE_NAME};
 
 #[derive(Debug, Clone, Copy, Default)]
 pub struct AutoCacher;

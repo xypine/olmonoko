@@ -1,4 +1,4 @@
-use crate::routes::AppState;
+use olmonoko_backend::AppState;
 use resend_rs::types::CreateEmailBaseOptions;
 pub use resend_rs::Error;
 use resend_rs::{Resend, Result};

@@ -1,13 +1,13 @@
 use actix_web::{delete, get, patch, post, web, HttpRequest, HttpResponse, Responder, Scope};
 use uuid::Uuid;
 
-use crate::models::event::Priority;
-use crate::models::public_link::{PublicLink, RawPublicLink};
-use crate::routes::AppState;
-use crate::utils::event_filters::EventFilter;
-use crate::utils::events::get_visible_event_occurrences;
-use crate::utils::request::{deauth, EnhancedRequest};
-use crate::utils::user::get_user_export_links;
+use crate::db_utils::events::get_visible_event_occurrences;
+use crate::db_utils::request::{deauth, EnhancedRequest};
+use crate::db_utils::user::get_user_export_links;
+use olmonoko_backend::models::event::Priority;
+use olmonoko_backend::models::public_link::{PublicLink, RawPublicLink};
+use olmonoko_backend::utils::event_filters::EventFilter;
+use olmonoko_backend::AppState;
 
 #[get("/{id}.ics")]
 async fn get_calendar(data: web::Data<AppState>, path: web::Path<Uuid>) -> impl Responder {

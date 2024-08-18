@@ -2,11 +2,9 @@ use std::collections::BTreeMap;
 
 use actix_web::web;
 
-use crate::{
-    models::user::UserId,
-    routes::AppState,
-    utils::{event_filters::EventFilter, events::get_visible_event_occurrences},
-};
+use olmonoko_backend::{models::user::UserId, utils::event_filters::EventFilter, AppState};
+
+use crate::db_utils::events::get_visible_event_occurrences;
 
 #[derive(Debug, sqlx::FromRow, serde::Serialize)]
 pub struct Timeline {

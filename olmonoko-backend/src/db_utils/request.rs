@@ -1,22 +1,20 @@
-use super::{
+use actix_web::{web, HttpRequest, HttpResponse, HttpResponseBuilder};
+use olmonoko_backend::utils::{
     flash::{FlashMessage, FLASH_COOKIE_NAME},
     time::timestamp,
 };
-use crate::{
+use olmonoko_backend::{
     models::{
         event::PRIORITY_OPTIONS,
         session::SessionRaw,
         user::{RawUser, User, UserPublic},
     },
-    routes::{
-        AppState, APP_NAVIGATION_ENTRIES_ADMIN, APP_NAVIGATION_ENTRIES_LOGGEDIN,
-        APP_NAVIGATION_ENTRIES_LOGGEDOUT, APP_NAVIGATION_ENTRIES_PUBLIC,
-    },
+    AppState, APP_NAVIGATION_ENTRIES_ADMIN, APP_NAVIGATION_ENTRIES_LOGGEDIN,
+    APP_NAVIGATION_ENTRIES_LOGGEDOUT, APP_NAVIGATION_ENTRIES_PUBLIC,
 };
-use actix_web::{web, HttpRequest, HttpResponse, HttpResponseBuilder};
 
-pub(crate) const SESSION_COOKIE_NAME: &str = "session_id";
-pub(crate) const RESPONSE_TYPE_HEADER: &str = "HX-Request";
+pub const SESSION_COOKIE_NAME: &str = "session_id";
+pub const RESPONSE_TYPE_HEADER: &str = "HX-Request";
 
 pub async fn get_user_from_request(data: &web::Data<AppState>, req: &HttpRequest) -> Option<User> {
     let session_cookie = req.cookie(SESSION_COOKIE_NAME);
@@ -97,7 +95,8 @@ pub(crate) async fn get_session_context(
     (context, user)
 }
 
-pub(crate) trait EnhancedRequest {
+#[allow(async_fn_in_trait)]
+pub trait EnhancedRequest {
     fn get_referer(&self) -> Option<&str>;
     fn get_session_id(&self) -> Option<String>;
     async fn get_session_user(&self, data: &web::Data<AppState>) -> Option<User>;

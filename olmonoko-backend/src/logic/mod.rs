@@ -1,6 +1,6 @@
 use icalendar::{Component, EventLike};
 
-use crate::{
+use olmonoko_backend::{
     models::event::EventOccurrence,
     utils::time::{from_timestamp, get_current_time},
 };

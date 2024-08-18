@@ -1,6 +1,6 @@
 use uuid::Uuid;
 
-use crate::{routes::get_site_url, utils::time::from_timestamp};
+use crate::{get_site_url, utils::time::from_timestamp};
 
 use super::{event::Priority, user::UserId};
 

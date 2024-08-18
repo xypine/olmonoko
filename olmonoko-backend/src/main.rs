@@ -1,16 +1,14 @@
 mod auth;
+mod db_utils;
 mod logic;
 mod middleware;
-mod models;
 mod routes;
-mod utils;
 
 use dotenvy::dotenv;
-use sqlx::postgres::PgPoolOptions;
 use thiserror::Error;
 use tracing_subscriber::filter::{EnvFilter, LevelFilter};
 
-use crate::routes::get_source_commit;
+use olmonoko_backend::{built_info, get_source_commit};
 
 #[derive(Error, Debug)]
 pub enum AppError {
@@ -57,16 +55,12 @@ async fn main() -> Result<(), AppError> {
     Ok(())
 }
 
-async fn get_conn() -> Result<sqlx::PgPool, sqlx::Error> {
+use sqlx::postgres::PgPoolOptions;
+pub(crate) async fn get_conn() -> Result<sqlx::PgPool, sqlx::Error> {
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     let pool = PgPoolOptions::new()
         .max_connections(5)
         .connect(&database_url)
         .await?;
     Ok(pool)
-}
-
-pub mod built_info {
-    // The file has been placed there by the build script.
-    include!(concat!(env!("OUT_DIR"), "/built.rs"));
 }

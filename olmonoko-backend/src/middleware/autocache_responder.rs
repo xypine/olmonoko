@@ -5,7 +5,9 @@ use actix_web::{
 };
 use actix_web_lab::middleware::Next;
 
-use crate::{routes::get_site_url, utils::request::EnhancedRequest};
+use olmonoko_backend::get_site_url;
+
+use crate::db_utils::request::EnhancedRequest;
 
 use super::autocacher::AUTOCACHE_DISALLOWED_PATHS;
 

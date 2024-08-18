@@ -1,7 +1,7 @@
 use actix_web::web;
 use itertools::Itertools;
 
-use crate::{
+use olmonoko_backend::{
     models::{
         attendance::{Attendance, RawAttendance},
         bills::RawBill,
@@ -12,10 +12,10 @@ use crate::{
         },
         user::UserId,
     },
-    routes::AppState,
+    AppState,
 };
 
-use super::event_filters::EventFilter;
+use olmonoko_backend::utils::event_filters::EventFilter;
 
 pub async fn get_user_local_events(
     data: &web::Data<AppState>,

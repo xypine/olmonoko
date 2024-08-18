@@ -1,8 +1,4 @@
-# Use postgres/example user/password credentials
-version: '3.9'
-
 services:
-
   db:
     image: postgres
     restart: always
@@ -18,7 +14,6 @@ services:
       POSTGRES_PASSWORD: example
     ports:
       - 5432:5432
-
   adminer:
     image: adminer
     restart: always
@@ -26,11 +21,13 @@ services:
       - db
     ports:
       - 8050:8080
-
-  # olmonoko:
-  #   build: 
-  #       context: ./olmonoko-backend/
-  #   ports:
-  #     - 8080:8080
-  #   environment:
-  #     DATABASE_URL: DATABASE_URL=postgres://postgres:example@db:5432/postgres
+  backend:
+    build:
+      context: ./olmonoko-backend/
+    depends_on:
+      - db
+    ports:
+      - 8080:8080
+    environment:
+      DATABASE_URL: postgres://postgres:example@db:5432/postgres
+      SITE_URL: http://localhost:8080

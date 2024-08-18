@@ -5,7 +5,7 @@ use actix_web::{
 
 /// A temporary message displayed to the user on the next page load and then removed.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub(crate) enum FlashLevel {
+pub enum FlashLevel {
     #[serde(rename = "info")]
     Info,
     #[serde(rename = "error")]
@@ -35,7 +35,7 @@ impl From<&str> for FlashLevel {
 
 pub const FLASH_COOKIE_NAME: &str = "X-OLMONOKO-Flash";
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub(crate) struct FlashMessage {
+pub struct FlashMessage {
     level: FlashLevel,
     message: String,
 }
@@ -91,7 +91,7 @@ fn with_flash_message(
     builder.cookie(flash.to_cookie());
     builder
 }
-pub(crate) trait WithFlashMessage {
+pub trait WithFlashMessage {
     fn with_flash_message(self, flash: FlashMessage) -> Self;
 }
 impl WithFlashMessage for HttpResponseBuilder {

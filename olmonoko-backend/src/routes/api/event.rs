@@ -4,7 +4,7 @@ use actix_web::{
     HttpRequest, HttpResponse, Responder, Scope,
 };
 
-use crate::{
+use olmonoko_backend::{
     models::{
         attendance::{AttendanceEvent, AttendanceForm, NewAttendance},
         bills::{
@@ -18,13 +18,16 @@ use crate::{
         },
         user::UserPublic,
     },
-    routes::AppState,
     utils::{
         event_filters::{EventFilter, RawEventFilter},
-        events::{get_visible_event_occurrences, parse_priority},
         flash::{FlashMessage, WithFlashMessage},
-        request::{reload, EnhancedRequest},
     },
+    AppState,
+};
+
+use crate::db_utils::{
+    events::{get_visible_event_occurrences, parse_priority},
+    request::{reload, EnhancedRequest},
 };
 
 #[post("/local")]

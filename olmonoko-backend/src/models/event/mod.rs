@@ -221,7 +221,7 @@ impl From<Event> for Vec<EventOccurrence> {
     }
 }
 
-#[derive(Debug, Clone, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct EventOccurrenceHuman {
     pub id: RemoteEventId, // event id, not specific to this occurrence
     pub source: EventSource,

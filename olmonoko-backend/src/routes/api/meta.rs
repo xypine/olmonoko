@@ -1,15 +1,6 @@
 use actix_web::{get, web, HttpResponse, Responder, Scope};
-use chrono::{DateTime, Utc};
 
-use crate::routes::AppState;
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct BuildInformation {
-    pub package_version: String,
-    pub commit: Option<String>,
-    pub commit_short: Option<String>,
-    pub build_time: DateTime<Utc>,
-}
+use olmonoko_backend::AppState;
 
 #[get("/version")]
 async fn version(data: web::Data<AppState>) -> impl Responder {

@@ -1,24 +1,3 @@
-use crate::{
-    models::{
-        attendance::{Attendance, RawAttendance},
-        event::{
-            local::{LocalEventForm, LocalEventId},
-            EventOccurrenceHuman, Priority,
-        },
-        user::{RawUser, UnverifiedUser, UserPublic},
-    },
-    routes::AppState,
-    utils::{
-        event_filters::{EventFilter, RawEventFilter, RawEventFilterWithDate},
-        events::{get_user_local_events, get_visible_event_occurrences},
-        flash::FLASH_COOKIE_NAME,
-        request::{deauth, redirect, EnhancedRequest},
-        sources::{get_source_as_user_with_event_count, get_visible_sources_with_event_count},
-        time::from_timestamp,
-        timeline::compile_timeline,
-        user::get_user_export_links,
-    },
-};
 use actix_web::{
     cookie::SameSite,
     get,
@@ -27,6 +6,22 @@ use actix_web::{
 };
 use chrono::{Datelike, NaiveTime, Timelike};
 use itertools::Itertools;
+use olmonoko_backend::{
+    models::{
+        attendance::{Attendance, RawAttendance},
+        event::{
+            local::{LocalEventForm, LocalEventId},
+            EventOccurrenceHuman, Priority,
+        },
+        user::{RawUser, UnverifiedUser, UserPublic},
+    },
+    utils::{
+        event_filters::{EventFilter, RawEventFilter, RawEventFilterWithDate},
+        flash::FLASH_COOKIE_NAME,
+        time::from_timestamp,
+    },
+    AppState,
+};
 
 fn remove_flash_cookie(mut builder: HttpResponseBuilder) -> HttpResponseBuilder {
     let mut removal_cookie = actix_web::cookie::Cookie::build(FLASH_COOKIE_NAME, "")
@@ -290,6 +285,14 @@ struct CalendarPositionGoto {
 }
 
 use serde_with::rust::deserialize_ignore_any;
+
+use crate::db_utils::{
+    events::{get_user_local_events, get_visible_event_occurrences},
+    request::{deauth, redirect, EnhancedRequest},
+    sources::{get_source_as_user_with_event_count, get_visible_sources_with_event_count},
+    timeline::compile_timeline,
+    user::get_user_export_links,
+};
 #[derive(Debug, serde::Deserialize, PartialEq)]
 #[serde(untagged)]
 enum CalendarQueryPosition {
@@ -463,8 +466,8 @@ async fn calendar(
             if is_today {
                 day_events.push(EventOccurrenceHuman {
                     id: -1,
-                    source: crate::models::event::EventSource::Local(
-                        crate::models::event::SourceLocal { user_id: -1 },
+                    source: olmonoko_backend::models::event::EventSource::Local(
+                        olmonoko_backend::models::event::SourceLocal { user_id: -1 },
                     ),
                     tags: vec![],
                     attendance: None,

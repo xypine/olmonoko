@@ -1,8 +1,8 @@
 pub mod email;
 
-use crate::{
+use olmonoko_backend::{
     models::user::{NewUser, RawUser, User},
-    routes::AppState,
+    AppState,
 };
 
 #[derive(Debug, thiserror::Error)]

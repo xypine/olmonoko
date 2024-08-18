@@ -1,7 +1,10 @@
 use actix_web::{get, post, web, HttpRequest, HttpResponse, Responder, Scope};
 
 use crate::{
+    db_utils::request::{deauth, EnhancedRequest, SESSION_COOKIE_NAME},
     middleware::autocacher::CACHE_RECURSION_PREVENTION_HEADER,
+};
+use olmonoko_backend::{
     models::{
         attendance::RawAttendance,
         bills::RawBill,
@@ -14,14 +17,9 @@ use crate::{
         public_link::RawPublicLink,
         user::{RawUser, User, UserId},
     },
-    routes::AppState,
-    utils::{
-        request::{deauth, EnhancedRequest, SESSION_COOKIE_NAME},
-        time::timestamp,
-    },
+    utils::time::timestamp,
+    AppState, BuildInformation,
 };
-
-use super::meta::BuildInformation;
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Backup {
