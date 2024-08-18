@@ -12,7 +12,7 @@ use crate::{
         event_filters::{EventFilter, RawEventFilter, RawEventFilterWithDate},
         events::{get_user_local_events, get_visible_event_occurrences},
         flash::FLASH_COOKIE_NAME,
-        request::{deauth, redirect, EnhancedRequest},
+        request::{deauth, redirect, EnhancedRequest, InternalServerError},
         sources::{get_source_as_user_with_event_count, get_visible_sources_with_event_count},
         time::from_timestamp,
         timeline::compile_timeline,
@@ -180,10 +180,16 @@ async fn admin(data: web::Data<AppState>, request: HttpRequest) -> impl Responde
 }
 
 #[get("/me")]
-async fn me(data: web::Data<AppState>, request: HttpRequest) -> impl Responder {
+async fn me(
+    data: web::Data<AppState>,
+    request: HttpRequest,
+) -> Result<impl Responder, InternalServerError<sqlx::Error>> {
     let (mut context, user) = request.get_session_context(&data).await;
     if let Some(user) = user {
-        context.insert("export_links", &get_user_export_links(&data, user.id).await);
+        context.insert(
+            "export_links",
+            &get_user_export_links(&data, user.id).await?,
+        );
 
         let all_timezones = chrono_tz::TZ_VARIANTS
             .iter()
@@ -193,7 +199,7 @@ async fn me(data: web::Data<AppState>, request: HttpRequest) -> impl Responder {
     }
 
     let content = data.templates.render("pages/me.html", &context).unwrap();
-    remove_flash_cookie(HttpResponse::Ok()).body(content)
+    Ok(remove_flash_cookie(HttpResponse::Ok()).body(content))
 }
 
 #[derive(Debug, serde::Deserialize)]

@@ -1,3 +1,4 @@
+pub mod errors;
 pub mod event_filters;
 pub mod events;
 pub mod flash;

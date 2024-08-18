@@ -332,40 +332,44 @@ fn get_event_occurrences(event: VEvent, start: Option<i64>) -> Vec<NewRemoteEven
     let rrule_max = (chrono::offset::Utc::now() + max_delta).with_timezone(&rrule::Tz::UTC);
     let mut events: Vec<NewRemoteEventOccurrence> = vec![];
     if let Some(dt_start) = event.properties().get("DTSTART") {
-        let start = start.expect("Somehow DTSTART was defined, but start wasn't!");
-        events.push(NewRemoteEventOccurrence {
-            event_id: -1, // placeholder, shouldn't exist
-            starts_at: start,
-            from_rrule: false,
-        });
-        if let Some(rrule_str) = event.property_value("RRULE") {
-            // parse
-            let dt_start_str = format!("DTSTART:{}", dt_start.value());
-            let parse_result: Result<RRuleSet, _> = format!("{dt_start_str}\n{rrule_str}").parse();
-            match parse_result {
-                Ok(rrule) => {
-                    // TODO: Revise limit to be time-based or some clever shit
-                    // alternatively we could also just pass the RRULE to the client but that
-                    // might make automations harder in the future?
-                    let rrule = rrule.after(rrule_min).before(rrule_max);
-                    let rrule_result = rrule.all(MAX_OCCURRENCES);
-                    tracing::trace!("Rrule will add {} events", rrule_result.dates.len(),);
-                    for date in rrule_result.dates {
-                        let ts = date.timestamp();
-                        if ts == start {
-                            continue; // no need to have duplicate events
+        if let Some(start) = start {
+            events.push(NewRemoteEventOccurrence {
+                event_id: -1, // placeholder, shouldn't exist
+                starts_at: start,
+                from_rrule: false,
+            });
+            if let Some(rrule_str) = event.property_value("RRULE") {
+                // parse
+                let dt_start_str = format!("DTSTART:{}", dt_start.value());
+                let parse_result: Result<RRuleSet, _> =
+                    format!("{dt_start_str}\n{rrule_str}").parse();
+                match parse_result {
+                    Ok(rrule) => {
+                        // TODO: Revise limit to be time-based or some clever shit
+                        // alternatively we could also just pass the RRULE to the client but that
+                        // might make automations harder in the future?
+                        let rrule = rrule.after(rrule_min).before(rrule_max);
+                        let rrule_result = rrule.all(MAX_OCCURRENCES);
+                        tracing::trace!("Rrule will add {} events", rrule_result.dates.len(),);
+                        for date in rrule_result.dates {
+                            let ts = date.timestamp();
+                            if ts == start {
+                                continue; // no need to have duplicate events
+                            }
+                            events.push(NewRemoteEventOccurrence {
+                                event_id: -1,
+                                starts_at: ts,
+                                from_rrule: true,
+                            });
                         }
-                        events.push(NewRemoteEventOccurrence {
-                            event_id: -1,
-                            starts_at: ts,
-                            from_rrule: true,
-                        });
+                    }
+                    Err(error) => {
+                        tracing::warn!(rrule_str, "Failed to parse rrule: {}", error);
                     }
                 }
-                Err(error) => {
-                    tracing::warn!(rrule_str, "Failed to parse rrule: {}", error);
-                }
             }
+        } else {
+            tracing::warn!("DTSTART was defined but start wasn't: {:#?}", event);
         }
     }
     events

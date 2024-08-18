@@ -16,7 +16,10 @@ use crate::{
     },
     routes::AppState,
     utils::{
-        request::{deauth, EnhancedRequest, SESSION_COOKIE_NAME},
+        request::{
+            deauth, AnyInternalServerError, EnhancedRequest, IntoInternalServerError,
+            OrInternalServerError, SESSION_COOKIE_NAME,
+        },
         time::timestamp,
     },
 };
@@ -156,39 +159,43 @@ async fn clone_instance(
     data: web::Data<AppState>,
     req: HttpRequest,
     form: web::Form<InstanceCloneForm>,
-) -> impl Responder {
+) -> Result<impl Responder, AnyInternalServerError> {
     if let Some(user) = req.get_session_user(&data).await {
         if !user.admin {
-            return deauth(&req);
+            return Ok(deauth(&req));
         }
         let session_id = form.session_id.clone();
         let instance_endpoint = format!("{}/api/backup/dump.json", form.instance_url);
-        let cookies = reqwest::cookie::Jar::default();
-        cookies.add_cookie_str(
-            &format!("{}={}", SESSION_COOKIE_NAME, session_id),
-            &reqwest::Url::parse(&form.instance_url).unwrap(),
-        );
-        let client = reqwest::Client::builder()
-            .cookie_provider(std::sync::Arc::new(cookies))
-            .build()
-            .unwrap();
-        let response = client
-            .get(&instance_endpoint)
-            .header(CACHE_RECURSION_PREVENTION_HEADER, "true")
-            .send()
-            .await
-            .unwrap();
-        if !response.status().is_success() {
-            tracing::warn!("Failed to fetch instance backup: {}", response.status());
-            return HttpResponse::InternalServerError().body("failed to fetch instance backup");
+        if let Ok(instance_url) = reqwest::Url::parse(&form.instance_url) {
+            let cookies = reqwest::cookie::Jar::default();
+            cookies.add_cookie_str(
+                &format!("{}={}", SESSION_COOKIE_NAME, session_id),
+                &instance_url,
+            );
+            let client = reqwest::Client::builder()
+                .cookie_provider(std::sync::Arc::new(cookies))
+                .build()
+                .or_any_internal_server_error("failed to build request client")?;
+            let response = client
+                .get(&instance_endpoint)
+                .header(CACHE_RECURSION_PREVENTION_HEADER, "true")
+                .send()
+                .await
+                .or_any_internal_server_error("failed to request backup")?;
+            if !response.status().is_success() {
+                return Err(response.internal_server_error_any(
+                    "Request for instance backup returned non-ok status code",
+                ));
+            }
+            let body: Backup = response.json().await.unwrap();
+            if !restore(data, &user, body).await.unwrap() {
+                return Ok(deauth(&req));
+            }
+            return Ok(HttpResponse::Ok().body("Clone complete!"));
         }
-        let body: Backup = response.json().await.unwrap();
-        if !restore(data, &user, body).await.unwrap() {
-            return deauth(&req);
-        }
-        return HttpResponse::Ok().body("Clone complete!");
+        return Ok(HttpResponse::BadRequest().body("Invalid instance_url"));
     }
-    return deauth(&req);
+    return Ok(deauth(&req));
 }
 
 async fn restore(

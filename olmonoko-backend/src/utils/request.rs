@@ -13,7 +13,9 @@ use crate::{
         APP_NAVIGATION_ENTRIES_LOGGEDOUT, APP_NAVIGATION_ENTRIES_PUBLIC,
     },
 };
-use actix_web::{web, HttpRequest, HttpResponse, HttpResponseBuilder};
+use actix_web::{
+    body::BoxBody, web, HttpRequest, HttpResponse, HttpResponseBuilder, ResponseError,
+};
 
 pub(crate) const SESSION_COOKIE_NAME: &str = "session_id";
 pub(crate) const RESPONSE_TYPE_HEADER: &str = "HX-Request";
@@ -148,4 +150,91 @@ pub fn redirect(location: &str) -> HttpResponseBuilder {
 pub fn reload(req: &HttpRequest) -> HttpResponseBuilder {
     let location = req.get_referer().unwrap_or("/");
     redirect(location)
+}
+
+pub trait IntoInternalServerError {
+    type Err: std::fmt::Debug;
+    fn internal_server_error(self, context: &str) -> InternalServerError<Self::Err>;
+    fn internal_server_error_any(self, context: &str) -> AnyInternalServerError;
+}
+impl<T: std::fmt::Debug> IntoInternalServerError for T {
+    type Err = T;
+    fn internal_server_error(self, context: &str) -> InternalServerError<T> {
+        InternalServerError::new(self, context.to_owned())
+    }
+    fn internal_server_error_any(self, context: &str) -> AnyInternalServerError {
+        AnyInternalServerError::new(self, context.to_owned())
+    }
+}
+pub trait OrInternalServerError {
+    type Ok: std::fmt::Debug;
+    type Err: std::fmt::Debug;
+    fn or_internal_server_error(
+        self,
+        context: &str,
+    ) -> Result<Self::Ok, InternalServerError<Self::Err>>;
+    fn or_any_internal_server_error(
+        self,
+        context: &str,
+    ) -> Result<Self::Ok, AnyInternalServerError>;
+}
+impl<O: std::fmt::Debug, E: std::fmt::Debug> OrInternalServerError for Result<O, E> {
+    type Ok = O;
+    type Err = E;
+    fn or_internal_server_error(self, context: &str) -> Result<O, InternalServerError<E>> {
+        self.map_err(|e| e.internal_server_error(context))
+    }
+    fn or_any_internal_server_error(self, context: &str) -> Result<O, AnyInternalServerError> {
+        self.map_err(|e| e.internal_server_error_any(context))
+    }
+}
+#[derive(Debug)]
+pub struct InternalServerError<E: std::fmt::Debug> {
+    pub cause: E,
+    pub context: String,
+}
+impl<E: std::fmt::Debug> InternalServerError<E> {
+    pub fn new(cause: E, context: String) -> Self {
+        Self { cause, context }
+    }
+}
+impl<E: std::fmt::Debug> std::fmt::Display for InternalServerError<E> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&format!("{self:?}"))
+    }
+}
+impl<E: std::fmt::Debug> ResponseError for InternalServerError<E> {
+    fn status_code(&self) -> actix_web::http::StatusCode {
+        actix_web::http::StatusCode::INTERNAL_SERVER_ERROR
+    }
+
+    fn error_response(&self) -> HttpResponse<BoxBody> {
+        HttpResponse::InternalServerError().body("Internal Server Error")
+    }
+}
+
+#[derive(Debug)]
+pub struct AnyInternalServerError {
+    pub cause: String,
+}
+impl AnyInternalServerError {
+    pub fn new<E: std::fmt::Debug>(cause: E, context: String) -> Self {
+        let imposter = InternalServerError { cause, context };
+        let cause = format!("{imposter:?}");
+        Self { cause }
+    }
+}
+impl std::fmt::Display for AnyInternalServerError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.cause)
+    }
+}
+impl ResponseError for AnyInternalServerError {
+    fn status_code(&self) -> actix_web::http::StatusCode {
+        actix_web::http::StatusCode::INTERNAL_SERVER_ERROR
+    }
+
+    fn error_response(&self) -> HttpResponse<BoxBody> {
+        HttpResponse::InternalServerError().body("Internal Server Error")
+    }
 }
