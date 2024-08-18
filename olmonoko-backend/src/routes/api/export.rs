@@ -1,16 +1,22 @@
 use actix_web::{delete, get, patch, post, web, HttpRequest, HttpResponse, Responder, Scope};
 use uuid::Uuid;
 
-use crate::db_utils::events::get_visible_event_occurrences;
-use crate::db_utils::request::{deauth, EnhancedRequest};
+use crate::db_utils::errors::TemplateOrDatabaseError;
+use crate::db_utils::events::{get_user_local_events, get_visible_event_occurrences};
+use crate::db_utils::request::{
+    deauth, EnhancedRequest, InternalServerError, IntoInternalServerError, OrInternalServerError,
+};
 use crate::db_utils::user::get_user_export_links;
-use olmonoko_common::models::event::Priority;
+use olmonoko_common::models::event::{Event, EventOccurrence, Priority};
 use olmonoko_common::models::public_link::{PublicLink, RawPublicLink};
 use olmonoko_common::utils::event_filters::EventFilter;
 use olmonoko_common::AppState;
 
 #[get("/{id}.ics")]
-async fn get_calendar(data: web::Data<AppState>, path: web::Path<Uuid>) -> impl Responder {
+async fn get_calendar(
+    data: web::Data<AppState>,
+    path: web::Path<Uuid>,
+) -> Result<impl Responder, InternalServerError<sqlx::Error>> {
     let id = path.into_inner().to_string();
     tracing::info!("Fetching calendar for id {id}");
     let opt = sqlx::query_as!(
@@ -20,7 +26,7 @@ async fn get_calendar(data: web::Data<AppState>, path: web::Path<Uuid>) -> impl 
     )
     .fetch_optional(&data.conn)
     .await
-    .expect("Failed to fetch user from the database")
+    .or_internal_server_error("Failed to fetch public calendar link from the database")?
     .map(PublicLink::from);
     if let Some(public_link) = opt {
         let events = get_visible_event_occurrences(
@@ -37,10 +43,42 @@ async fn get_calendar(data: web::Data<AppState>, path: web::Path<Uuid>) -> impl 
         let ics = crate::logic::compose_ics(events)
             .await
             .expect("Failed to compose ics");
-        return HttpResponse::Ok().content_type("text/calendar").body(ics);
+        return Ok(HttpResponse::Ok().content_type("text/calendar").body(ics));
     } else {
-        HttpResponse::NotFound().body("link not found")
+        Ok(HttpResponse::NotFound().body("link not found"))
     }
+}
+
+#[get("/local.ics")]
+async fn get_local_calendar(
+    data: web::Data<AppState>,
+    req: HttpRequest,
+) -> Result<impl Responder, InternalServerError<sqlx::Error>> {
+    let user_opt = req.get_session_user(&data).await;
+    if let Some(user) = user_opt {
+        tracing::info!("Fetching local calendar for user {}", user.id);
+        let events: Vec<EventOccurrence> = get_user_local_events(
+            &data,
+            user.id,
+            true,
+            &EventFilter {
+                ..Default::default()
+            },
+        )
+        .await
+        .into_iter()
+        .map(Event::from)
+        .flat_map(|e| {
+            let o: Vec<EventOccurrence> = e.into();
+            o
+        })
+        .collect();
+        let ics = crate::logic::compose_ics(events)
+            .await
+            .expect("Failed to compose ics");
+        return Ok(HttpResponse::Ok().content_type("text/calendar").body(ics));
+    }
+    Ok(deauth(&req))
 }
 
 #[delete("/{id}.ics")]
@@ -48,7 +86,7 @@ async fn delete_link(
     data: web::Data<AppState>,
     path: web::Path<Uuid>,
     request: HttpRequest,
-) -> impl Responder {
+) -> Result<impl Responder, InternalServerError<sqlx::Error>> {
     let id = path.into_inner().to_string();
     let user_opt = request.get_session_user(&data).await;
     if let Some(user) = user_opt {
@@ -59,10 +97,10 @@ async fn delete_link(
         )
         .execute(&data.conn)
         .await
-        .expect("Failed to delete public link");
-        HttpResponse::Ok().body("link deleted")
+        .or_internal_server_error("Failed to delete public link")?;
+        Ok(HttpResponse::Ok().body("link deleted"))
     } else {
-        deauth(&request)
+        Ok(deauth(&request))
     }
 }
 
@@ -81,7 +119,7 @@ async fn change_filters(
     path: web::Path<Uuid>,
     form: web::Form<ChangePriorityFilterForm>,
     request: HttpRequest,
-) -> impl Responder {
+) -> Result<impl Responder, InternalServerError<TemplateOrDatabaseError>> {
     let id = path.into_inner().to_string();
     let (mut context, user_opt) = request.get_session_context(&data).await;
     if let Some(user) = user_opt {
@@ -94,20 +132,30 @@ async fn change_filters(
         )
         .execute(&data.conn)
         .await
-        .expect("Failed to update min priority");
+        .map_err(TemplateOrDatabaseError::from)
+        .or_internal_server_error("Failed to update min priority")?;
 
-        context.insert("export_links", &get_user_export_links(&data, user.id).await);
+        context.insert(
+            "export_links",
+            &get_user_export_links(&data, user.id).await.map_err(|e| {
+                TemplateOrDatabaseError::from(e.cause).internal_server_error(&e.context)
+            })?,
+        );
         let content = data
             .templates
             .render("components/export_link.html", &context)
-            .unwrap();
-        return HttpResponse::Ok().body(content);
+            .map_err(TemplateOrDatabaseError::from)
+            .or_internal_server_error("Failed to render template")?;
+        return Ok(HttpResponse::Ok().body(content));
     }
-    deauth(&request)
+    Ok(deauth(&request))
 }
 
 #[post("")]
-async fn new_link(data: web::Data<AppState>, request: HttpRequest) -> impl Responder {
+async fn new_link(
+    data: web::Data<AppState>,
+    request: HttpRequest,
+) -> Result<impl Responder, InternalServerError<TemplateOrDatabaseError>> {
     let (mut context, user_opt) = request.get_session_context(&data).await;
     if let Some(user) = user_opt {
         let new_id = Uuid::new_v4().to_string();
@@ -118,25 +166,35 @@ async fn new_link(data: web::Data<AppState>, request: HttpRequest) -> impl Respo
         )
         .execute(&data.conn)
         .await
-        .expect("Failed to insert new public link");
+        .map_err(TemplateOrDatabaseError::from)
+        .or_internal_server_error("Failed to insert new public link")?;
 
-        context.insert("export_links", &get_user_export_links(&data, user.id).await);
+        context.insert(
+            "export_links",
+            &get_user_export_links(&data, user.id).await.map_err(|e| {
+                TemplateOrDatabaseError::from(e.cause).internal_server_error(&e.context)
+            })?,
+        );
         let content = data
             .templates
             .render("components/export_link.html", &context)
-            .unwrap();
-        return HttpResponse::Ok().body(content);
+            .map_err(TemplateOrDatabaseError::from)
+            .or_internal_server_error("Failed to render template")?;
+        return Ok(HttpResponse::Ok().body(content));
     }
-    HttpResponse::Unauthorized().finish()
+    Ok(HttpResponse::Unauthorized().finish())
 }
 
 #[get("")]
-async fn get_mine(data: web::Data<AppState>, request: HttpRequest) -> impl Responder {
+async fn get_mine(
+    data: web::Data<AppState>,
+    request: HttpRequest,
+) -> Result<impl Responder, InternalServerError<sqlx::Error>> {
     if let Some(user_id) = request.get_session_user(&data).await.map(|u| u.id) {
-        let links = get_user_export_links(&data, user_id).await;
-        return HttpResponse::Ok().json(links);
+        let links = get_user_export_links(&data, user_id).await?;
+        return Ok(HttpResponse::Ok().json(links));
     }
-    HttpResponse::Unauthorized().finish()
+    Ok(HttpResponse::Unauthorized().finish())
 }
 
 pub fn routes() -> Scope {
@@ -145,5 +203,6 @@ pub fn routes() -> Scope {
         .service(delete_link)
         .service(change_filters)
         .service(get_mine)
+        .service(get_local_calendar)
         .service(get_calendar)
 }

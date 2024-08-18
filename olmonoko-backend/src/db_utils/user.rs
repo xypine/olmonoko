@@ -8,7 +8,12 @@ use olmonoko_common::{
     AppState,
 };
 
-pub async fn get_user_export_links(data: &web::Data<AppState>, user_id: UserId) -> Vec<PublicLink> {
+use super::request::{InternalServerError, OrInternalServerError};
+
+pub async fn get_user_export_links(
+    data: &web::Data<AppState>,
+    user_id: UserId,
+) -> Result<Vec<PublicLink>, InternalServerError<sqlx::Error>> {
     sqlx::query_as!(
         RawPublicLink,
         "SELECT * FROM public_calendar_links WHERE user_id = $1",
@@ -16,8 +21,6 @@ pub async fn get_user_export_links(data: &web::Data<AppState>, user_id: UserId) 
     )
     .fetch_all(&data.conn)
     .await
-    .expect("Failed to query export links from the database")
-    .into_iter()
-    .map(PublicLink::from)
-    .collect()
+    .or_internal_server_error("Failed to query user export links from db")
+    .map(|links| links.into_iter().map(PublicLink::from).collect())
 }
