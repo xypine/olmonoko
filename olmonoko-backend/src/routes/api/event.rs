@@ -26,6 +26,7 @@ use olmonoko_backend::{
 };
 
 use crate::db_utils::{
+    attendance::DBWrite,
     events::{get_visible_event_occurrences, parse_priority},
     request::{reload, EnhancedRequest},
 };

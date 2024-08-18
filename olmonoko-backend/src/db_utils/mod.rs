@@ -1,3 +1,4 @@
+pub mod attendance;
 pub mod events;
 pub mod request;
 pub mod sources;
