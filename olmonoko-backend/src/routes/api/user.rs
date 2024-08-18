@@ -28,7 +28,7 @@ async fn users(data: web::Data<AppState>, req: HttpRequest) -> impl Responder {
     deauth(&req)
 }
 
-const MIN_PASSWORD_LENGTH: usize = 32; // We set this high to prevent brute force attacks as we don't have rate limiting yet
+const MIN_PASSWORD_LENGTH: usize = 9; // We set this high to prevent brute force attacks as we don't have rate limiting yet
 #[post("")]
 async fn register(
     data: web::Data<AppState>,
