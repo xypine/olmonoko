@@ -6,10 +6,10 @@ edition = "2021"
 [dependencies]
 clap = { version = "4.5", features = ["derive"] }
 daemonize = "0.5"
-reqwest = { version = "0.12", features = ["cookies", "h2", "http2", "rustls-tls"], default-features = false }
+reqwest = { version = "0.12", features = ["cookies", "h2", "http2", "rustls-tls", "json"], default-features = false }
 rpassword = "7.3.1"
 tokio = { version = "1.39", features = ["full", "macros"] }
 cryptex = "1.8"
-olmonoko-backend = { path = "../olmonoko-backend" }
+olmonoko-common = { path = "../olmonoko-common" }
 serde_json = "1.0.125"
 chrono-humanize = "0.2"

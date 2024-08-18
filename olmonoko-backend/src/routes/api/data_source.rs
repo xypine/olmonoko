@@ -1,16 +1,16 @@
 use actix_web::{delete, patch, HttpRequest};
 use actix_web::{get, post, web, HttpResponse, Responder, Scope};
-use olmonoko_backend::AppState;
+use olmonoko_common::AppState;
 use tracing::warn;
 
 use crate::db_utils::request::{deauth, get_user_from_request, reload, EnhancedRequest};
 use crate::db_utils::sources::{get_source_as_user, get_visible_sources};
 use crate::logic::source_processing::{sync_source, test_import_template};
-use olmonoko_backend::models::event::remote::RemoteSourceId;
-use olmonoko_backend::models::event::Priority;
-use olmonoko_backend::models::ics_source::{IcsSource, IcsSourceForm, NewIcsSource};
-use olmonoko_backend::utils::flash::{FlashMessage, WithFlashMessage};
-use olmonoko_backend::utils::time::timestamp;
+use olmonoko_common::models::event::remote::RemoteSourceId;
+use olmonoko_common::models::event::Priority;
+use olmonoko_common::models::ics_source::{IcsSource, IcsSourceForm, NewIcsSource};
+use olmonoko_common::utils::flash::{FlashMessage, WithFlashMessage};
+use olmonoko_common::utils::time::timestamp;
 
 #[get("")]
 async fn sources(data: web::Data<AppState>, request: HttpRequest) -> impl Responder {
@@ -171,7 +171,7 @@ async fn change_priority(
     deauth(&request)
 }
 
-use olmonoko_backend::models::ics_source::deserialize_checkbox;
+use olmonoko_common::models::ics_source::deserialize_checkbox;
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ChangeEventPersistenceForm {
     #[serde(deserialize_with = "deserialize_checkbox", default)]

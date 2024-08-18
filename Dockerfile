@@ -27,6 +27,6 @@ FROM gcr.io/distroless/static AS runtime
 ARG DATABASE_URL
 WORKDIR /app
 COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/olmonoko-backend /app
-COPY --from=builder /app/static /app/static
-COPY --from=builder /app/templates /app/templates
+COPY --from=builder /app/olmonoko-backend/static /app/static
+COPY --from=builder /app/olmonoko-backend/templates /app/templates
 CMD ["/app/olmonoko-backend"]

@@ -4,11 +4,6 @@ use tokio_cron_scheduler::JobScheduler;
 pub mod models;
 pub mod utils;
 
-pub mod built_info {
-    // The file has been placed there by the build script.
-    include!(concat!(env!("OUT_DIR"), "/built.rs"));
-}
-
 pub type DatabaseConnection = sqlx::PgPool;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -33,12 +28,6 @@ pub struct AppState {
 
 pub fn get_site_url() -> String {
     std::env::var("SITE_URL").expect("SITE_URL must be set")
-}
-
-pub fn get_source_commit() -> Option<String> {
-    built_info::GIT_COMMIT_HASH
-        .map(|s| s.to_string())
-        .or(std::env::var("SOURCE_COMMIT").ok())
 }
 
 #[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]

@@ -19,13 +19,13 @@ use sqlx::Postgres;
 use tracing::info_span;
 use tracing::Instrument;
 
-use olmonoko_backend::models::event::remote::NewRemoteEvent;
-use olmonoko_backend::models::event::remote::NewRemoteEventOccurrence;
-use olmonoko_backend::models::event::Priority;
-use olmonoko_backend::models::event::DEFAULT_PRIORITY;
-use olmonoko_backend::models::ics_source::IcsSource;
-use olmonoko_backend::models::ics_source::RawIcsSource;
-use olmonoko_backend::utils::time::timestamp;
+use olmonoko_common::models::event::remote::NewRemoteEvent;
+use olmonoko_common::models::event::remote::NewRemoteEventOccurrence;
+use olmonoko_common::models::event::Priority;
+use olmonoko_common::models::event::DEFAULT_PRIORITY;
+use olmonoko_common::models::ics_source::IcsSource;
+use olmonoko_common::models::ics_source::RawIcsSource;
+use olmonoko_common::utils::time::timestamp;
 
 #[derive(Debug, Clone, PartialEq, Hash)]
 pub struct ProcessedData {
@@ -541,7 +541,7 @@ pub struct ImportTemplateDelta {
 pub fn test_import_template(template: &str) -> Result<(), ImportTemplateError> {
     let test_rrule = "FREQ=DAILY".to_string();
     let test_summary = "OLMONOKO::TEST".to_string();
-    let event = olmonoko_backend::models::event::remote::NewRemoteEvent {
+    let event = olmonoko_common::models::event::remote::NewRemoteEvent {
         event_source_id: 1,
         priority_override: Some(1),
         rrule: Some(test_rrule),
@@ -584,7 +584,7 @@ mod tests {
         let template = r#"
 {}
 "#;
-        let event = olmonoko_backend::models::event::remote::NewRemoteEvent {
+        let event = olmonoko_common::models::event::remote::NewRemoteEvent {
             event_source_id: 1,
             priority_override: Some(1),
             rrule: Some("FREQ=DAILY".to_string()),
@@ -603,7 +603,7 @@ mod tests {
                 .unwrap();
         assert_eq!(
             result,
-            olmonoko_backend::models::event::remote::NewRemoteEvent {
+            olmonoko_common::models::event::remote::NewRemoteEvent {
                 event_source_id: 1,
                 priority_override: Some(1),
                 rrule: Some("FREQ=DAILY".to_string()),
@@ -632,7 +632,7 @@ mod tests {
             "tags": ["tag1"]
         }
         "#;
-        let event = olmonoko_backend::models::event::remote::NewRemoteEvent {
+        let event = olmonoko_common::models::event::remote::NewRemoteEvent {
             event_source_id: 1,
             priority_override: Some(1),
             rrule: Some("FREQ=DAILY".to_string()),
@@ -651,7 +651,7 @@ mod tests {
                 .unwrap();
         assert_eq!(
             result,
-            olmonoko_backend::models::event::remote::NewRemoteEvent {
+            olmonoko_common::models::event::remote::NewRemoteEvent {
                 event_source_id: 1,
                 priority_override: Some(2),
                 rrule: Some("FREQ=DAILY".to_string()),

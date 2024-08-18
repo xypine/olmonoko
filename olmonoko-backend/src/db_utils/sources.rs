@@ -1,6 +1,6 @@
 use actix_web::web;
 
-use olmonoko_backend::{
+use olmonoko_common::{
     models::{
         event::remote::RemoteSourceId,
         ics_source::{IcsSource, RawIcsSource},

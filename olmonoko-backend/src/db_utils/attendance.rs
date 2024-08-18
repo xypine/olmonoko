@@ -1,4 +1,4 @@
-use olmonoko_backend::models::attendance::{
+use olmonoko_common::models::attendance::{
     Attendance, AttendanceEvent, NewAttendance, RawAttendance,
 };
 use sqlx::{Executor, Postgres};

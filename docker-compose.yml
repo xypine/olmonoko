@@ -23,7 +23,7 @@ services:
       - 8050:8080
   backend:
     build:
-      context: ./olmonoko-backend/
+      context: .
     depends_on:
       - db
     ports:

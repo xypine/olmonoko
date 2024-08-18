@@ -2,9 +2,7 @@ use actix_cors::Cors;
 use actix_files::Files;
 use actix_web::{web, App, HttpServer};
 use chrono::Datelike;
-use olmonoko_backend::{
-    get_site_url, get_source_commit, AppState, BuildInformation, DatabaseConnection,
-};
+use olmonoko_common::{get_site_url, AppState, BuildInformation, DatabaseConnection};
 use tokio_cron_scheduler::JobScheduler;
 use tracing::info;
 use tracing_actix_web::TracingLogger;
@@ -12,6 +10,7 @@ use tracing_actix_web::TracingLogger;
 mod api;
 mod ui;
 
+use crate::get_source_commit;
 use crate::middleware::autocache_responder;
 use crate::middleware::autocacher::PREDICTIVE_CACHE_ENABLED;
 use crate::middleware::AutoCacher;

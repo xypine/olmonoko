@@ -1,9 +1,9 @@
 use actix_web::{web, HttpRequest, HttpResponse, HttpResponseBuilder};
-use olmonoko_backend::utils::{
+use olmonoko_common::utils::{
     flash::{FlashMessage, FLASH_COOKIE_NAME},
     time::timestamp,
 };
-use olmonoko_backend::{
+use olmonoko_common::{
     models::{
         event::PRIORITY_OPTIONS,
         session::SessionRaw,

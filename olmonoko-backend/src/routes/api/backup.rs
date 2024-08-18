@@ -4,7 +4,7 @@ use crate::{
     db_utils::request::{deauth, EnhancedRequest, SESSION_COOKIE_NAME},
     middleware::autocacher::CACHE_RECURSION_PREVENTION_HEADER,
 };
-use olmonoko_backend::{
+use olmonoko_common::{
     models::{
         attendance::RawAttendance,
         bills::RawBill,

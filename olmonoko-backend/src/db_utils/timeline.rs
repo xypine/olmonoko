@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use actix_web::web;
 
-use olmonoko_backend::{models::user::UserId, utils::event_filters::EventFilter, AppState};
+use olmonoko_common::{models::user::UserId, utils::event_filters::EventFilter, AppState};
 
 use crate::db_utils::events::get_visible_event_occurrences;
 

@@ -1,0 +1,17 @@
+[package]
+name = "olmonoko-common"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+actix-web = "4.9"
+chrono = { version = "0.4", features = ["serde"] }
+chrono-humanize = "0.2"
+chrono-tz = "0.9"
+serde = { version = "1.0", features = ["derive"] }
+serde_with = "3.9"
+sqlx = { version = "0.7", default-features = false, features = ["postgres", "macros"] }
+tera = "1.20.0"
+tokio-cron-scheduler = "0.10"
+tracing = "0.1"
+uuid = { version = "1.10", features = ["serde", "v4"] }

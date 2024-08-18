@@ -15,7 +15,7 @@ use actix_web::{
     Error,
 };
 
-use olmonoko_backend::get_site_url;
+use olmonoko_common::get_site_url;
 
 use crate::db_utils::request::{EnhancedRequest, SESSION_COOKIE_NAME};
 

@@ -1,7 +1,12 @@
 [workspace]
 resolver = "2"
 members = [
-    "olmonoko-backend",
-    "olmonokod"
+    "olmonoko*" 
 ]
 
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+
+[workspace.metadata.crane]
+name = "olmonoko-workspace"

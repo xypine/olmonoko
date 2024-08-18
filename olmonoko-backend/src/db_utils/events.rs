@@ -1,7 +1,7 @@
 use actix_web::web;
 use itertools::Itertools;
 
-use olmonoko_backend::{
+use olmonoko_common::{
     models::{
         attendance::{Attendance, RawAttendance},
         bills::RawBill,
@@ -15,7 +15,7 @@ use olmonoko_backend::{
     AppState,
 };
 
-use olmonoko_backend::utils::event_filters::EventFilter;
+use olmonoko_common::utils::event_filters::EventFilter;
 
 pub async fn get_user_local_events(
     data: &web::Data<AppState>,

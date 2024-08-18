@@ -5,7 +5,7 @@ use actix_web::{
 };
 use actix_web_lab::middleware::Next;
 
-use olmonoko_backend::get_site_url;
+use olmonoko_common::get_site_url;
 
 use crate::db_utils::request::EnhancedRequest;
 

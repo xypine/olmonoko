@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use reqwest::header::{HeaderMap, HeaderValue};
 
-use olmonoko_backend::models::{event::EventOccurrenceHuman, user::UserPublic};
+use olmonoko_common::models::{event::EventOccurrenceHuman, user::UserPublic};
 
 pub async fn create_session(
     instance_url: &str,
@@ -97,10 +97,10 @@ pub async fn get_upcoming_events(
         details
             .into_iter()
             .filter(|e| {
-                e.starts_at_utc.timestamp() >= olmonoko_backend::utils::time::timestamp()
+                e.starts_at_utc.timestamp() >= olmonoko_common::utils::time::timestamp()
                 // TODO: Come up with a nice way to format ongoing events
                 //|| e.starts_at_utc.timestamp() + e.duration.unwrap_or_default() as i64
-                //    >= olmonoko_backend::utils::time::timestamp()
+                //    >= olmonoko_common::utils::time::timestamp()
             })
             .map(|e| {
                 let mut new = e.clone();

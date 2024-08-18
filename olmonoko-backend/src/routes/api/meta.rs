@@ -1,6 +1,6 @@
 use actix_web::{get, web, HttpResponse, Responder, Scope};
 
-use olmonoko_backend::AppState;
+use olmonoko_common::AppState;
 
 #[get("/version")]
 async fn version(data: web::Data<AppState>) -> impl Responder {

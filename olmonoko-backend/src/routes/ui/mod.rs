@@ -6,7 +6,7 @@ use actix_web::{
 };
 use chrono::{Datelike, NaiveTime, Timelike};
 use itertools::Itertools;
-use olmonoko_backend::{
+use olmonoko_common::{
     models::{
         attendance::{Attendance, RawAttendance},
         event::{
@@ -466,8 +466,8 @@ async fn calendar(
             if is_today {
                 day_events.push(EventOccurrenceHuman {
                     id: -1,
-                    source: olmonoko_backend::models::event::EventSource::Local(
-                        olmonoko_backend::models::event::SourceLocal { user_id: -1 },
+                    source: olmonoko_common::models::event::EventSource::Local(
+                        olmonoko_common::models::event::SourceLocal { user_id: -1 },
                     ),
                     tags: vec![],
                     attendance: None,

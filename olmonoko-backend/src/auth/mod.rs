@@ -1,6 +1,6 @@
 pub mod email;
 
-use olmonoko_backend::{
+use olmonoko_common::{
     models::user::{NewUser, RawUser, User},
     AppState,
 };

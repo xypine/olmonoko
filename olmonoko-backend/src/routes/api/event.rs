@@ -4,7 +4,7 @@ use actix_web::{
     HttpRequest, HttpResponse, Responder, Scope,
 };
 
-use olmonoko_backend::{
+use olmonoko_common::{
     models::{
         attendance::{AttendanceEvent, AttendanceForm, NewAttendance},
         bills::{

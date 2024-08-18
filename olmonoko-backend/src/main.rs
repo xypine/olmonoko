@@ -8,8 +8,6 @@ use dotenvy::dotenv;
 use thiserror::Error;
 use tracing_subscriber::filter::{EnvFilter, LevelFilter};
 
-use olmonoko_backend::{built_info, get_source_commit};
-
 #[derive(Error, Debug)]
 pub enum AppError {
     #[error("Database error: {0}")]
@@ -63,4 +61,15 @@ pub(crate) async fn get_conn() -> Result<sqlx::PgPool, sqlx::Error> {
         .connect(&database_url)
         .await?;
     Ok(pool)
+}
+
+pub mod built_info {
+    // The file has been placed there by the build script.
+    include!(concat!(env!("OUT_DIR"), "/built.rs"));
+}
+
+pub fn get_source_commit() -> Option<String> {
+    built_info::GIT_COMMIT_HASH
+        .map(|s| s.to_string())
+        .or(std::env::var("SOURCE_COMMIT").ok())
 }
