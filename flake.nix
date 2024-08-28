@@ -192,6 +192,7 @@
             # Rust
             # pkgs.rust-bin.nightly.latest.default
             # pkgs.cargo # Package manager
+            pkgs.cargo-audit # Manual checks against security vulnerabilities
             pkgs.rustfmt # Formatting
             pkgs.bacon # Constant feedback
             pkgs.clippy # Tips & tricks
