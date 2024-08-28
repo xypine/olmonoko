@@ -205,9 +205,29 @@ fieldset {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  border: 1px solid color-mix(in srgb, var(--contrast) 20%, transparent 80%);
+  /*border: 1px solid color-mix(in srgb, var(--contrast) 20%, transparent 80%);*/
+  border: none;
   background: var(--surface-variant);
-  border-radius: 0.5rem;
+  border-radius: 0.25rem;
+}
+legend {
+  font-weight: 500;
+}
+
+input,
+textarea,
+select {
+  background: transparent;
+  border: 1px solid color-mix(in oklab, var(--contrast) 10%, transparent);
+  padding: 0.2em 0.3em;
+  outline-offset: 0.2em;
+  border-bottom: 1px solid color-mix(in oklab, var(--contrast), transparent);
+  transition: 200ms border;
+
+  &:focus {
+    border-bottom: 1px solid var(--contrast);
+    outline: thin dotted var(--primary);
+  }
 }
 
 summary {
