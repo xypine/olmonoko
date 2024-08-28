@@ -195,6 +195,9 @@
             pkgs.rustfmt # Formatting
             pkgs.bacon # Constant feedback
             pkgs.clippy # Tips & tricks
+
+            # SQL Helper
+            pkgs.sqlx-cli
           ];
         };
       });

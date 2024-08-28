@@ -1,0 +1,118 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT COUNT(DISTINCT e.id) AS event_count, COUNT(o.id) AS occurrence_count, s.*, MAX(CASE WHEN p.priority IS NOT NULL THEN p.priority END) AS priority FROM ics_sources AS s LEFT JOIN ics_source_priorities AS p ON p.ics_source_id = s.id AND p.user_id = $1 LEFT JOIN events AS e ON e.event_source_id = s.id LEFT JOIN event_occurrences AS o ON o.event_id = e.id WHERE s.is_public = true OR s.user_id = $1 GROUP BY s.id, p.priority",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "event_count",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "occurrence_count",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "user_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "is_public",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 5,
+        "name": "name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "url",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 7,
+        "name": "created_at",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 8,
+        "name": "last_fetched_at",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 9,
+        "name": "persist_events",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 10,
+        "name": "all_as_allday",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 11,
+        "name": "import_template",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "file_hash",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 13,
+        "name": "object_hash",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 14,
+        "name": "updated_at",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 15,
+        "name": "object_hash_version",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 16,
+        "name": "priority",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      null
+    ]
+  },
+  "hash": "2869588c3d3fcf550a1ef6af1781d1920087589c160fc02963b8838d222b9341"
+}

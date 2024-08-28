@@ -151,7 +151,12 @@ where
     let mut hasher = DefaultHasher::new();
     processed.hash(&mut hasher);
     let object_hash = hasher.finish().to_string();
-    if source.object_hash.is_some_and(|hash| hash == object_hash) {
+    let current_object_hash_version = crate::get_version();
+    if source.object_hash.is_some_and(|hash| hash == object_hash)
+        && source
+            .object_hash_version
+            .is_some_and(|version| version == current_object_hash_version)
+    {
         tracing::info!("No new events (object hash match)");
         sqlx::query!(
             "UPDATE ics_sources SET last_fetched_at = $1, file_hash = $2 WHERE id = $3",
@@ -164,14 +169,24 @@ where
         return Ok(false);
     }
 
+    let active_events = processed.events;
+
     if !source.persist_events {
+        let future_event_ids: Vec<_> = active_events
+            .iter()
+            .map(|event| event.uid.clone())
+            .collect();
+        println!("fei: {future_event_ids:?}");
         // Remove existing events for this source
-        sqlx::query!("DELETE FROM events WHERE event_source_id = $1", source_id)
-            .execute(&mut *conn)
-            .await?;
+        sqlx::query!(
+            "DELETE FROM events WHERE event_source_id = $1 AND NOT ( uid = ANY($2) )",
+            source_id,
+            &future_event_ids
+        )
+        .execute(&mut *conn)
+        .await?;
     }
 
-    let active_events = processed.events;
     let mut event_occurrences = processed.event_occurrences;
     let skipped_events = processed.skipped_event_ids;
 
@@ -256,10 +271,11 @@ where
 
     // update source last fetched and file hash
     sqlx::query!(
-        "UPDATE ics_sources SET last_fetched_at = $1, file_hash = $2, object_hash = $3 WHERE id = $4",
+        "UPDATE ics_sources SET last_fetched_at = $1, file_hash = $2, object_hash = $3, object_hash_version = $4 WHERE id = $5",
         fetched_at,
         new_hash,
         object_hash,
+        current_object_hash_version,
         source_id
     )
     .execute(&mut *conn)

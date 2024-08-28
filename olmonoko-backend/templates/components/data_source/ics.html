@@ -25,6 +25,7 @@
     <p><b>Last Synced</b>: {{ source.last_fetched_at }}</p>
     <p><b>File Hash</b>: <code>{{ source.file_hash|default(value = "not calculated yet") }}</code></p>
     <p><b>Object Hash</b>: <code>{{ source.object_hash|default(value = "not calculated yet") }}</code></p>
+    <p><b>Object Hash Version</b>: <code>{{ source.object_hash_version|default(value = "not calculated yet") }}</code></p>
     {% if user %}
         <form action="/api/source/{{ source.id }}/sync" method="POST">
             <button id="sync-{{ source.id }}" type="submit" class="btn">Sync</button>

@@ -17,6 +17,7 @@ pub struct RawIcsSource {
     pub import_template: Option<String>,
     pub file_hash: Option<String>,
     pub object_hash: Option<String>,
+    pub object_hash_version: Option<String>,
 }
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct IcsSource {
@@ -34,6 +35,7 @@ pub struct IcsSource {
     pub chosen_priority: Option<Priority>,
     pub file_hash: Option<String>,
     pub object_hash: Option<String>,
+    pub object_hash_version: Option<String>,
 }
 impl From<(RawIcsSource, Option<Priority>)> for IcsSource {
     fn from((raw, chosen_priority): (RawIcsSource, Option<Priority>)) -> Self {
@@ -52,6 +54,7 @@ impl From<(RawIcsSource, Option<Priority>)> for IcsSource {
             chosen_priority,
             file_hash: raw.file_hash,
             object_hash: raw.object_hash,
+            object_hash_version: raw.object_hash_version,
         }
     }
 }

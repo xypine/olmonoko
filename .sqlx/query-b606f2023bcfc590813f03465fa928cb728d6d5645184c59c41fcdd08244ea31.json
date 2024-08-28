@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM event_tags WHERE local_event_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b606f2023bcfc590813f03465fa928cb728d6d5645184c59c41fcdd08244ea31"
+}

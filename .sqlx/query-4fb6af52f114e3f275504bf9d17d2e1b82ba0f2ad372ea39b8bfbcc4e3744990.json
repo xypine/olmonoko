@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO attendance (user_id, local_event_id, remote_event_id, planned, actual, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4",
+        "Int4",
+        "Bool",
+        "Bool",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4fb6af52f114e3f275504bf9d17d2e1b82ba0f2ad372ea39b8bfbcc4e3744990"
+}

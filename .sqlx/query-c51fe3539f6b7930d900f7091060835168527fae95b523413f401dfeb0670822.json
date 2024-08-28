@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT * FROM public_calendar_links WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "created_at",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "min_priority",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "max_priority",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "c51fe3539f6b7930d900f7091060835168527fae95b523413f401dfeb0670822"
+}

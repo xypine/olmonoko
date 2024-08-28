@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT event_occurrences.* FROM event_occurrences INNER JOIN events ON events.id = event_occurrences.event_id INNER JOIN ics_sources ON events.event_source_id = ics_sources.id AND ics_sources.persist_events = true",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "event_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "starts_at",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "from_rrule",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "f25900d42240d9188e99548eed6a9cf8aa588956318affc8f3016f24af38daa3"
+}

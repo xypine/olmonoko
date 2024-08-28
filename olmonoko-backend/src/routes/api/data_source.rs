@@ -160,6 +160,7 @@ async fn change_priority(
                 import_template: None,
                 file_hash: None,
                 object_hash: None,
+                object_hash_version: None,
             },
         );
         let component = data
@@ -214,6 +215,7 @@ async fn change_persist_events(
                 import_template: None,
                 file_hash: None,
                 object_hash: None,
+                object_hash_version: None,
             },
         );
         let component = data
@@ -266,6 +268,7 @@ async fn change_all_as_allday(
                 import_template: None,
                 file_hash: None,
                 object_hash: None,
+                object_hash_version: None,
             },
         );
         let component = data
@@ -330,6 +333,7 @@ async fn change_import_template(
                 import_template: new_value,
                 file_hash: None,
                 object_hash: None,
+                object_hash_version: None,
             },
         );
         let component = data

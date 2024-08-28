@@ -1,0 +1,80 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT events.* FROM events INNER JOIN ics_sources ON events.event_source_id = ics_sources.id AND ics_sources.persist_events = true",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "event_source_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "dt_stamp",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "duration",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "summary",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "location",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "uid",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "rrule",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "all_day",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 10,
+        "name": "priority_override",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      false,
+      true,
+      true,
+      false,
+      true,
+      false,
+      true
+    ]
+  },
+  "hash": "3bf08474390059c99f6c058a3140d79322745029143d9a6f0b3bd354128a8ae0"
+}

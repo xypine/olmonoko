@@ -35,7 +35,8 @@ pub async fn get_visible_sources(
             all_as_allday: source.all_as_allday,
             import_template: source.import_template,
             file_hash: source.file_hash,
-                object_hash: source.object_hash,
+            object_hash: source.object_hash,
+            object_hash_version: source.object_hash_version
         }, source.priority))
     })
     .collect()
@@ -68,6 +69,7 @@ pub async fn get_visible_sources_with_event_count(
             import_template: source.import_template,
             file_hash: source.file_hash,
             object_hash: source.object_hash,
+            object_hash_version: source.object_hash_version,
         }, source.priority));
         (s, source.event_count.unwrap_or_default(), source.occurrence_count.unwrap_or_default())
     })
@@ -100,7 +102,8 @@ pub async fn get_source_as_user(
             all_as_allday: source.all_as_allday,
             import_template: source.import_template,
             file_hash: source.file_hash,
-                object_hash: source.object_hash,
+            object_hash: source.object_hash,
+            object_hash_version: source.object_hash_version,
         }, source.priority))
     })
 }
@@ -133,6 +136,7 @@ pub async fn get_source_as_user_with_event_count(
             import_template: r.import_template,
             file_hash: r.file_hash,
             object_hash: r.object_hash,
+            object_hash_version: r.object_hash_version,
         },
         r.priority,
     ));

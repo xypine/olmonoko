@@ -1,0 +1,98 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT * FROM ics_sources",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "is_public",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 3,
+        "name": "name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "url",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "created_at",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "last_fetched_at",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "persist_events",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "all_as_allday",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 9,
+        "name": "import_template",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "file_hash",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "object_hash",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "updated_at",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 13,
+        "name": "object_hash_version",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "7ef211afb49921aafb305beb4092f2dbd3074c3e5b4d2eb1821d45df6f1a45e7"
+}

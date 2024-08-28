@@ -1,7 +1,6 @@
 use actix_cors::Cors;
 use actix_files::Files;
 use actix_web::{web, App, HttpServer};
-use chrono::Datelike;
 use olmonoko_common::{get_site_url, AppState, BuildInformation, DatabaseConnection};
 use tokio_cron_scheduler::JobScheduler;
 use tracing::info;
@@ -10,41 +9,19 @@ use tracing_actix_web::TracingLogger;
 mod api;
 mod ui;
 
-use crate::get_source_commit;
 use crate::middleware::autocache_responder;
 use crate::middleware::autocacher::PREDICTIVE_CACHE_ENABLED;
 use crate::middleware::AutoCacher;
+use crate::{get_source_commit, get_version};
 use actix_web_lab::middleware::from_fn;
 
 pub async fn run_server(conn: DatabaseConnection, scheduler: JobScheduler) -> std::io::Result<()> {
     let templates = tera::Tera::new("templates/**/*").unwrap();
     let site_url = get_site_url();
-    fn to_two_digits(n: u32) -> String {
-        (if n < 10 {
-            format!("0{}", n)
-        } else {
-            n.to_string()
-        })
-        .chars()
-        .rev()
-        .take(2)
-        .collect::<String>()
-        .chars()
-        .rev()
-        .collect()
-    }
-    let built_at = built::util::strptime(crate::built_info::BUILT_TIME_UTC);
     let commit = get_source_commit();
     let commit_short = commit.as_ref().map(|s| s.chars().take(7).collect());
-    let version = format!(
-        "v{}{}{}-{}",
-        to_two_digits(built_at.year() as u32),
-        to_two_digits(built_at.month()),
-        to_two_digits(built_at.day()),
-        commit_short
-            .clone()
-            .unwrap_or_else(|| "eeeeeee".to_string())
-    );
+    let built_at = built::util::strptime(crate::built_info::BUILT_TIME_UTC);
+    let version = get_version();
     let package_version = crate::built_info::PKG_VERSION.to_string();
     let state = AppState {
         site_url,

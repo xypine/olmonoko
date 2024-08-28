@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM attendance WHERE user_id = $1 AND (local_event_id = $2 OR $2 IS NULL) AND (remote_event_id = $3 OR $3 IS NULL)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "bd57c0dd877ca26acdac74d16bc9c2ecbd4e5d03314ab2b3c0e14bb4816254e4"
+}

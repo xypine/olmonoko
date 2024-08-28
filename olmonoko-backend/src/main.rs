@@ -4,6 +4,7 @@ mod logic;
 mod middleware;
 mod routes;
 
+use chrono::Datelike;
 use dotenvy::dotenv;
 use thiserror::Error;
 use tracing_subscriber::filter::{EnvFilter, LevelFilter};
@@ -72,4 +73,34 @@ pub fn get_source_commit() -> Option<String> {
     built_info::GIT_COMMIT_HASH
         .map(|s| s.to_string())
         .or(std::env::var("SOURCE_COMMIT").ok())
+}
+
+pub fn get_version() -> String {
+    fn to_two_digits(n: u32) -> String {
+        (if n < 10 {
+            format!("0{}", n)
+        } else {
+            n.to_string()
+        })
+        .chars()
+        .rev()
+        .take(2)
+        .collect::<String>()
+        .chars()
+        .rev()
+        .collect()
+    }
+    let built_at = built::util::strptime(crate::built_info::BUILT_TIME_UTC);
+    let commit = get_source_commit();
+    let commit_short = commit.as_ref().map(|s| s.chars().take(7).collect());
+    let version = format!(
+        "v{}{}{}-{}",
+        to_two_digits(built_at.year() as u32),
+        to_two_digits(built_at.month()),
+        to_two_digits(built_at.day()),
+        commit_short
+            .clone()
+            .unwrap_or_else(|| "eeeeeee".to_string())
+    );
+    return version;
 }

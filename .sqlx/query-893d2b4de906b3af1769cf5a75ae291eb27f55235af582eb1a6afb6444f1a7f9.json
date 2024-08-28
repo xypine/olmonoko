@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                SELECT event_tags.*\n                FROM event_tags\n                LEFT JOIN events ON events.id = event_tags.remote_event_id\n                LEFT JOIN ics_sources ON events.event_source_id = ics_sources.id\n                WHERE (ics_sources.persist_events = true OR event_tags.local_event_id IS NOT NULL);\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "local_event_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "remote_event_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "tag",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "created_at",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "893d2b4de906b3af1769cf5a75ae291eb27f55235af582eb1a6afb6444f1a7f9"
+}

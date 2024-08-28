@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM events WHERE event_source_id = $1 AND NOT ( uid = ANY($2) )",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "TextArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "288f7abd4200d003be35933024a1f967494069e25f26fd5a86d308219bad3b4c"
+}

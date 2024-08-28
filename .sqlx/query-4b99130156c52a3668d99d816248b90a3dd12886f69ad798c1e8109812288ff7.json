@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO unverified_users (email, password_hash, admin, secret)\n        VALUES ($1, $2, $3, $4)\n        ON CONFLICT (email) DO UPDATE SET secret = EXCLUDED.secret\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Varchar",
+        "Bool",
+        "Varchar"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4b99130156c52a3668d99d816248b90a3dd12886f69ad798c1e8109812288ff7"
+}
