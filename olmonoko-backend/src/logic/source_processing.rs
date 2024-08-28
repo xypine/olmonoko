@@ -27,12 +27,15 @@ use olmonoko_common::models::ics_source::IcsSource;
 use olmonoko_common::models::ics_source::RawIcsSource;
 use olmonoko_common::utils::time::timestamp;
 
+use crate::db_utils::ical::EnhancedIcalendarEvent;
+
 #[derive(Debug, Clone, PartialEq, Hash)]
 pub struct ProcessedData {
     pub events: Vec<NewRemoteEvent>,
     pub event_occurrences: Vec<Vec<NewRemoteEventOccurrence>>,
     pub skipped_event_ids: Vec<String>,
 }
+
 
 pub(crate) fn process_events(source: &IcsSource, events: Vec<VEvent>, tz: Tz) -> ProcessedData {
     let flatten_ts_with_tz = |dt| flatten_ts(dt, tz);
@@ -176,7 +179,6 @@ where
             .iter()
             .map(|event| event.uid.clone())
             .collect();
-        println!("fei: {future_event_ids:?}");
         // Remove existing events for this source
         sqlx::query!(
             "DELETE FROM events WHERE event_source_id = $1 AND NOT ( uid = ANY($2) )",
