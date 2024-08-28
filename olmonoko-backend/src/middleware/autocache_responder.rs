@@ -1,9 +1,9 @@
 use actix_web::{
     body::{EitherBody, MessageBody},
+    middleware::Next,
     dev::{ServiceRequest, ServiceResponse},
     Error, HttpResponse,
 };
-use actix_web_lab::middleware::Next;
 
 use olmonoko_common::get_site_url;
 

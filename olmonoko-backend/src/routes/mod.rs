@@ -13,7 +13,7 @@ use crate::middleware::autocache_responder;
 use crate::middleware::autocacher::PREDICTIVE_CACHE_ENABLED;
 use crate::middleware::AutoCacher;
 use crate::{get_source_commit, get_version};
-use actix_web_lab::middleware::from_fn;
+use actix_web::middleware::from_fn;
 
 pub async fn run_server(conn: DatabaseConnection, scheduler: JobScheduler) -> std::io::Result<()> {
     let templates = tera::Tera::new("templates/**/*").unwrap();
