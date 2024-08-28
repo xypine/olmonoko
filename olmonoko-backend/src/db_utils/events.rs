@@ -274,7 +274,7 @@ pub async fn get_visible_events(
     let mut events: Vec<Event> = remote_events
         .into_iter()
         .sorted_by_key(|(event, _, _)| event.id)
-        .group_by(|(event, _, _)| event.id)
+        .chunk_by(|(event, _, _)| event.id)
         .into_iter()
         .flat_map(|(_, group)| {
             let group: Vec<_> = group.collect();

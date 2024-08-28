@@ -85,7 +85,7 @@ async fn local(
             .clone()
             .into_iter()
             .sorted_by_key(|event| event.priority)
-            .group_by(|event| event.priority)
+            .chunk_by(|event| event.priority)
             .into_iter()
             .map(|(priority, group)| {
                 let group: Vec<_> = group.sorted_by_key(|e| e.starts_at.timestamp()).collect();
