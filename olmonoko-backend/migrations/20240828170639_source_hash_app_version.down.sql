@@ -1,1 +1,1 @@
-ALTER TABLE ics_sources DROP COLUMN object_hash_version TEXT;
+ALTER TABLE ics_sources DROP COLUMN object_hash_version;

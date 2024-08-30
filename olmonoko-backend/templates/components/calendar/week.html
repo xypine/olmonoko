@@ -57,7 +57,7 @@
 		{% set length_h = length_s / 3600 %}
 		{% set start_s = event.starts_at_seconds|default(value="0") %}
 		{% set start_h = start_s / 3600 %}
-		{% if event.id == -1 %}
+		{% if event.id.Local | default(value = "") == -1 %}
 		<div id="now" class="calendar-week-event"
 			style="--event-start: {{ start_h }}; --event-length: {{ length_h }};--overlap-total: {{ event.overlap_total }};--overlap-index: {{ event.overlap_index }}; --event-priority: 1;">
 			Now
@@ -65,7 +65,7 @@
 		{% else %}
 		<a class="calendar-week-event"
 			style="--event-start: {{ start_h }}; --event-length: {{ length_h }};--overlap-total: {{ event.overlap_total }};--overlap-index: {{ event.overlap_index }}; --event-priority: {{ event.priority }};"
-			href="#event-{{ event.id }}" title="{{ event.summary }}">
+			href="#event{{ event.id | json_encode }}" title="{{ event.summary }}">
 			{{ event.summary }}
 		</a>
 		{% endif %}

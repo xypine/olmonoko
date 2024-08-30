@@ -2,7 +2,6 @@ use crate::models::event::local::NewLocalEvent;
 use crate::models::event::Priority;
 use crate::models::user::UserId;
 
-use super::EventId;
 use super::NewBill;
 use super::NewBillWithEvent;
 use chrono::NaiveTime;
@@ -46,7 +45,7 @@ impl TryFrom<NewBillBarcodeFormWithUserId> for NewBillWithEvent {
             .and_utc()
             .timestamp();
         let new_bill = NewBill {
-            event_id: EventId::Local(-1), // placeholder
+            local_event_id: -1, // placeholder
             payee_account_number: barcode.payee_account_number.clone(),
             amount: barcode.amount_cents,
             reference: barcode.reference.clone(),
@@ -71,6 +70,8 @@ impl TryFrom<NewBillBarcodeFormWithUserId> for NewBillWithEvent {
             description,
             location: None,
             uid,
+            attendance_planned: false,
+            attendance_actual: false
         };
         Ok((new_event, new_bill))
     }

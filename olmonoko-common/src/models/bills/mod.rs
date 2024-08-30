@@ -14,8 +14,7 @@ pub struct RawBill {
     pub id: i32,
 
     // either but not both
-    pub local_event_id: Option<i32>,
-    pub remote_event_id: Option<i32>,
+    pub local_event_id: i32,
 
     pub payee_account_number: String,
     pub amount: i32,
@@ -31,15 +30,9 @@ pub struct RawBill {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub enum EventId {
-    Local(i32),
-    Remote(i32),
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Bill {
     pub id: i32,
-    pub event_id: EventId,
+    pub local_event_id: i32,
 
     pub payee_account_number: String,
     pub amount: i32,
@@ -58,14 +51,7 @@ impl From<RawBill> for Bill {
     fn from(raw: RawBill) -> Self {
         Self {
             id: raw.id,
-            event_id: if let Some(local_event_id) = raw.local_event_id {
-                EventId::Local(local_event_id)
-            } else {
-                EventId::Remote(
-                    raw.remote_event_id
-                        .expect("either local or remote event id must be set"),
-                )
-            },
+            local_event_id: raw.local_event_id,
             payee_account_number: raw.payee_account_number,
             amount: raw.amount,
             reference: raw.reference,
@@ -81,7 +67,7 @@ impl From<RawBill> for Bill {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct NewBill {
-    pub event_id: EventId,
+    pub local_event_id: i32,
 
     pub payee_account_number: String,
     pub amount: i32,
@@ -97,7 +83,7 @@ pub type NewBillWithEvent = (NewLocalEvent, NewBill);
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct NewBillForm {
-    pub event_id: EventId,
+    pub event_id: i32,
 
     pub payee_account_number: String,
     pub amount: i32,
@@ -116,7 +102,7 @@ pub struct NewBillForm {
 impl From<NewBillForm> for NewBill {
     fn from(form: NewBillForm) -> Self {
         Self {
-            event_id: form.event_id,
+            local_event_id: form.event_id,
             payee_account_number: form.payee_account_number,
             amount: form.amount,
             reference: form.reference,

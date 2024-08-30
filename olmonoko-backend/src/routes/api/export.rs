@@ -49,37 +49,37 @@ async fn get_calendar(
     }
 }
 
-#[get("/local.ics")]
-async fn get_local_calendar(
-    data: web::Data<AppState>,
-    req: HttpRequest,
-) -> Result<impl Responder, InternalServerError<sqlx::Error>> {
-    let user_opt = req.get_session_user(&data).await;
-    if let Some(user) = user_opt {
-        tracing::info!("Fetching local calendar for user {}", user.id);
-        let events: Vec<EventOccurrence> = get_user_local_events(
-            &data,
-            user.id,
-            true,
-            &EventFilter {
-                ..Default::default()
-            },
-        )
-        .await
-        .into_iter()
-        .map(Event::from)
-        .flat_map(|e| {
-            let o: Vec<EventOccurrence> = e.into();
-            o
-        })
-        .collect();
-        let ics = crate::logic::compose_ics(events)
-            .await
-            .expect("Failed to compose ics");
-        return Ok(HttpResponse::Ok().content_type("text/calendar").body(ics));
-    }
-    Ok(deauth(&req))
-}
+// TODO: Fix
+//#[get("/local.ics")]
+//async fn get_local_calendar(
+//    data: web::Data<AppState>,
+//    req: HttpRequest,
+//) -> Result<impl Responder, InternalServerError<sqlx::Error>> {
+//    let user_opt = req.get_session_user(&data).await;
+//    if let Some(user) = user_opt {
+//        tracing::info!("Fetching local calendar for user {}", user.id);
+//        let events: Vec<EventOccurrence> = get_user_local_events(
+//            &data,
+//            user.id,
+//            true,
+//            &EventFilter {
+//                ..Default::default()
+//            },
+//        )
+//        .await
+//        .into_iter()
+//        .flat_map(|e| {
+//            let o: Vec<EventOccurrence> = e.into();
+//            o
+//        })
+//        .collect();
+//        let ics = crate::logic::compose_ics(events)
+//            .await
+//            .expect("Failed to compose ics");
+//        return Ok(HttpResponse::Ok().content_type("text/calendar").body(ics));
+//    }
+//    Ok(deauth(&req))
+//}
 
 #[delete("/{id}.ics")]
 async fn delete_link(
@@ -203,6 +203,6 @@ pub fn routes() -> Scope {
         .service(delete_link)
         .service(change_filters)
         .service(get_mine)
-        .service(get_local_calendar)
+        //.service(get_local_calendar)
         .service(get_calendar)
 }

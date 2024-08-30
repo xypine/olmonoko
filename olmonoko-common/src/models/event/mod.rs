@@ -1,18 +1,20 @@
 pub mod local;
 pub mod remote;
 
+use std::fmt::Display;
+
 use chrono::{TimeZone, Timelike, Utc};
 use chrono_humanize::Tense;
+use local::LocalEventId;
 use remote::{RemoteEventId, RemoteSourceId};
 
 use crate::utils::time::from_timestamp;
 
 use self::{local::LocalEvent, remote::RemoteEvent};
 
-use super::{
-    attendance::{Attendance, AttendanceForm},
-    user::UserId,
-};
+use super::
+    user::UserId
+;
 
 #[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub struct SourceLocal {
@@ -31,7 +33,6 @@ pub enum EventSource {
     Remote(SourceRemote),
 }
 
-pub type EventId = i32;
 #[allow(dead_code)]
 pub trait EventLike {
     fn id(&self) -> EventId;
@@ -43,114 +44,131 @@ pub trait EventLike {
     fn description(&self) -> Option<&str>;
     fn location(&self) -> Option<&str>;
     fn priority(&self) -> Option<Priority>;
-    fn tags(&self) -> Vec<String>;
 }
 
 pub type Priority = i32;
 pub const DEFAULT_PRIORITY: Priority = 5;
 pub const PRIORITY_OPTIONS: [Priority; 9] = [1, 2, 3, 4, 5, 6, 7, 8, 9];
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct Event {
-    pub id: EventId,
-    pub source: EventSource,
-    pub priority: Priority,
-    pub tags: Vec<String>,
-    pub attendance: Option<Attendance>,
-    // Event data
-    pub starts_at: Vec<chrono::DateTime<Utc>>,
-    pub all_day: bool,
-    pub duration: Option<i32>,
-    pub rrule: Option<String>,
-
-    pub summary: String,
-    pub description: Option<String>,
-    pub location: Option<String>,
-    pub uid: String,
+pub enum Event {
+    Local(LocalEvent),
+    Remote(RemoteEvent, Vec<(i64, Vec<LocalEventId>)>),
 }
-impl EventLike for Event {
-    fn id(&self) -> EventId {
-        self.id
-    }
-    fn source(&self) -> EventSource {
-        self.source
-    }
-    fn priority(&self) -> Option<Priority> {
-        Some(self.priority)
-    }
-    fn tags(&self) -> Vec<String> {
-        self.tags.clone()
-    }
-    fn all_day(&self) -> bool {
-        self.all_day
-    }
-    fn starts_at(&self) -> Vec<i64> {
-        self.starts_at.iter().map(|s| s.timestamp()).collect()
-    }
-    fn duration(&self) -> Option<i32> {
-        self.duration
-    }
-    fn summary(&self) -> &str {
-        &self.summary
-    }
-    fn description(&self) -> Option<&str> {
-        self.description.as_deref()
-    }
-    fn location(&self) -> Option<&str> {
-        self.location.as_deref()
-    }
-}
-
 impl From<LocalEvent> for Event {
-    fn from(local: LocalEvent) -> Self {
-        Self {
-            id: local.id,
-            source: EventSource::Local(SourceLocal {
-                user_id: local.user_id,
-            }),
-            priority: local.priority.unwrap_or(DEFAULT_PRIORITY),
-            tags: local.tags,
-            attendance: local.attendance,
-            starts_at: vec![local.starts_at],
-            all_day: local.all_day,
-            duration: local.duration,
-            rrule: None,
-            summary: local.summary,
-            description: local.description,
-            location: local.location,
-            uid: local.uid,
-        }
+    fn from(event: LocalEvent) -> Self {
+        Self::Local(event)
     }
 }
-
-impl From<(RemoteEvent, Vec<i64>)> for Event {
-    fn from((remote, starts_at): (RemoteEvent, Vec<i64>)) -> Self {
-        Self {
-            id: remote.id,
-            source: EventSource::Remote(SourceRemote {
-                source_id: remote.event_source_id,
-            }),
-            priority: remote.priority.unwrap_or(DEFAULT_PRIORITY),
-            tags: vec![], // TODO: Implement tags for remote events
-            attendance: remote.attendance,
-            starts_at: starts_at.into_iter().map(from_timestamp).collect(),
-            all_day: remote.all_day,
-            duration: remote.duration,
-            rrule: remote.rrule,
-            summary: remote.summary,
-            description: remote.description,
-            location: remote.location,
-            uid: remote.uid,
-        }
+impl From<(RemoteEvent, Vec<(i64, Vec<LocalEventId>)>)> for Event {
+    fn from((event, occurrence_details): (RemoteEvent, Vec<(i64, Vec<LocalEventId>)>)) -> Self {
+        Self::Remote(event, occurrence_details)
     }
 }
+//#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+//pub struct Event {
+//    pub id: EventId,
+//    pub source: EventSource,
+//    pub priority: Priority,
+//    // Event data
+//    pub starts_at: Vec<chrono::DateTime<Utc>>,
+//    pub all_day: bool,
+//    pub duration: Option<i32>,
+//    pub rrule: Option<String>,
+//
+//    pub summary: String,
+//    pub description: Option<String>,
+//    pub location: Option<String>,
+//    pub uid: String,
+//}
+//impl EventLike for Event {
+//    fn id(&self) -> EventId {
+//        self.id
+//    }
+//    fn source(&self) -> EventSource {
+//        self.source
+//    }
+//    fn priority(&self) -> Option<Priority> {
+//        Some(self.priority)
+//    }
+//    fn all_day(&self) -> bool {
+//        self.all_day
+//    }
+//    fn starts_at(&self) -> Vec<i64> {
+//        self.starts_at.iter().map(|s| s.timestamp()).collect()
+//    }
+//    fn duration(&self) -> Option<i32> {
+//        self.duration
+//    }
+//    fn summary(&self) -> &str {
+//        &self.summary
+//    }
+//    fn description(&self) -> Option<&str> {
+//        self.description.as_deref()
+//    }
+//    fn location(&self) -> Option<&str> {
+//        self.location.as_deref()
+//    }
+//}
+//
+//impl From<LocalEvent> for Event {
+//    fn from(local: LocalEvent) -> Self {
+//        Self {
+//            id: local.id,
+//            source: EventSource::Local(SourceLocal {
+//                user_id: local.user_id,
+//            }),
+//            priority: local.priority.unwrap_or(DEFAULT_PRIORITY),
+//            starts_at: vec![local.starts_at],
+//            all_day: local.all_day,
+//            duration: local.duration,
+//            rrule: None,
+//            summary: local.summary,
+//            description: local.description,
+//            location: local.location,
+//            uid: local.uid,
+//        }
+//    }
+//}
+//
+//impl From<(RemoteEvent, Vec<i64>)> for Event {
+//    fn from((remote, starts_at): (RemoteEvent, Vec<i64>)) -> Self {
+//        Self {
+//            id: remote.id,
+//            source: EventSource::Remote(SourceRemote {
+//                source_id: remote.event_source_id,
+//            }),
+//            priority: remote.priority.unwrap_or(DEFAULT_PRIORITY),
+//            starts_at: starts_at.into_iter().map(from_timestamp).collect(),
+//            all_day: remote.all_day,
+//            duration: remote.duration,
+//            rrule: remote.rrule,
+//            summary: remote.summary,
+//            description: remote.description,
+//            location: remote.location,
+//            uid: remote.uid,
+//        }
+//    }
+//}
 
+#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
+pub enum EventId {
+    Local(LocalEventId),
+    Remote(RemoteEventId),
+}
+impl Display for EventId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            EventId::Local(id) => write!(f, "o:l:{id}"),
+            EventId::Remote(id) => write!(f, "o:r:{id}"),
+        }
+        
+    }
+}
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct EventOccurrence {
-    pub id: RemoteEventId, // event id, not specific to this occurrence
+    pub id: EventId, // not unique
     pub source: EventSource,
     pub priority: Priority,
-    pub tags: Vec<String>,
-    pub attendance: Option<Attendance>,
+    pub linked_local_events: Vec<LocalEventId>,
     // Event data
     pub starts_at: chrono::DateTime<Utc>,
     pub all_day: bool,
@@ -173,9 +191,6 @@ impl EventLike for EventOccurrence {
     fn priority(&self) -> Option<Priority> {
         Some(self.priority)
     }
-    fn tags(&self) -> Vec<String> {
-        self.tags.clone()
-    }
     fn all_day(&self) -> bool {
         self.all_day
     }
@@ -197,17 +212,33 @@ impl EventLike for EventOccurrence {
 }
 impl From<Event> for Vec<EventOccurrence> {
     fn from(event: Event) -> Self {
-        event
-            .starts_at
-            .into_iter()
-            .enumerate()
-            .map(|(i, starts_at)| EventOccurrence {
-                id: event.id,
-                source: event.source,
-                priority: event.priority,
-                tags: event.tags.clone(),
-                attendance: event.attendance.clone(),
-                starts_at,
+        match event {
+            Event::Local(event) => {
+                let o = EventOccurrence {
+                    id: EventId::Local(event.id),
+                    source: EventSource::Local(SourceLocal { user_id: event.user_id }),
+                    priority: event.priority.unwrap_or(DEFAULT_PRIORITY),
+                    starts_at: event.starts_at,
+                    linked_local_events: vec![],
+                    all_day: event.all_day,
+                    duration: event.duration,
+                    rrule: None,
+                    from_rrule: false,
+                    summary: event.summary.clone(),
+                    description: event.description.clone(),
+                    location: event.location.clone(),
+                    uid: event.uid.clone(),
+                };
+                vec![o]
+            },
+            Event::Remote(event, meta) => {
+                meta.into_iter().enumerate()
+            .map(|(i, (starts_at, linked_local_events))| EventOccurrence {
+                id: EventId::Remote(event.id),
+                source: EventSource::Remote(SourceRemote { source_id: event.event_source_id }),
+                priority: event.priority.unwrap_or(DEFAULT_PRIORITY),
+                starts_at: from_timestamp(starts_at),
+                linked_local_events, 
                 all_day: event.all_day,
                 duration: event.duration,
                 rrule: event.rrule.clone(),
@@ -218,17 +249,18 @@ impl From<Event> for Vec<EventOccurrence> {
                 uid: event.uid.clone(),
             })
             .collect()
+            },
+        }
     }
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct EventOccurrenceHuman {
-    pub id: RemoteEventId, // event id, not specific to this occurrence
+    pub id: EventId, // event id, not specific to this occurrence
     pub source: EventSource,
     pub priority: Priority,
-    pub tags: Vec<String>,
-    pub attendance: Option<Attendance>,
-    pub attendance_form: Option<AttendanceForm>,
+    pub linked_local_events: Vec<LocalEventId>,
+    
     // Event data
     pub starts_at_human: String,
     pub starts_at_seconds: i64,
@@ -304,14 +336,11 @@ where
         } else {
             0
         };
-        let attendance_form = occurrence.attendance.clone().map(AttendanceForm::from);
         Self {
             id: occurrence.id,
             source: occurrence.source,
             priority: occurrence.priority,
-            tags: occurrence.tags.clone(),
-            attendance: occurrence.attendance.clone(),
-            attendance_form,
+            linked_local_events: occurrence.linked_local_events,
 
             starts_at_human: if occurrence.all_day {
                 starts_at.format("%Y-%m-%d").to_string()
@@ -376,10 +405,6 @@ impl EventLike for EventOccurrenceHuman {
     fn priority(&self) -> Option<Priority> {
         Some(self.priority)
     }
-
-    fn tags(&self) -> Vec<String> {
-        self.tags.clone()
-    }
 }
 
 #[cfg(test)]
@@ -390,11 +415,10 @@ mod tests {
     #[test]
     fn test_event_occurrence_span() {
         let event = EventOccurrence {
-            id: 1,
+            id: EventId::Local(1),
             source: EventSource::Local(SourceLocal { user_id: 1 }),
             priority: 5,
-            tags: vec![],
-            attendance: None,
+            linked_local_events: vec![],
             starts_at: Utc.ymd(2021, 1, 1).and_hms(12, 0, 0),
             all_day: false,
             duration: Some(3600),
@@ -419,11 +443,10 @@ mod tests {
     #[test]
     fn test_event_occurrence_span_whole() {
         let event = EventOccurrence {
-            id: 1,
+            id: EventId::Local(1),
             source: EventSource::Local(SourceLocal { user_id: 1 }),
             priority: 5,
-            tags: vec![],
-            attendance: None,
+            linked_local_events: vec![],
             starts_at: Utc.ymd(2021, 1, 1).and_hms(0, 0, 0),
             all_day: false,
             duration: Some(3600 * 24),
@@ -449,11 +472,10 @@ mod tests {
     fn test_event_occurrence_span_multiday() {
         for tz in [chrono_tz::Etc::UTC, chrono_tz::Europe::Helsinki] {
             let event = EventOccurrence {
-                id: 1,
+            id: EventId::Local(1),
                 source: EventSource::Local(SourceLocal { user_id: 1 }),
                 priority: 5,
-                tags: vec![],
-                attendance: None,
+                linked_local_events: vec![],
                 starts_at: Utc.ymd(2021, 1, 1).and_hms(23, 30, 0),
                 all_day: false,
                 duration: Some(3600),
@@ -477,11 +499,10 @@ mod tests {
             );
 
             let event = EventOccurrence {
-                id: 1,
+            id: EventId::Local(1),
                 source: EventSource::Local(SourceLocal { user_id: 1 }),
                 priority: 5,
-                tags: vec![],
-                attendance: None,
+                linked_local_events: vec![],
                 starts_at: Utc.ymd(2024, 7, 25).and_hms(0, 0, 0),
                 all_day: true,
                 duration: Some(3600 * 24 * 3),
@@ -506,10 +527,10 @@ mod tests {
     #[test]
     fn test_event_occurrence_span_no_duration() {
         let event = EventOccurrence {
-            id: 1,
+            id: EventId::Local(1),
             source: EventSource::Local(SourceLocal { user_id: 1 }),
             priority: 5,
-            tags: vec![],
+            linked_local_events: vec![],
             starts_at: Utc.ymd(2021, 1, 1).and_hms(12, 0, 0),
             all_day: false,
             duration: None,
@@ -519,7 +540,6 @@ mod tests {
             description: None,
             location: None,
             uid: "test".to_string(),
-            attendance: None,
         };
         let tz = Utc;
         let human = EventOccurrenceHuman::from((event, &tz));

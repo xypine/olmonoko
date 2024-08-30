@@ -1,0 +1,32 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                SELECT *\n                FROM event_tags\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "local_event_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "tag",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "created_at",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "1b552d0fb416febfbc22111d77cc363d404be0f1c309bd80c998e32c477c3f31"
+}

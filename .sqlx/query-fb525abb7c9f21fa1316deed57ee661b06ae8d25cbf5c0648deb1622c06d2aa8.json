@@ -65,8 +65,18 @@
       },
       {
         "ordinal": 12,
-        "name": "rrule",
-        "type_info": "Text"
+        "name": "auto_imported",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 13,
+        "name": "attendance_planned",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 14,
+        "name": "attendance_actual",
+        "type_info": "Bool"
       }
     ],
     "parameters": {
@@ -85,7 +95,9 @@
       false,
       false,
       true,
-      true
+      false,
+      false,
+      false
     ]
   },
   "hash": "fb525abb7c9f21fa1316deed57ee661b06ae8d25cbf5c0648deb1622c06d2aa8"

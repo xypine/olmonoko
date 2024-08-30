@@ -20,12 +20,6 @@ pub struct RawAttendance {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub enum AttendanceEvent {
-    Local(i32),
-    Remote(i32),
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Attendance {
     pub planned: bool,
     pub actual: bool,
@@ -37,7 +31,7 @@ pub struct Attendance {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct NewAttendance {
     pub user_id: i32,
-    pub event_id: AttendanceEvent,
+    pub local_event_id: LocalEventId,
 
     pub planned: bool,
     pub actual: bool,
@@ -57,6 +51,7 @@ impl From<RawAttendance> for Attendance {
 use crate::models::ics_source::deserialize_checkbox;
 use crate::models::ics_source::serialize_checkbox;
 
+use super::event::local::LocalEventId;
 use super::user::UserId;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Default)]
@@ -75,11 +70,11 @@ pub struct AttendanceForm {
     pub attend_actual: bool,
 }
 
-impl From<(AttendanceForm, UserId, AttendanceEvent)> for NewAttendance {
-    fn from((form, user_id, event_id): (AttendanceForm, UserId, AttendanceEvent)) -> Self {
+impl From<(AttendanceForm, UserId, LocalEventId)> for NewAttendance {
+    fn from((form, user_id, local_event_id): (AttendanceForm, UserId, LocalEventId)) -> Self {
         Self {
             user_id,
-            event_id,
+            local_event_id,
             planned: form.attend_plan,
             actual: form.attend_actual,
         }

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                DELETE FROM local_events\n                WHERE user_id = $2::integer\n                    AND ($1::integer IS NULL OR id = $1) \n                    AND ($3::bigint IS NULL OR starts_at > $3) \n                    AND ($4::bigint IS NULL OR starts_at < $4) \n                    AND (COALESCE(NULLIF(priority, 0), $7) >= $5 OR $5 IS NULL)\n                    AND (COALESCE(NULLIF(priority, 0), $7) <= $6 OR $6 IS NULL)\n                    AND ($8::text IS NULL OR summary LIKE $8)\n                    AND ($9::text[] IS NULL OR (\n                        SELECT tag.tag\n                        FROM event_tags AS tag\n                        WHERE tag.local_event_id = id\n                        AND tag.tag = ANY($9)\n                    ) IS NOT NULL)\n                    AND ($10::text[] IS NULL OR (\n                        SELECT tag.tag\n                        FROM event_tags AS tag\n                        WHERE tag.local_event_id = id\n                        AND tag.tag = ANY($10)\n                    ) IS NULL)\n                RETURNING *\n            ",
+  "query": "\n                INSERT INTO local_events (user_id, priority, starts_at, all_day, duration, summary, description, location, uid, attendance_planned, attendance_actual)\n                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)\n                RETURNING *\n            ",
   "describe": {
     "columns": [
       {
@@ -84,13 +84,14 @@
         "Int4",
         "Int4",
         "Int8",
-        "Int8",
-        "Int4",
-        "Int4",
+        "Bool",
         "Int4",
         "Text",
-        "TextArray",
-        "TextArray"
+        "Text",
+        "Text",
+        "Text",
+        "Bool",
+        "Bool"
       ]
     },
     "nullable": [
@@ -111,5 +112,5 @@
       false
     ]
   },
-  "hash": "c3873fc928e99184c1717281a21b89947a07359a62e3f59322e6243d0431186f"
+  "hash": "2621f903e9da93da8b509057b999cf01a5744f7d377b34ec2768617199ed1fb4"
 }

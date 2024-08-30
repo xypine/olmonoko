@@ -87,14 +87,33 @@
 				</label>
 			</fieldset>
 			<details
-				{% if selected and (selected.attend_plan == "on" or selected.attend_actual == "on") %}
+				{% if selected and (selected.attendance_planned == "on" or selected.attendance_actual == "on") %}
 					open
 				{% endif %}
 			>
 				<summary>
 					Your Attendance
 				</summary>
-				{% include 'components/attendance.html' %}
+				    <label>
+				      <span>
+					Plan to attend:
+				      </span>
+				      <input type="checkbox" name="attend_plan" autocomplete="off"
+					{% if selected and selected.attendance_planned and selected.attendance_planned == "on" %}
+					  checked
+					{% endif %}
+				      >
+				    </label>
+				    <label>
+				      <span>
+					Attended:
+				      </span>
+				      <input type="checkbox" name="attend_actual" autocomplete="off"
+					{% if selected and selected.attendance_actual and selected.attendance_actual == "on" %}
+					  checked
+					{% endif %}
+				      >
+				    </label>
 			</details>
 			<label>
 				<span>

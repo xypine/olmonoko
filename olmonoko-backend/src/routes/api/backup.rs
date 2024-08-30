@@ -9,7 +9,6 @@ use crate::{
 };
 use olmonoko_common::{
     models::{
-        attendance::RawAttendance,
         bills::RawBill,
         event::{
             local::{LocalEventId, RawLocalEvent},
@@ -35,11 +34,10 @@ pub struct Backup {
     pub local_events: Vec<RawLocalEvent>,
     pub sources: Vec<RawIcsSource>,
     pub source_priorities: Vec<(UserId, IcsSourceId, Priority)>, // user_id, ics_source_id, priority
-    pub attendance: Vec<RawAttendance>,
     pub bills: Vec<RawBill>,
     pub persisted_remote_events: Vec<RawRemoteEvent>,
     pub persisted_remote_event_occurrences: Vec<RawRemoteEventOccurrence>,
-    pub tags: Vec<(i64, Option<LocalEventId>, Option<RemoteEventId>, String)>, // created_at, local_event_id, remote_event_id, tag
+    pub tags: Vec<(i64, LocalEventId, String)>, // created_at, local_event_id, remote_event_id, tag
 }
 
 #[get("/dump.json")]
@@ -81,40 +79,21 @@ async fn export(data: web::Data<AppState>, req: HttpRequest) -> impl Responder {
                 .expect("Failed to fetch local events");
         let tags: Vec<_> = sqlx::query!(
             "
-                SELECT event_tags.*
+                SELECT *
                 FROM event_tags
-                LEFT JOIN events ON events.id = event_tags.remote_event_id
-                LEFT JOIN ics_sources ON events.event_source_id = ics_sources.id
-                WHERE (ics_sources.persist_events = true OR event_tags.local_event_id IS NOT NULL);
             "
         )
         .fetch_all(&data.conn)
         .await
         .expect("Failed to fetch event tags")
         .into_iter()
-        .map(|t| (t.created_at, t.local_event_id, t.remote_event_id, t.tag))
+        .map(|t| (t.created_at, t.local_event_id, t.tag))
         .collect();
-        let attendance: Vec<RawAttendance> = sqlx::query_as!(
-            RawAttendance,
-            "
-                SELECT attendance.*
-                FROM attendance
-                LEFT JOIN events ON events.id = attendance.remote_event_id
-                LEFT JOIN ics_sources ON events.event_source_id = ics_sources.id
-                WHERE (ics_sources.persist_events = true OR attendance.local_event_id IS NOT NULL);
-            "
-        )
-        .fetch_all(&data.conn)
-        .await
-        .expect("Failed to fetch local event attendance");
         let bills: Vec<RawBill> = sqlx::query_as!(
             RawBill,
             "
                 SELECT bills.*
                 FROM bills
-                LEFT JOIN events ON events.id = bills.remote_event_id
-                LEFT JOIN ics_sources ON events.event_source_id = ics_sources.id
-                WHERE (ics_sources.persist_events = true OR bills.local_event_id IS NOT NULL);
             "
         )
         .fetch_all(&data.conn)
@@ -136,7 +115,6 @@ async fn export(data: web::Data<AppState>, req: HttpRequest) -> impl Responder {
             persisted_remote_events,
             local_events,
             tags,
-            attendance,
             bills,
             public_links,
             persisted_remote_event_occurrences,
@@ -356,12 +334,11 @@ async fn restore(
     }
 
     tracing::info!("Restoring event tags");
-    for (created_at, local_event_id, remote_event_id, tag) in &body.tags {
+    for (created_at, local_event_id, tag) in &body.tags {
         sqlx::query!(
-                "INSERT INTO event_tags (created_at, local_event_id, remote_event_id, tag) VALUES ($1, $2, $3, $4)",
+                "INSERT INTO event_tags (created_at, local_event_id, tag) VALUES ($1, $2, $3)",
                 created_at,
                 *local_event_id,
-                *remote_event_id,
                 tag,
             )
             .execute(&mut *txn)
@@ -370,29 +347,28 @@ async fn restore(
     }
 
     tracing::info!("Restoring attendance");
-    for attendance in &body.attendance {
-        sqlx::query!(
-                "INSERT INTO attendance (user_id, local_event_id, remote_event_id, planned, actual, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7)",
-                attendance.user_id,
-                attendance.local_event_id,
-                attendance.remote_event_id,
-                attendance.planned,
-                attendance.actual,
-                attendance.created_at,
-                attendance.updated_at,
-            )
-            .execute(&mut *txn)
-            .await
-            .expect("Failed to insert attendance");
-    }
+    //for attendance in &body.attendance {
+    //    sqlx::query!(
+    //            "INSERT INTO attendance (user_id, local_event_id, remote_event_id, planned, actual, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7)",
+    //            attendance.user_id,
+    //            attendance.local_event_id,
+    //            attendance.remote_event_id,
+    //            attendance.planned,
+    //            attendance.actual,
+    //            attendance.created_at,
+    //            attendance.updated_at,
+    //        )
+    //        .execute(&mut *txn)
+    //        .await
+    //        .expect("Failed to insert attendance");
+    //}
 
     tracing::info!("Restoring bills");
     for bill in &body.bills {
         sqlx::query!(
-                "INSERT INTO bills (id, local_event_id, remote_event_id, payee_account_number, amount, reference, payee_name, payee_email, payee_address, payee_phone, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
+                "INSERT INTO bills (id, local_event_id, payee_account_number, amount, reference, payee_name, payee_email, payee_address, payee_phone, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
                 bill.id,
                 bill.local_event_id,
-                bill.remote_event_id,
                 bill.payee_account_number,
                 bill.amount,
                 bill.reference,

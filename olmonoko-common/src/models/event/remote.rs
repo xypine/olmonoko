@@ -2,7 +2,7 @@ use chrono::Utc;
 use std::hash::Hash;
 use std::hash::Hasher;
 
-use crate::{models::attendance::Attendance, utils::time::from_timestamp};
+use crate::utils::time::from_timestamp;
 
 use super::Priority;
 
@@ -29,7 +29,6 @@ pub struct RemoteEvent {
     pub id: RemoteEventId,
     pub event_source_id: RemoteSourceId,
     pub priority: Option<Priority>,
-    pub attendance: Option<Attendance>,
     // Event data
     pub rrule: Option<String>,
     pub dt_stamp: Option<chrono::DateTime<Utc>>,
@@ -40,9 +39,9 @@ pub struct RemoteEvent {
     pub location: Option<String>,
     pub uid: String,
 }
-impl From<(RawRemoteEvent, Priority, Option<Attendance>)> for RemoteEvent {
+impl From<(RawRemoteEvent, Priority)> for RemoteEvent {
     fn from(
-        (raw, event_source_priority, attendance): (RawRemoteEvent, Priority, Option<Attendance>),
+        (raw, event_source_priority): (RawRemoteEvent, Priority),
     ) -> Self {
         let priority = if let Some(priority_override) = raw.priority_override {
             priority_override
@@ -53,7 +52,6 @@ impl From<(RawRemoteEvent, Priority, Option<Attendance>)> for RemoteEvent {
         Self {
             id: raw.id,
             event_source_id: raw.event_source_id,
-            attendance,
             priority,
             rrule: raw.rrule,
             dt_stamp: raw.dt_stamp.map(from_timestamp),

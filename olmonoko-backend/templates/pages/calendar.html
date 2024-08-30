@@ -135,7 +135,7 @@
                 <th>Attachments</th>
             </tr>
             {% for event in events %}
-            <tr id="event-{{ event.id }}">
+            <tr id="event{{ event.id | json_encode }}">
                 <td ><div style="display:flex;justify-content:center;align-items:center;">{{ event.priority|default(value=' ') }}</div></td>
                 <td>
                     {% if event.source.type == "Remote" %}
@@ -161,11 +161,7 @@
                     {{ event.location }}
                 </td>
                 <td>
-                    {% set standalone = true %}
-                    {% set event_id = event.id %}
-                    {% set event = event.attendance_form %}
-                    {% set event_source_type = event.source.type %}
-                    {% include "components/attendance.html" %}
+                    {{ event.linked_local_events }}
                 </td>
             </tr>
             {% endfor %}

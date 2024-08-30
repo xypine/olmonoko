@@ -47,7 +47,8 @@ pub(crate) async fn compose_ics(
         if event.priority > 0 && event.priority < 10 {
             ical_event.priority(event.priority as u32);
         } else {
-            tracing::warn!(event.id, "Invalid event priority: {}", event.priority);
+            let event_id = event.id.to_string();
+            tracing::warn!(event_id, "Invalid event priority: {}", event.priority);
         }
         // FIX: Populate these from occurrences
         // if let Some(dt_start) = event.dt_start {

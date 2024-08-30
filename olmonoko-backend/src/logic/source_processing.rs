@@ -232,21 +232,21 @@ where
         idmap.push(inserted_id);
 
         // update tags
-        sqlx::query!(
-            "DELETE FROM event_tags WHERE remote_event_id = $1",
-            inserted_id
-        )
-        .execute(&mut *conn)
-        .await?;
-        for tag in &event.tags {
-            sqlx::query!(
-                "INSERT INTO event_tags (remote_event_id, tag) VALUES ($1, $2) ON CONFLICT DO NOTHING",
-                inserted_id,
-                tag
-            )
-            .execute(&mut *conn)
-            .await?;
-        }
+        //sqlx::query!(
+        //    "DELETE FROM event_tags WHERE remote_event_id = $1",
+        //    inserted_id
+        //)
+        //.execute(&mut *conn)
+        //.await?;
+        //for tag in &event.tags {
+        //    sqlx::query!(
+        //        "INSERT INTO event_tags (remote_event_id, tag) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+        //        inserted_id,
+        //        tag
+        //    )
+        //    .execute(&mut *conn)
+        //    .await?;
+        //}
     }
     for i in 0..events_len {
         let inserted_id = idmap[i];

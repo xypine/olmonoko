@@ -1,4 +1,3 @@
-pub mod attendance;
 pub mod errors;
 pub mod events;
 pub mod request;
