@@ -194,7 +194,7 @@ async fn get_visible_remote_events(
     data: &web::Data<AppState>,
     user_id: Option<UserId>,
     filter: &EventFilter,
-) -> Vec<(RemoteEvent, i64, Vec<LocalEventId>, bool)> {
+) -> Vec<(RemoteEvent, RemoteEventOccurrenceId, i64, Vec<LocalEventId>, bool)> {
     let min_priority = parse_priority(filter.min_priority);
     let max_priority = parse_priority(filter.max_priority);
 
@@ -203,6 +203,7 @@ async fn get_visible_remote_events(
         SELECT
             e.*,
             p.priority,
+            o.id AS occurrence_id,
             o.starts_at,
             array_agg(l.local_event_id) as "linked: Vec<Option<i32>>",
             o.from_rrule
@@ -238,7 +239,7 @@ async fn get_visible_remote_events(
             --    AND tag.tag = ANY($9)
             --) IS NULL)
         GROUP BY
-            e.id, p.priority, o.starts_at, o.from_rrule
+            e.id, p.priority, o.starts_at, o.from_rrule, o.id
         ORDER BY
             o.starts_at;
         "#,
@@ -270,6 +271,7 @@ async fn get_visible_remote_events(
                 location: event.location,
                 description: event.description,
             }, event.priority)),
+            event.occurrence_id,
             event.starts_at,
             occurrence_linked_local,
             event.from_rrule,
@@ -289,18 +291,18 @@ pub async fn get_visible_events(
     // Does it just form Events from RemoteEvents?
     let mut events: Vec<Event> = remote_events
         .into_iter()
-        .sorted_by_key(|(event, _, _, _)| event.id)
-        .chunk_by(|(event, _, _, _)| event.id)
+        .sorted_by_key(|(event, _, _, _, _)| event.id)
+        .chunk_by(|(event, _, _, _, _)| event.id)
         .into_iter()
         .flat_map(|(_, group)| {
             let group: Vec<_> = group.collect();
             if group.is_empty() {
                 None
             } else {
-                let (event, _, _, _) = group.first().unwrap().clone();
+                let (event, _, _, _, _) = group.first().unwrap().clone();
                 let meta = group
                     .into_iter()
-                    .map(|(_, starts_at, linked, _)| (starts_at, linked))
+                    .map(|(_, oid, starts_at, linked, _)| (oid, starts_at, linked))
                     .collect::<Vec<_>>();
                 Some((event, meta))
             }
@@ -321,7 +323,7 @@ pub async fn get_visible_events(
         Event::Remote(_, meta) => {
             meta.first()
                 .expect("remote event missing any occurrence after aggregation")
-                .0
+                .1
         }
     });
     events

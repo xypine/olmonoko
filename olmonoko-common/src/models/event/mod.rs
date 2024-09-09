@@ -6,7 +6,7 @@ use std::fmt::Display;
 use chrono::{TimeZone, Timelike, Utc};
 use chrono_humanize::Tense;
 use local::LocalEventId;
-use remote::{RemoteEventId, RemoteSourceId};
+use remote::{RemoteEventId, RemoteEventOccurrenceId, RemoteSourceId};
 
 use crate::utils::time::from_timestamp;
 
@@ -51,15 +51,15 @@ pub const DEFAULT_PRIORITY: Priority = 5;
 pub const PRIORITY_OPTIONS: [Priority; 9] = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 pub enum Event {
     Local(LocalEvent),
-    Remote(RemoteEvent, Vec<(i64, Vec<LocalEventId>)>),
+    Remote(RemoteEvent, Vec<(RemoteEventOccurrenceId, i64, Vec<LocalEventId>)>),
 }
 impl From<LocalEvent> for Event {
     fn from(event: LocalEvent) -> Self {
         Self::Local(event)
     }
 }
-impl From<(RemoteEvent, Vec<(i64, Vec<LocalEventId>)>)> for Event {
-    fn from((event, occurrence_details): (RemoteEvent, Vec<(i64, Vec<LocalEventId>)>)) -> Self {
+impl From<(RemoteEvent, Vec<(RemoteEventOccurrenceId, i64, Vec<LocalEventId>)>)> for Event {
+    fn from((event, occurrence_details): (RemoteEvent, Vec<(RemoteEventOccurrenceId ,i64, Vec<LocalEventId>)>)) -> Self {
         Self::Remote(event, occurrence_details)
     }
 }
@@ -169,6 +169,7 @@ pub struct EventOccurrence {
     pub source: EventSource,
     pub priority: Priority,
     pub linked_events: Vec<EventId>,
+    pub occurrence_id: Option<RemoteEventOccurrenceId>,
     // Event data
     pub starts_at: chrono::DateTime<Utc>,
     pub all_day: bool,
@@ -228,12 +229,13 @@ impl From<Event> for Vec<EventOccurrence> {
                     description: event.description.clone(),
                     location: event.location.clone(),
                     uid: event.uid.clone(),
+                    occurrence_id: None
                 };
                 vec![o]
             },
             Event::Remote(event, meta) => {
                 meta.into_iter().enumerate()
-            .map(|(i, (starts_at, linked_local_events))| EventOccurrence {
+            .map(|(i, (occurrence_id, starts_at, linked_local_events))| EventOccurrence {
                 id: EventId::Remote(event.id),
                 source: EventSource::Remote(SourceRemote { source_id: event.event_source_id }),
                 priority: event.priority.unwrap_or(DEFAULT_PRIORITY),
@@ -247,6 +249,7 @@ impl From<Event> for Vec<EventOccurrence> {
                 description: event.description.clone(),
                 location: event.location.clone(),
                 uid: event.uid.clone(),
+                occurrence_id: Some(occurrence_id)
             })
             .collect()
             },
@@ -274,6 +277,7 @@ pub struct EventOccurrenceHuman {
     pub duration_human: Option<String>,
     pub rrule: Option<String>,
     pub from_rrule: bool,
+    pub occurrence_id: Option<RemoteEventOccurrenceId>,
 
     pub summary: String,
     pub description: Option<String>,
@@ -366,6 +370,8 @@ where
             description: occurrence.description,
             location: occurrence.location,
             uid: occurrence.uid,
+
+            occurrence_id: occurrence.occurrence_id
         }
     }
 }
@@ -428,6 +434,7 @@ mod tests {
             description: None,
             location: None,
             uid: "test".to_string(),
+            occurrence_id: None
         };
         let tz = Utc;
         let human = EventOccurrenceHuman::from((event, &tz));

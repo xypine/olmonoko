@@ -556,6 +556,7 @@ async fn calendar(
                     description: None,
                     location: None,
                     uid: "olmonoko::now".to_string(),
+                    occurrence_id: None
                 })
             }
 
