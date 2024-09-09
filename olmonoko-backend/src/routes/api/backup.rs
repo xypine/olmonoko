@@ -336,14 +336,14 @@ async fn restore(
     tracing::info!("Restoring event tags");
     for (created_at, local_event_id, tag) in &body.tags {
         sqlx::query!(
-                "INSERT INTO event_tags (created_at, local_event_id, tag) VALUES ($1, $2, $3)",
-                created_at,
-                *local_event_id,
-                tag,
-            )
-            .execute(&mut *txn)
-            .await
-            .expect("Failed to insert local event tag");
+            "INSERT INTO event_tags (created_at, local_event_id, tag) VALUES ($1, $2, $3)",
+            created_at,
+            *local_event_id,
+            tag,
+        )
+        .execute(&mut *txn)
+        .await
+        .expect("Failed to insert local event tag");
     }
 
     tracing::info!("Restoring attendance");

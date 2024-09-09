@@ -1,4 +1,4 @@
-{% if selected %}
+{% if selected_id %}
 	{% set container_id = 'local-event-edit-' ~ selected_id %}
 	{% set action = '/api/event/local/' ~ selected_id ~ '/update' %}
 	{% set method = 'POST' %}
@@ -16,7 +16,7 @@
 	{% set action_name = 'Create' %}
 {% endif %}
 <div id="{{ container_id }}">
-	{% if selected %}
+	{% if selected and selected_id %}
 		<form action="{{ site_url | safe }}/api/event/local/delete?id={{ selected_id }}" method="POST" style="align-items: end;">
 			<button class="btn variant-danger border-only" type="submit" id="delete-{{ selected_id }}">Delete {{ selected.summary }}</button>
 		</form>
@@ -24,6 +24,9 @@
 	<form id="local-event-form" action="{{ site_url | safe }}{{ action }}" method="{{ method }}" hx-disabled-elt="#{{ action_id }}">
 		<fieldset>
 			<legend>{{ title }}</legend>
+			{% if linked_occurrence_id %}
+				<input hidden name="linked_occurrence_id" value="{{ linked_occurrence_id }}">
+			{% endif %}
 			<label>
 				<span>
 					Summary:
@@ -98,7 +101,7 @@
 				      <span>
 					Plan to attend:
 				      </span>
-				      <input type="checkbox" name="attend_plan" autocomplete="off"
+				      <input type="checkbox" name="attendance_planned" autocomplete="off"
 					{% if selected and selected.attendance_planned and selected.attendance_planned == "on" %}
 					  checked
 					{% endif %}
@@ -108,7 +111,7 @@
 				      <span>
 					Attended:
 				      </span>
-				      <input type="checkbox" name="attend_actual" autocomplete="off"
+				      <input type="checkbox" name="attendance_actual" autocomplete="off"
 					{% if selected and selected.attendance_actual and selected.attendance_actual == "on" %}
 					  checked
 					{% endif %}

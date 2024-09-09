@@ -11,14 +11,16 @@ use itertools::Itertools;
 use olmonoko_common::{
     models::{
         event::{
-            local::LocalEventId, EventId, EventOccurrenceHuman, Priority
+            local::{LocalEvent, LocalEventForm, LocalEventId},
+            remote::RemoteEventOccurrenceId,
+            EventId, EventOccurrenceHuman, Priority,
         },
         user::{RawUser, UnverifiedUser, UserPublic},
     },
     utils::{
         event_filters::{EventFilter, RawEventFilter, RawEventFilterWithDate},
         flash::FLASH_COOKIE_NAME,
-        time::from_timestamp,
+        time::{from_timestamp, get_current_time},
     },
     AppState,
 };
@@ -60,6 +62,7 @@ async fn sources(data: web::Data<AppState>, request: HttpRequest) -> impl Respon
 #[derive(Debug, serde::Deserialize)]
 struct LocalQuery {
     selected: Option<LocalEventId>,
+    from_occurrence: Option<RemoteEventOccurrenceId>,
     #[serde(flatten)]
     filter: RawEventFilterWithDate,
 }
@@ -68,7 +71,7 @@ async fn local(
     data: web::Data<AppState>,
     request: HttpRequest,
     query: Query<LocalQuery>,
-) -> impl Responder {
+) -> Result<impl Responder, AnyInternalServerError> {
     let (mut context, user) = request.get_session_context(&data).await;
     if let Some(user) = user {
         context.insert("filter", &query.filter);
@@ -113,11 +116,48 @@ async fn local(
         context.insert("available_tags", &available_tags);
         context.insert("events_grouped_by_priority", &events_grouped_by_priority);
         context.insert("selected_id", &selected.clone().map(|(id, _)| id));
-        context.insert("selected", &selected.map(|(_, form)| form));
+        if selected.is_none() {
+            if let Some(occurrence_id) = query.from_occurrence {
+                let matching =
+                    get_visible_event_occurrence_with_event(&data, Some(user.id), occurrence_id)
+                        .await
+                        .or_any_internal_server_error(
+                            "Failed to fetch requested event occurrence for local events page",
+                        )?;
+                if let Some((event, occurrence)) = matching {
+                    let as_local = LocalEventForm::from(LocalEvent {
+                        user_id: user.id,
+                        starts_at: occurrence.starts_at,
+                        description: event.description,
+                        all_day: event.all_day,
+                        summary: event.summary,
+                        priority: event.priority,
+                        duration: event.duration,
+                        location: event.location,
+                        created_at: get_current_time(),
+                        updated_at: get_current_time(),
+                        bill: None,
+                        attendance_planned: true,
+                        attendance_actual: false,
+                        tags: vec![],
+                        uid: "".to_owned(),
+                        id: -1,
+                    });
+                    context.insert("selected", &as_local);
+                    context.insert("linked_occurrence_id", &occurrence.id);
+                }
+            }
+        } else {
+            context.insert(
+                "selected",
+                &selected.map(|(_, event)| LocalEventForm::from(event)),
+            );
+        }
+
         let content = data.templates.render("pages/local.html", &context).unwrap();
-        return remove_flash_cookie(HttpResponse::Ok()).body(content);
+        return Ok(remove_flash_cookie(HttpResponse::Ok()).body(content));
     }
-    redirect("/me").finish()
+    Ok(redirect("/me").finish())
 }
 
 #[get("/remote/sources/{id}")]
@@ -280,8 +320,14 @@ struct CalendarPositionGoto {
 use serde_with::rust::deserialize_ignore_any;
 
 use crate::db_utils::{
-    events::{get_user_local_events, get_visible_event_occurrences},
-    request::{deauth, redirect, EnhancedRequest, InternalServerError},
+    events::{
+        get_user_local_events, get_visible_event_occurrence_with_event,
+        get_visible_event_occurrences,
+    },
+    request::{
+        deauth, redirect, AnyInternalServerError, EnhancedRequest, InternalServerError,
+        OrInternalServerError,
+    },
     sources::{get_source_as_user_with_event_count, get_visible_sources_with_event_count},
     timeline::compile_timeline,
     user::get_user_export_links,
@@ -419,10 +465,13 @@ async fn calendar(
         filter.after = Some(from);
         filter.before = Some(to);
         let events = get_visible_event_occurrences(&data, Some(user.id), true, &filter).await;
-        let linked_local_events: Vec<_> = events.iter().flat_map(|e| e.linked_local_events.clone()).collect();
+        let linked_local_events: Vec<_> = events
+            .iter()
+            .flat_map(|e| e.linked_events.clone())
+            .collect();
         let mut linked_local_events_map = HashMap::new();
         for linked in linked_local_events {
-            let res = events.iter().find(|e| match e.id { EventId::Local(id) => id == linked, _ => false });
+            let res = events.iter().find(|e| e.id == linked);
             if let Some(event) = res {
                 linked_local_events_map.insert(linked, event.clone());
             }
@@ -432,24 +481,26 @@ async fn calendar(
             .into_iter()
             .map(|e| EventOccurrenceHuman::from((e, &user.interface_timezone_parsed)))
             .filter(|e| match e.id {
-                    olmonoko_common::models::event::EventId::Local(_) => true,
-                    olmonoko_common::models::event::EventId::Remote(_) => e.linked_local_events.is_empty() || e.linked_local_events.iter().any(|linked| {
-                    if let Some(result) = linked_local_events_map.get(&linked) {
-                        if result.starts_at != e.starts_at_utc {
-                    tracing::warn!("starts_at do not match {}, {}", linked, e.id);
-                            return true;
-                        }
-                        if result.duration != e.duration {
-                    tracing::warn!("duration do not match {}, {}", linked, e.id);
-                            return true;
-                        }
-                        return false;
-                    }
-                    tracing::warn!("Linked local event {} not found for {}", linked, e.id);
-                    true
-                }),
+                olmonoko_common::models::event::EventId::Local(_) => true,
+                olmonoko_common::models::event::EventId::Remote(_) => {
+                    e.linked_events.is_empty()
+                        || e.linked_events.iter().any(|linked| {
+                            if let Some(result) = linked_local_events_map.get(&linked) {
+                                if result.starts_at != e.starts_at_utc {
+                                    tracing::warn!("starts_at do not match {}, {}", linked, e.id);
+                                    return true;
+                                }
+                                if result.duration != e.duration {
+                                    tracing::warn!("duration do not match {}, {}", linked, e.id);
+                                    return true;
+                                }
+                                return false;
+                            }
+                            tracing::warn!("Linked local event {} not found for {}", linked, e.id);
+                            true
+                        })
                 }
-            )
+            })
             .collect::<Vec<_>>();
         context.insert("events", &events);
 
@@ -489,7 +540,7 @@ async fn calendar(
                     source: olmonoko_common::models::event::EventSource::Local(
                         olmonoko_common::models::event::SourceLocal { user_id: -1 },
                     ),
-                    linked_local_events: vec![],
+                    linked_events: vec![],
                     priority: 1,
                     starts_at_utc: now.with_timezone(&chrono::Utc),
                     starts_at_human: "".to_string(),

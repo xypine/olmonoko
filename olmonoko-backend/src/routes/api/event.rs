@@ -40,7 +40,7 @@ async fn new_local_event(
     if let Some(user) = user_opt {
         let form = form.into_inner();
 
-        let new = NewLocalEvent::from((form, &user));
+        let new = NewLocalEvent::from((form.clone(), &user));
 
         // begin transaction
         let mut txn = data
@@ -82,6 +82,21 @@ async fn new_local_event(
             .execute(&mut *txn)
             .await
             .expect("Failed to insert tag");
+        }
+        // link with remote occurrence
+        if let Some(occurrence_id) = form.linked_occurrence_id {
+            sqlx::query!(
+                r#"
+                INSERT INTO remote_local_link (
+                    local_event_id, remote_occurrence_id
+                ) VALUES ($1, $2)
+            "#,
+                inserted.id,
+                occurrence_id
+            )
+            .execute(&mut *txn)
+            .await
+            .expect("Failed to link local event to occurrence");
         }
         // commit transaction
         txn.commit().await.expect("Failed to commit transaction");
@@ -193,7 +208,7 @@ async fn update_local_event(
         sqlx::query!(
             r#"
                 UPDATE local_events
-                SET starts_at = $1, all_day = $2, duration = $3, summary = $4, description = $5, location = $6, priority = $7
+                SET starts_at = $1, all_day = $2, duration = $3, summary = $4, description = $5, location = $6, priority = $7, attendance_planned = $10, attendance_actual = $11
                 WHERE id = $8 AND user_id = $9
             "#,
             new.starts_at,
@@ -204,7 +219,9 @@ async fn update_local_event(
             new.location,
             new.priority,
             id,
-            user.id
+            user.id,
+            new.attendance_planned,
+            new.attendance_actual
         )
         .execute(&mut *txn)
         .await

@@ -5,7 +5,12 @@ use olmonoko_common::{
     models::{
         bills::RawBill,
         event::{
-            local::{LocalEvent, LocalEventId, RawLocalEvent}, remote::{RawRemoteEvent, RemoteEvent}, Event, EventOccurrence, Priority, DEFAULT_PRIORITY
+            local::{LocalEvent, LocalEventId, RawLocalEvent},
+            remote::{
+                RawRemoteEvent, RawRemoteEventOccurrence, RemoteEvent, RemoteEventOccurrence,
+                RemoteEventOccurrenceId,
+            },
+            Event, EventOccurrence, Priority, DEFAULT_PRIORITY,
         },
         user::UserId,
     },
@@ -91,7 +96,7 @@ pub async fn get_user_local_events(
             description: event.description,
             attendance_planned: event.attendance_planned,
             attendance_actual: event.attendance_actual,
-            auto_imported: event.auto_imported
+            auto_imported: event.auto_imported,
         };
         let raw_bill = event.bill_id.map(|bill_id| RawBill {
             id: bill_id,
@@ -107,12 +112,7 @@ pub async fn get_user_local_events(
             payee_phone: event.payee_phone,
         });
         let tags = event.tags.unwrap_or_default();
-        LocalEvent::from((
-            raw_event,
-            raw_bill,
-            autodescription,
-            tags.as_str(),
-        ))
+        LocalEvent::from((raw_event, raw_bill, autodescription, tags.as_str()))
     })
     .collect()
 }
@@ -127,6 +127,67 @@ pub fn parse_priority(priority: Option<i32>) -> Option<Priority> {
     } else {
         None
     }
+}
+
+pub async fn get_visible_event_occurrence_with_event(
+    data: &web::Data<AppState>,
+    user_id: Option<UserId>,
+    occurrence_id: RemoteEventOccurrenceId,
+) -> Result<Option<(RemoteEvent, RemoteEventOccurrence)>, sqlx::Error> {
+    let raw = sqlx::query!(
+        r#"
+        SELECT
+            p.priority AS source_priority,
+            o.id AS occurrence_id,
+            o.starts_at AS occurrence_starts_at,
+            o.from_rrule AS occurrence_from_rrule,
+            e.* AS event
+        FROM
+            event_occurrences AS o
+        INNER JOIN
+            events AS e
+            ON o.event_id = e.id 
+        INNER JOIN
+            ics_sources AS s
+            ON e.event_source_id = s.id
+            AND (s.user_id = $1 OR s.is_public)
+        INNER JOIN
+            ics_source_priorities AS p
+            ON p.user_id = $1
+            AND p.ics_source_id = s.id
+        WHERE
+            o.id = $2
+        "#,
+        user_id,
+        occurrence_id
+    )
+    .fetch_optional(&data.conn)
+    .await?;
+    Ok(raw.map(|r| {
+        let event = RemoteEvent::from((
+            RawRemoteEvent {
+                priority_override: r.priority_override,
+                rrule: r.rrule,
+                id: r.id,
+                event_source_id: r.event_source_id,
+                uid: r.uid,
+                summary: r.summary,
+                dt_stamp: r.dt_stamp,
+                all_day: r.all_day,
+                duration: r.duration,
+                location: r.location,
+                description: r.description,
+            },
+            r.source_priority,
+        ));
+        let occurrence = RemoteEventOccurrence::from(RawRemoteEventOccurrence {
+            id: r.occurrence_id,
+            event_id: r.id,
+            from_rrule: r.occurrence_from_rrule,
+            starts_at: r.occurrence_starts_at,
+        });
+        (event, occurrence)
+    }))
 }
 
 async fn get_visible_remote_events(
@@ -255,10 +316,12 @@ pub async fn get_visible_events(
                 .collect();
         events.extend(local_events);
     }
-    events.sort_by_key(|event| {
-        match event {
-            Event::Local(event) => event.starts_at.timestamp(),
-            Event::Remote(_, meta) => meta.first().expect("remote event missing any occurrence after aggregation").0,
+    events.sort_by_key(|event| match event {
+        Event::Local(event) => event.starts_at.timestamp(),
+        Event::Remote(_, meta) => {
+            meta.first()
+                .expect("remote event missing any occurrence after aggregation")
+                .0
         }
     });
     events

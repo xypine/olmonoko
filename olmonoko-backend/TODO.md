@@ -54,6 +54,8 @@
 - [ ] remind when to leave / maps integration
 - [ ] clock-in-n-out
   - [-] teamwork integration
+    - [x] import
+    - [ ] export
 - [ ] more default themes, custom theme support
   - maybe try #D0A657
 - [ ] automatic weather location based on planned event attendance
@@ -61,3 +63,4 @@
 - [ ] automatically add events for all pictures in gallery / photos / photoprism integration
 - [ ] automatic syncing between instances / per user
 - [ ] embeddable export links / public calendar views with privacy options
+- [ ] countdown pages / something more generic?

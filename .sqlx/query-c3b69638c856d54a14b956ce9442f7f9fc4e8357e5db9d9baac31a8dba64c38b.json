@@ -1,0 +1,107 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT\n            p.priority AS source_priority,\n            o.id AS occurrence_id,\n            o.starts_at AS occurrence_starts_at,\n            o.from_rrule AS occurrence_from_rrule,\n            e.* AS event\n        FROM\n            event_occurrences AS o\n        INNER JOIN\n            events AS e\n            ON o.event_id = e.id \n        INNER JOIN\n            ics_sources AS s\n            ON e.event_source_id = s.id\n            AND (s.user_id = $1 OR s.is_public)\n        INNER JOIN\n            ics_source_priorities AS p\n            ON p.user_id = $1\n            AND p.ics_source_id = s.id\n        WHERE\n            o.id = $2\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "source_priority",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "occurrence_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "occurrence_starts_at",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "occurrence_from_rrule",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 4,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "event_source_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "dt_stamp",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "duration",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
+        "name": "summary",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "location",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "uid",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "rrule",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 13,
+        "name": "all_day",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 14,
+        "name": "priority_override",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      true,
+      true,
+      false,
+      true,
+      false,
+      true
+    ]
+  },
+  "hash": "c3b69638c856d54a14b956ce9442f7f9fc4e8357e5db9d9baac31a8dba64c38b"
+}

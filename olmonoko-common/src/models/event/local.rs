@@ -234,6 +234,7 @@ pub struct NewLocalEvent {
 use crate::models::ics_source::deserialize_checkbox;
 use crate::models::ics_source::serialize_checkbox;
 
+use super::remote::RemoteEventOccurrenceId;
 use super::EventId;
 use super::EventLike;
 use super::EventSource;
@@ -278,6 +279,8 @@ pub struct LocalEventForm {
         default
     )]
     pub attendance_actual: bool,
+
+    pub linked_occurrence_id: Option<RemoteEventOccurrenceId>
 }
 
 pub type FormWithUser<'a> = (LocalEventForm, &'a UserPublic);
@@ -345,7 +348,8 @@ impl From<LocalEvent> for LocalEventForm {
             duration_s,
             location: event.location,
             attendance_planned: event.attendance_planned,
-            attendance_actual: event.attendance_actual
+            attendance_actual: event.attendance_actual,
+            linked_occurrence_id: None
         }
     }
 }
@@ -381,7 +385,8 @@ pub mod tests {
             duration_s: Some(5),
             location: Some("Test".to_string()),
             attendance_planned: false,
-            attendance_actual: false
+            attendance_actual: false,
+            linked_occurrence_id: None
         };
         let event = NewLocalEvent::from((form, &test_user()));
         assert_eq!(event.user_id, 1);
@@ -409,7 +414,8 @@ pub mod tests {
             duration_m: None,
             location: Some("Test".to_string()),
             attendance_planned: false,
-            attendance_actual: false
+            attendance_actual: false,
+            linked_occurrence_id: None
         };
         let event = NewLocalEvent::from((form, &test_user()));
         assert_eq!(event.user_id, 1);
@@ -435,7 +441,8 @@ pub mod tests {
             duration_h: None,
             location: Some("Test".to_string()),
             attendance_planned: false,
-            attendance_actual: false
+            attendance_actual: false,
+            linked_occurrence_id: None
         };
         let event = NewLocalEvent::from((form, &test_user()));
         assert_eq!(event.user_id, 1);

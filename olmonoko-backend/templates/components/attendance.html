@@ -19,8 +19,8 @@
       <span>
         Plan to attend:
       </span>
-      <input type="checkbox" name="attend_plan" autocomplete="off"
-        {% if event.attend_plan and event.attend_plan == "on" %}
+      <input type="checkbox" name="attendance_planned" autocomplete="off"
+        {% if event.attendance_planned and event.attendance_planned == "on" %}
           checked
         {% endif %}
       >
@@ -29,8 +29,8 @@
       <span>
         Attended:
       </span>
-      <input type="checkbox" name="attend_actual" autocomplete="off"
-        {% if event.attend_actual and event.attend_actual == "on" %}
+      <input type="checkbox" name="attendance_actual" autocomplete="off"
+        {% if event.attendance_planned and event.attendance_planned == "on" %}
           checked
         {% endif %}
       >

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                INSERT INTO remote_local_link (\n                    local_event_id, remote_occurrence_id\n                ) VALUES ($1, $2)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "dda8c175e444cb800c89aa468b7ced7353abe69d2329ca1f051c06ec26be9b6c"
+}

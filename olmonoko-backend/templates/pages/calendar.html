@@ -161,7 +161,16 @@
                     {{ event.location }}
                 </td>
                 <td>
-                    {{ event.linked_local_events }}
+                    {% if event.source.type == "Remote" %}
+                        {% if event.linked_events %}
+                            {{ event.linked_events }}
+                        {% else %}
+                            <a href="{{ site_url | safe }}/local?from_occurrence={{ event.id.Remote }}"> Create a linked local event </a>
+                        {% endif %}
+                    {% endif %}
+                    {% if event.source.type == "Local" %}
+                        TODO
+                    {% endif %}
                 </td>
             </tr>
             {% endfor %}

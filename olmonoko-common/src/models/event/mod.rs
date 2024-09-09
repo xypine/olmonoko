@@ -149,7 +149,7 @@ impl From<(RemoteEvent, Vec<(i64, Vec<LocalEventId>)>)> for Event {
 //    }
 //}
 
-#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum EventId {
     Local(LocalEventId),
     Remote(RemoteEventId),
@@ -168,7 +168,7 @@ pub struct EventOccurrence {
     pub id: EventId, // not unique
     pub source: EventSource,
     pub priority: Priority,
-    pub linked_local_events: Vec<LocalEventId>,
+    pub linked_events: Vec<EventId>,
     // Event data
     pub starts_at: chrono::DateTime<Utc>,
     pub all_day: bool,
@@ -219,7 +219,7 @@ impl From<Event> for Vec<EventOccurrence> {
                     source: EventSource::Local(SourceLocal { user_id: event.user_id }),
                     priority: event.priority.unwrap_or(DEFAULT_PRIORITY),
                     starts_at: event.starts_at,
-                    linked_local_events: vec![],
+                    linked_events: vec![],
                     all_day: event.all_day,
                     duration: event.duration,
                     rrule: None,
@@ -238,7 +238,7 @@ impl From<Event> for Vec<EventOccurrence> {
                 source: EventSource::Remote(SourceRemote { source_id: event.event_source_id }),
                 priority: event.priority.unwrap_or(DEFAULT_PRIORITY),
                 starts_at: from_timestamp(starts_at),
-                linked_local_events, 
+                linked_events: linked_local_events.into_iter().map(|le| EventId::Local(le)).collect(), 
                 all_day: event.all_day,
                 duration: event.duration,
                 rrule: event.rrule.clone(),
@@ -259,7 +259,7 @@ pub struct EventOccurrenceHuman {
     pub id: EventId, // event id, not specific to this occurrence
     pub source: EventSource,
     pub priority: Priority,
-    pub linked_local_events: Vec<LocalEventId>,
+    pub linked_events: Vec<EventId>,
     
     // Event data
     pub starts_at_human: String,
@@ -340,7 +340,7 @@ where
             id: occurrence.id,
             source: occurrence.source,
             priority: occurrence.priority,
-            linked_local_events: occurrence.linked_local_events,
+            linked_events: occurrence.linked_events,
 
             starts_at_human: if occurrence.all_day {
                 starts_at.format("%Y-%m-%d").to_string()
@@ -418,7 +418,7 @@ mod tests {
             id: EventId::Local(1),
             source: EventSource::Local(SourceLocal { user_id: 1 }),
             priority: 5,
-            linked_local_events: vec![],
+            linked_events: vec![],
             starts_at: Utc.ymd(2021, 1, 1).and_hms(12, 0, 0),
             all_day: false,
             duration: Some(3600),
@@ -446,7 +446,7 @@ mod tests {
             id: EventId::Local(1),
             source: EventSource::Local(SourceLocal { user_id: 1 }),
             priority: 5,
-            linked_local_events: vec![],
+            linked_events: vec![],
             starts_at: Utc.ymd(2021, 1, 1).and_hms(0, 0, 0),
             all_day: false,
             duration: Some(3600 * 24),
@@ -475,7 +475,7 @@ mod tests {
             id: EventId::Local(1),
                 source: EventSource::Local(SourceLocal { user_id: 1 }),
                 priority: 5,
-                linked_local_events: vec![],
+                linked_events: vec![],
                 starts_at: Utc.ymd(2021, 1, 1).and_hms(23, 30, 0),
                 all_day: false,
                 duration: Some(3600),
@@ -502,7 +502,7 @@ mod tests {
             id: EventId::Local(1),
                 source: EventSource::Local(SourceLocal { user_id: 1 }),
                 priority: 5,
-                linked_local_events: vec![],
+                linked_events: vec![],
                 starts_at: Utc.ymd(2024, 7, 25).and_hms(0, 0, 0),
                 all_day: true,
                 duration: Some(3600 * 24 * 3),
@@ -530,7 +530,7 @@ mod tests {
             id: EventId::Local(1),
             source: EventSource::Local(SourceLocal { user_id: 1 }),
             priority: 5,
-            linked_local_events: vec![],
+            linked_events: vec![],
             starts_at: Utc.ymd(2021, 1, 1).and_hms(12, 0, 0),
             all_day: false,
             duration: None,

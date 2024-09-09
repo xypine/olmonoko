@@ -14,9 +14,11 @@ services:
       POSTGRES_PASSWORD: example
     ports:
       - 5432:5432
-  adminer:
-    image: adminer
+  db_admin:
+    image: clidey/whodb
     restart: always
+    environment:
+      WHODB_POSTGRES_1: '{"host":"db","user":"postgres","password":"example","database":"postgres"}'
     depends_on:
       - db
     ports:

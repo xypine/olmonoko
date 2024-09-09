@@ -107,6 +107,17 @@ pub struct RawRemoteEventOccurrence {
     pub starts_at: i64,
 }
 
+impl From<RawRemoteEventOccurrence> for RemoteEventOccurrence {
+    fn from(raw: RawRemoteEventOccurrence) -> Self {
+        Self {
+            id: raw.id,
+            event_id: raw.event_id,
+            from_rrule: raw.from_rrule,
+            starts_at: from_timestamp(raw.starts_at)
+        }
+    }
+}
+
 #[derive(Debug, Clone, sqlx::FromRow, serde::Serialize, serde::Deserialize)]
 pub struct RemoteEventOccurrence {
     pub id: RemoteEventOccurrenceId,
