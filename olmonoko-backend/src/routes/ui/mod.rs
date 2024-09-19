@@ -18,7 +18,7 @@ use olmonoko_common::{
     utils::{
         event_filters::{EventFilter, RawEventFilter, RawEventFilterWithDate},
         flash::FLASH_COOKIE_NAME,
-        time::from_timestamp,
+        time::from_timestamp, ui::arrange,
     },
     AppState,
 };
@@ -509,31 +509,12 @@ async fn calendar(
             }
 
             // find overlapping events and adjust event overlap_count and overlap_index
-            let events_len = day_events.len();
-            for i in 0..events_len {
-                let mut overlap_total = 1;
-                let mut overlap_index = 0;
-                for j in 0..events_len {
-                    if i == j {
-                        continue;
-                    }
-                    let event = &day_events[i];
-                    let other = &day_events[j];
-                    if (event.starts_at_seconds <= other.starts_at_seconds
-                        && event.starts_at_seconds + event.duration.unwrap_or(0) as i64
-                            > other.starts_at_seconds)
-                        || (other.starts_at_seconds <= event.starts_at_seconds
-                            && other.starts_at_seconds + other.duration.unwrap_or(0) as i64
-                                > event.starts_at_seconds)
-                    {
-                        overlap_total += 1;
-                        if j < i {
-                            overlap_index += 1;
-                        }
-                    }
-                }
-                day_events[i].overlap_total = overlap_total;
-                day_events[i].overlap_index = overlap_index;
+            let starts_at: Vec<_> = day_events.iter().map(|e| e.starts_at_seconds).collect();
+            let durations: Vec<_> = day_events.iter().map(|e| e.duration.unwrap_or_default()).collect();
+            let arrangements = arrange(starts_at.as_slice(), durations.as_slice());
+            for (i,a) in arrangements.iter().enumerate() {
+                day_events[i].overlap_index = a.lane as usize;
+                day_events[i].overlap_total = a.width as usize;
             }
 
             events_by_day[day as usize] = day_events;
