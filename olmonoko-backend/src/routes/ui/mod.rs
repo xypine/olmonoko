@@ -18,7 +18,8 @@ use olmonoko_common::{
     utils::{
         event_filters::{EventFilter, RawEventFilter, RawEventFilterWithDate},
         flash::FLASH_COOKIE_NAME,
-        time::from_timestamp, ui::arrange,
+        time::from_timestamp,
+        ui::arrange,
     },
     AppState,
 };
@@ -510,9 +511,12 @@ async fn calendar(
 
             // find overlapping events and adjust event overlap_count and overlap_index
             let starts_at: Vec<_> = day_events.iter().map(|e| e.starts_at_seconds).collect();
-            let durations: Vec<_> = day_events.iter().map(|e| e.duration.unwrap_or_default()).collect();
+            let durations: Vec<_> = day_events
+                .iter()
+                .map(|e| e.duration.unwrap_or_default())
+                .collect();
             let arrangements = arrange(starts_at.as_slice(), durations.as_slice());
-            for (i,a) in arrangements.iter().enumerate() {
+            for (i, a) in arrangements.iter().enumerate() {
                 day_events[i].overlap_index = a.lane as usize;
                 day_events[i].overlap_total = a.width as usize;
             }

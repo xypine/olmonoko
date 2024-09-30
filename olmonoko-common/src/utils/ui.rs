@@ -6,14 +6,11 @@ pub struct Arrangement {
     pub lane: u8,
 
     /// visible size is calculated to be 1/width
-    pub width: u8
+    pub width: u8,
 }
 impl Default for Arrangement {
     fn default() -> Self {
-        Self {
-            lane: 0,
-            width: 1
-        }
+        Self { lane: 0, width: 1 }
     }
 }
 
@@ -22,8 +19,8 @@ pub fn arrange(starts_at: &[i64], durations: &[i32]) -> Vec<Arrangement> {
     assert_eq!(size, durations.len());
 
     let mut enumerated: Vec<_> = durations.iter().enumerate().collect();
-    enumerated.sort_by_key(|t|t.1 * -1000 + t.0 as i32);
-    let sorted_by_duration = enumerated.into_iter().map(|t|t.0);
+    enumerated.sort_by_key(|t| t.1 * -1000 + t.0 as i32);
+    let sorted_by_duration = enumerated.into_iter().map(|t| t.0);
 
     let mut arrangements: Vec<Arrangement> = vec![Arrangement::default(); size];
     let mut seen: Vec<(i64, i64, usize)> = vec![];
@@ -80,7 +77,15 @@ pub mod tests {
         let durations = [1, 1, 1, 10];
         let arrangement = super::arrange(&starts_at, &durations);
         let default_arr = Arrangement::default();
-        assert_eq!(arrangement, [Arrangement{lane: 0, width: 2}, Arrangement{lane: 1, width: 2}, default_arr, default_arr]);
+        assert_eq!(
+            arrangement,
+            [
+                Arrangement { lane: 0, width: 2 },
+                Arrangement { lane: 1, width: 2 },
+                default_arr,
+                default_arr
+            ]
+        );
     }
 
     #[test]
@@ -89,6 +94,14 @@ pub mod tests {
         let durations = [1, 2, 1, 10];
         let arrangement = super::arrange(&starts_at, &durations);
         let default_arr = Arrangement::default();
-        assert_eq!(arrangement, [Arrangement{lane: 0, width: 3}, Arrangement{lane: 1, width: 3}, Arrangement{lane: 2, width: 3}, default_arr]);
+        assert_eq!(
+            arrangement,
+            [
+                Arrangement { lane: 1, width: 3 }, // longer events get preferential treatment
+                Arrangement { lane: 0, width: 3 },
+                Arrangement { lane: 2, width: 3 },
+                default_arr
+            ]
+        );
     }
 }

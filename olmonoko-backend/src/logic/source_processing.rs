@@ -36,7 +36,6 @@ pub struct ProcessedData {
     pub skipped_event_ids: Vec<String>,
 }
 
-
 pub(crate) fn process_events(source: &IcsSource, events: Vec<VEvent>, tz: Tz) -> ProcessedData {
     let flatten_ts_with_tz = |dt| flatten_ts(dt, tz);
     let mut skipped = vec![];
