@@ -4,6 +4,7 @@ pub(crate) mod backup;
 pub(crate) mod data_source;
 pub(crate) mod event;
 pub(crate) mod export;
+pub(crate) mod key;
 pub(crate) mod meta;
 pub(crate) mod user;
 
@@ -15,4 +16,5 @@ pub fn routes() -> Scope {
         .service(export::routes())
         .service(event::routes())
         .service(backup::routes())
+        .service(key::routes())
 }

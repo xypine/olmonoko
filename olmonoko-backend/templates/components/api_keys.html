@@ -1,0 +1,74 @@
+<div id="api-keys" style="display: flex; flex-direction: column; gap: .5em;">
+	<h3>API Keys</h3>
+	<span>You can use API keys to integrate olmonoko with other services by using the <code>X-OLMONOKO-API-KEY</code> header</span>
+	<span>Each key has "scopes" limiting the information a 3rd party has access to with that key.</span>
+	<span>Do NOT share these to anyone you don't trust with your data.</span>
+	<form hx-post="/api/key" hx-swap="outerHTML" hx-target="#api-keys" hx-disabled-elt="#new-key">
+		<label>
+			<span>description*</span>
+			<input type="text" name="description" placeholder="my cool app" required value="">
+		</label>
+		<label>
+			<span>scopes</span>
+			<input type="text" name="scopes" multiple placeholder="upcoming_events:r, custom:w" value="">
+		</label>
+		<button id="new-key" class="btn" type="submit">
+			Create a new API key
+		</button>
+	</form>
+	{% if api_keys %}
+		{% for api_key in api_keys %}
+			{% set id = api_key.id %}
+			<div
+				id="api-key-{{ id }}"
+				style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; margin-bottom: 1em;background: var(--surface-variant);border-radius: .25rem;padding: .5rem;justify-content: center;"
+			>
+				<p>{{ api_key.description }}</p>
+				{% if api_key.revoked %}
+					<code>
+						REVOKED
+					</code>
+				{% else %}
+					<code>
+						{{ id }}
+					</code>
+				{% endif %}
+				<!--/% include 'components/api_key_filter.html' %/-->
+				<label>
+					<span>scopes</span>
+					<input type="text" name="scopes" multiple value="{{ api_key.scopes }}" readonly>
+				</label>
+				<div style="display:flex; gap:.5rem;">
+					<button
+						id="copy-api-key-{{ id }}"
+						{% if api_key.revoked %}
+							class="btn icon variant-plain"
+						{% else %}
+							class="btn icon"
+						{% endif %}
+						title="Copy Key"
+						onclick="navigator.clipboard.writeText('{{ api_key.id }}');document.querySelector('#copy-api-key-{{ id }}').innerHTML = atob('PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxZW0iIGhlaWdodD0iMWVtIiB2aWV3Qm94PSIwIDAgMjQgMjQiPjxwYXRoIGZpbGw9ImN1cnJlbnRDb2xvciIgZD0ibTkuNTUgMTcuMzA4bC00Ljk3LTQuOTdsLjcxNC0uNzEzbDQuMjU2IDQuMjU2bDkuMTU2LTkuMTU2bC43MTMuNzE0eiIvPjwvc3ZnPg==');alert('Key Copied!');"
+					>
+						<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path fill="currentColor" d="m18 20.289l-.708-.714l2.075-2.075H12.5v-1h6.867l-2.075-2.08l.708-.708L21.288 17zm2-8.578h-1V5.616q0-.231-.192-.424T18.384 5H16v2.23H8V5H5.616q-.231 0-.424.192T5 5.616v12.769q0 .23.192.423t.423.192H10.5v1H5.616q-.672 0-1.144-.472T4 18.385V5.615q0-.67.472-1.143Q4.944 4 5.616 4h4.636q.14-.586.623-.985q.483-.4 1.125-.4q.654 0 1.134.4q.48.398.62.985h4.63q.672 0 1.144.472T20 5.616zm-8-6.48q.348 0 .578-.23t.23-.578t-.23-.578t-.578-.23t-.578.23t-.23.578t.23.578t.578.23"/></svg>
+					</button>
+					{% if not api_key.revoked %}
+						<form hx-delete="/api/key/{{ id }}" hx-target="#api-keys" hx-swap="innerHTML"
+							hx-disabled-elt="#remove-api-key-{{ id }}"
+							hx-confirm="Are you sure you want to remove this api key? Any 3rd party integrations using it will stop working.">
+							<button
+								id="remove-api-key-{{ id }}"
+								class="btn icon variant-danger"
+								type="submit"
+								title="Remove Link"
+							>
+								<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path fill="currentColor" d="M14.885 17.5v-1h3v1zm0-8v-1h6v1zm0 4v-1h5v1zM4.115 8h-1V7h3.731v-.885h2.538V7h3.732v1h-1v8.385q0 .69-.463 1.153T10.5 18H5.73q-.69 0-1.152-.462t-.462-1.153z"/></svg>
+							</button>
+						</form>
+					{% endif %}
+				</div>
+			</div>
+		{% endfor %}
+	{% else %}
+		<span>No API keys – yet</span>
+	{% endif %}
+</div>

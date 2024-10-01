@@ -1,7 +1,7 @@
 use actix_web::{
     body::{EitherBody, MessageBody},
-    middleware::Next,
     dev::{ServiceRequest, ServiceResponse},
+    middleware::Next,
     Error, HttpResponse,
 };
 
