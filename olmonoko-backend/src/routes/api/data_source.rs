@@ -14,7 +14,7 @@ use olmonoko_common::utils::time::timestamp;
 
 #[get("")]
 async fn sources(data: web::Data<AppState>, request: HttpRequest) -> impl Responder {
-    let user_id = get_user_from_request(&data, &request).await.map(|u| u.id);
+    let user_id = request.get_session_user(&data).await.map(|u| u.id);
     let sources = get_visible_sources(&data, user_id).await;
     HttpResponse::Ok().json(sources)
 }
@@ -26,7 +26,7 @@ async fn source_by_id(
     request: HttpRequest,
 ) -> impl Responder {
     let id = path.into_inner();
-    let user_id = get_user_from_request(&data, &request).await.map(|u| u.id);
+    let user_id = request.get_session_user(&data).await.map(|u| u.id);
     let source = get_source_as_user(&data, user_id, id).await;
     HttpResponse::Ok().json(source)
 }
@@ -45,7 +45,7 @@ async fn create_source(
             ))
             .finish();
     }
-    if let Some(user) = get_user_from_request(&data, &request).await {
+    if let Some(user) = request.get_session_user(&data).await {
         let mut active_source = NewIcsSource {
             name: source.name.clone(),
             url: source.url.clone(),
@@ -90,7 +90,7 @@ async fn delete_source(
     path: web::Path<i32>,
     request: HttpRequest,
 ) -> impl Responder {
-    if let Some(user) = get_user_from_request(&data, &request).await {
+    if let Some(user) = request.get_session_user(&data).await {
         let id = path.into_inner();
         sqlx::query!(
             "DELETE FROM ics_sources WHERE id = $1 AND user_id = $2",
@@ -119,7 +119,7 @@ async fn change_priority(
     form: web::Form<ChangePriorityForm>,
     request: HttpRequest,
 ) -> impl Responder {
-    let (mut context, user_opt) = request.get_session_context(&data).await;
+    let (mut context, user_opt, _key) = request.get_session_context(&data).await;
     if let Some(user) = user_opt {
         let id = path.into_inner();
         let form = form.into_inner();
@@ -185,7 +185,7 @@ async fn change_persist_events(
     form: web::Form<ChangeEventPersistenceForm>,
     request: HttpRequest,
 ) -> impl Responder {
-    let (mut context, user_opt) = request.get_session_context(&data).await;
+    let (mut context, user_opt, _key) = request.get_session_context(&data).await;
     if let Some(user) = user_opt {
         let id = path.into_inner();
         let form = form.into_inner();
@@ -238,7 +238,7 @@ async fn change_all_as_allday(
     form: web::Form<ChangeAllAsAlldayForm>,
     request: HttpRequest,
 ) -> impl Responder {
-    let (mut context, user_opt) = request.get_session_context(&data).await;
+    let (mut context, user_opt, _key) = request.get_session_context(&data).await;
     if let Some(user) = user_opt {
         let id = path.into_inner();
         let form = form.into_inner();
@@ -295,7 +295,7 @@ async fn change_import_template(
     form: web::Form<ChangeImportTemplateForm>,
     request: HttpRequest,
 ) -> impl Responder {
-    let (mut context, user_opt) = request.get_session_context(&data).await;
+    let (mut context, user_opt, _key) = request.get_session_context(&data).await;
     if let Some(user) = user_opt {
         let id = path.into_inner();
         let form = form.into_inner();

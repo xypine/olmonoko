@@ -123,7 +123,7 @@ async fn remove_user(
     req: HttpRequest,
     id: web::Path<UserId>,
 ) -> impl Responder {
-    let (mut context, user) = req.get_session_context(&data).await;
+    let (mut context, user, _key) = req.get_session_context(&data).await;
     if let Some(user) = user {
         if !user.admin {
             return HttpResponse::Forbidden().body("You are not an admin");
@@ -248,7 +248,7 @@ async fn change_user_interface_timezone(
     req: HttpRequest,
     form: web::Form<ChangeUserInterfaceTimezoneForm>,
 ) -> impl Responder {
-    let (mut context, user) = req.get_session_context(&data).await;
+    let (mut context, user, _key) = req.get_session_context(&data).await;
     if let Some(mut user) = user {
         let timezone = form.interface_timezone.clone();
         let parsed_timezone: Option<chrono_tz::Tz> = timezone.parse().ok();

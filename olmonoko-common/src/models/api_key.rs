@@ -3,26 +3,37 @@ use std::collections::BTreeSet;
 use chrono::Utc;
 use uuid::Uuid;
 
+use serde_with::As;
+use serde_with::NoneAsEmptyString;
+
 use crate::utils::time::from_timestamp;
+use crate::utils::time::timestamp;
 
 use super::user::UserId;
 
 pub type ApiKeyId = Uuid;
 
-const AUTHSCOPE_RF_UPCOMING_EVENTS: &str = "olmonoko:r:feature:upcoming_events";
+const AUTHSCOPE_RF_UPCOMING_EVENTS: &str = "upcoming_events:r";
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
 pub enum AuthScope {
     ReadFeatureUpcomingEvents,
 }
-impl TryFrom<String> for AuthScope {
+impl TryFrom<&str> for AuthScope {
     type Error = &'static str;
 
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        match value.as_str() {
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        match value {
             AUTHSCOPE_RF_UPCOMING_EVENTS => return Ok(Self::ReadFeatureUpcomingEvents),
             _ => {}
         }
         Err("Not a valid AuthScope")
+    }
+}
+impl ToString for AuthScope {
+    fn to_string(&self) -> String {
+        match self {
+            AuthScope::ReadFeatureUpcomingEvents => AUTHSCOPE_RF_UPCOMING_EVENTS.to_owned(),
+        }
     }
 }
 
@@ -45,7 +56,10 @@ impl TryFrom<RawApiKey> for ApiKey {
         let scopes = raw
             .scopes
             .into_iter()
-            .map(|scope| AuthScope::try_from(scope).unwrap())
+            .map(|scope| {
+                AuthScope::try_from(scope.as_str())
+                    .expect("parsing API scope returned from database")
+            })
             .collect();
         Ok(Self {
             id: raw.id,
@@ -69,4 +83,68 @@ pub struct ApiKey {
 
     pub created_at: chrono::DateTime<Utc>,
     pub updated_at: chrono::DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct NewApiKey {
+    pub description: String,
+    pub scopes: BTreeSet<AuthScope>,
+    pub scopes_pg: Vec<String>,
+    pub created_at: i64,
+}
+
+impl TryFrom<ApiKeyForm> for NewApiKey {
+    type Error = &'static str;
+
+    fn try_from(form: ApiKeyForm) -> Result<Self, Self::Error> {
+        let mut scopes = BTreeSet::new();
+        for scope_str in form.scopes.split(',') {
+            let trimmed = scope_str.trim();
+            if !trimmed.is_empty() {
+                let scope = AuthScope::try_from(trimmed)?;
+                scopes.insert(scope);
+            }
+        }
+        let scopes_pg: Vec<_> = scopes.iter().map(AuthScope::to_string).collect();
+
+        Ok(Self {
+            description: form.description,
+            created_at: timestamp(),
+            scopes,
+            scopes_pg,
+        })
+    }
+}
+
+impl From<ApiKey> for ApiKeyForm {
+    fn from(key: ApiKey) -> Self {
+        let scopes_vec: Vec<_> = key.scopes.iter().map(AuthScope::to_string).collect();
+        let scopes = scopes_vec.join(", ");
+        let created_at = Some(key.created_at.to_string());
+        let updated_at = Some(key.updated_at.to_string());
+        let revoked = Some(key.revoked);
+        Self {
+            id: Some(key.id),
+            description: key.description,
+            scopes,
+            created_at,
+            updated_at,
+            revoked,
+        }
+    }
+}
+
+#[derive(Debug, Clone, sqlx::FromRow, serde::Serialize, serde::Deserialize)]
+pub struct ApiKeyForm {
+    #[serde(default, with = "As::<NoneAsEmptyString>")]
+    pub id: Option<ApiKeyId>,
+    pub description: String,
+    pub scopes: String,
+
+    #[serde(skip_deserializing)]
+    pub created_at: Option<String>,
+    #[serde(skip_deserializing)]
+    pub updated_at: Option<String>,
+    #[serde(skip_deserializing)]
+    pub revoked: Option<bool>,
 }

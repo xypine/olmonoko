@@ -8,6 +8,7 @@ use chrono::{Datelike, NaiveTime, Timelike};
 use itertools::Itertools;
 use olmonoko_common::{
     models::{
+        api_key::{ApiKey, ApiKeyForm, RawApiKey},
         attendance::{Attendance, RawAttendance},
         event::{
             local::{LocalEventForm, LocalEventId},
@@ -47,7 +48,7 @@ fn admin_check(user: Option<UserPublic>) -> Option<HttpResponse> {
 
 #[get("/remote")]
 async fn sources(data: web::Data<AppState>, request: HttpRequest) -> impl Responder {
-    let (mut context, user) = request.get_session_context(&data).await;
+    let (mut context, user, _key) = request.get_session_context(&data).await;
     let all_sources = get_visible_sources_with_event_count(&data, user.map(|u| u.id)).await;
     context.insert("sources", &all_sources);
 
@@ -70,7 +71,7 @@ async fn local(
     request: HttpRequest,
     query: Query<LocalQuery>,
 ) -> impl Responder {
-    let (mut context, user) = request.get_session_context(&data).await;
+    let (mut context, user, _key) = request.get_session_context(&data).await;
     if let Some(user) = user {
         context.insert("filter", &query.filter);
         context.insert("filter_set", &query.filter.is_defined());
@@ -140,7 +141,7 @@ async fn source(
     path: web::Path<i32>,
     request: HttpRequest,
 ) -> impl Responder {
-    let (mut context, user) = request.get_session_context(&data).await;
+    let (mut context, user, _key) = request.get_session_context(&data).await;
     let id = path.into_inner();
     let (source, events, occurrences) =
         get_source_as_user_with_event_count(&data, user.map(|u| u.id), id).await;
@@ -156,7 +157,7 @@ async fn source(
 
 #[get("/admin")]
 async fn admin(data: web::Data<AppState>, request: HttpRequest) -> impl Responder {
-    let (mut context, user) = request.get_session_context(&data).await;
+    let (mut context, user, _key) = request.get_session_context(&data).await;
     if let Some(response) = admin_check(user) {
         return response;
     }
@@ -180,12 +181,26 @@ async fn me(
     data: web::Data<AppState>,
     request: HttpRequest,
 ) -> Result<impl Responder, InternalServerError<sqlx::Error>> {
-    let (mut context, user) = request.get_session_context(&data).await;
+    let (mut context, user, _key) = request.get_session_context(&data).await;
     if let Some(user) = user {
         context.insert(
             "export_links",
             &get_user_export_links(&data, user.id).await?,
         );
+
+        let api_keys = sqlx::query_as!(
+            RawApiKey,
+            "SELECT * FROM api_keys WHERE user_id = $1",
+            user.id
+        )
+        .fetch_all(&data.conn)
+        .await
+        .or_internal_server_error("Failed to fetch api keys for /me")?
+        .into_iter()
+        .map(|raw| ApiKey::try_from(raw).map(|key| ApiKeyForm::from(key)))
+        .collect::<Result<Vec<_>, _>>()
+        .expect("invalid api keys returned from db for /me");
+        context.insert("api_keys", &api_keys);
 
         let all_timezones = chrono_tz::TZ_VARIANTS
             .iter()
@@ -211,7 +226,7 @@ async fn list(
     request: HttpRequest,
     filter: Query<IndexQuery>,
 ) -> impl Responder {
-    let (mut context, user) = request.get_session_context(&data).await;
+    let (mut context, user, _key) = request.get_session_context(&data).await;
     if let Some(user) = user {
         let pivot = if let Some(month) = filter.month {
             if let Some(year) = filter.year {
@@ -295,7 +310,7 @@ use serde_with::rust::deserialize_ignore_any;
 
 use crate::db_utils::{
     events::{get_user_local_events, get_visible_event_occurrences},
-    request::{deauth, redirect, EnhancedRequest, InternalServerError},
+    request::{deauth, redirect, EnhancedRequest, InternalServerError, OrInternalServerError},
     sources::{get_source_as_user_with_event_count, get_visible_sources_with_event_count},
     timeline::compile_timeline,
     user::get_user_export_links,
@@ -396,7 +411,7 @@ async fn calendar(
     request: HttpRequest,
     query: Query<CalendarQuery>,
 ) -> impl Responder {
-    let (mut context, user) = request.get_session_context(&data).await;
+    let (mut context, user, _key) = request.get_session_context(&data).await;
     if let Some(user) = user {
         let now = chrono::Utc::now().with_timezone(&user.interface_timezone_parsed);
 
@@ -592,7 +607,7 @@ pub async fn timeline(
     request: HttpRequest,
     query: web::Query<TimelineQuery>,
 ) -> impl Responder {
-    let (mut context, user_opt) = request.get_session_context(&data).await;
+    let (mut context, user_opt, _key) = request.get_session_context(&data).await;
     if let Some(user) = user_opt {
         tracing::info!(user.id, user.email, "User requested timeline");
 

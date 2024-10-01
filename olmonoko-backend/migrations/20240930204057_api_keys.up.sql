@@ -1,5 +1,5 @@
 CREATE TABLE api_keys (
-	id 		UUID 			PRIMARY KEY,
+	id 		UUID 	PRIMARY KEY	DEFAULT gen_random_uuid(),
 	user_id 	INTEGER	NOT NULL	REFERENCES users(id) ON DELETE CASCADE,
 	description	TEXT 	NOT NULL,
 	scopes		TEXT[]	NOT NULL,

@@ -263,7 +263,7 @@ async fn update_local_attendance(
     id: Path<LocalEventId>,
     form: web::Form<AttendanceForm>,
 ) -> impl Responder {
-    let (mut context, user_opt) = request.get_session_context(&data).await;
+    let (mut context, user_opt, _key) = request.get_session_context(&data).await;
     if let Some(user) = user_opt {
         let id = id.into_inner();
         let form = form.into_inner();
@@ -302,7 +302,7 @@ async fn update_remote_attendance(
     id: Path<RemoteEventId>,
     form: web::Form<AttendanceForm>,
 ) -> impl Responder {
-    let (mut context, user_opt) = request.get_session_context(&data).await;
+    let (mut context, user_opt, _key) = request.get_session_context(&data).await;
     if let Some(user) = user_opt {
         let id = id.into_inner();
         let form = form.into_inner();
