@@ -1,0 +1,88 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT api_keys.*,\n                        users.email AS user_email,\n                        users.password_hash AS user_password_hash,\n                        users.admin AS user_admin,\n                        users.created_at AS user_created_at,\n                        users.interface_timezone AS user_interface_timezone\n                    FROM api_keys\n                        INNER JOIN users ON users.id = api_keys.user_id \n                    WHERE \n                        api_keys.id = $1 \n                    AND \n                        api_keys.revoked = FALSE\n                    ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "scopes",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 4,
+        "name": "revoked",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 5,
+        "name": "created_at",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "updated_at",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "user_email",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 8,
+        "name": "user_password_hash",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 9,
+        "name": "user_admin",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 10,
+        "name": "user_created_at",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 11,
+        "name": "user_interface_timezone",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "678c469ec6d841d174424514f4f46ce4726620465aecd24116b29c9de6039e13"
+}
