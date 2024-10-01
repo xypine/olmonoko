@@ -7,6 +7,7 @@ use olmonoko_common::{
 
 pub mod scheduler;
 pub mod source_processing;
+pub mod subscriber_processing;
 
 pub(crate) async fn compose_ics(
     events: Vec<EventOccurrence>,

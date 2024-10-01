@@ -99,3 +99,22 @@ pub struct UnverifiedUser {
     pub admin: bool,
     pub secret: String,
 }
+
+pub trait TimezoneEntity {
+    fn get_timezone(&self) -> chrono_tz::Tz;
+    fn get_current_local_time(&self) -> chrono::NaiveDateTime {
+        chrono::Utc::now()
+            .with_timezone(&self.get_timezone())
+            .naive_local()
+    }
+}
+impl TimezoneEntity for User {
+    fn get_timezone(&self) -> chrono_tz::Tz {
+        self.interface_timezone_parsed
+    }
+}
+impl TimezoneEntity for UserPublic {
+    fn get_timezone(&self) -> chrono_tz::Tz {
+        self.interface_timezone_parsed
+    }
+}

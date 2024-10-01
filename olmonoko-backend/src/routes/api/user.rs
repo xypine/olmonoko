@@ -4,6 +4,7 @@ use actix_web::{delete, get, patch, post, web, HttpResponse, Responder, Scope};
 use uuid::Uuid;
 
 use crate::db_utils::request::{deauth, redirect, reload, EnhancedRequest, SESSION_COOKIE_NAME};
+use crate::routes::ui;
 use olmonoko_common::models::session::{NewSession, SessionRaw};
 use olmonoko_common::models::user::{NewUser, RawUser, UserForm, UserId, UserPublic};
 use olmonoko_common::utils::flash::{FlashMessage, WithFlashMessage};

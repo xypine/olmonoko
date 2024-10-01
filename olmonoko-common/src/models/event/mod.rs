@@ -12,9 +12,7 @@ use crate::utils::time::from_timestamp;
 
 use self::{local::LocalEvent, remote::RemoteEvent};
 
-use super::
-    user::UserId
-;
+use super::user::UserId;
 
 #[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub struct SourceLocal {
@@ -51,15 +49,28 @@ pub const DEFAULT_PRIORITY: Priority = 5;
 pub const PRIORITY_OPTIONS: [Priority; 9] = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 pub enum Event {
     Local(LocalEvent),
-    Remote(RemoteEvent, Vec<(RemoteEventOccurrenceId, i64, Vec<LocalEventId>)>),
+    Remote(
+        RemoteEvent,
+        Vec<(RemoteEventOccurrenceId, i64, Vec<LocalEventId>)>,
+    ),
 }
 impl From<LocalEvent> for Event {
     fn from(event: LocalEvent) -> Self {
         Self::Local(event)
     }
 }
-impl From<(RemoteEvent, Vec<(RemoteEventOccurrenceId, i64, Vec<LocalEventId>)>)> for Event {
-    fn from((event, occurrence_details): (RemoteEvent, Vec<(RemoteEventOccurrenceId ,i64, Vec<LocalEventId>)>)) -> Self {
+impl
+    From<(
+        RemoteEvent,
+        Vec<(RemoteEventOccurrenceId, i64, Vec<LocalEventId>)>,
+    )> for Event
+{
+    fn from(
+        (event, occurrence_details): (
+            RemoteEvent,
+            Vec<(RemoteEventOccurrenceId, i64, Vec<LocalEventId>)>,
+        ),
+    ) -> Self {
         Self::Remote(event, occurrence_details)
     }
 }
@@ -160,7 +171,6 @@ impl Display for EventId {
             EventId::Local(id) => write!(f, "o:l:{id}"),
             EventId::Remote(id) => write!(f, "o:r:{id}"),
         }
-        
     }
 }
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -217,7 +227,9 @@ impl From<Event> for Vec<EventOccurrence> {
             Event::Local(event) => {
                 let o = EventOccurrence {
                     id: EventId::Local(event.id),
-                    source: EventSource::Local(SourceLocal { user_id: event.user_id }),
+                    source: EventSource::Local(SourceLocal {
+                        user_id: event.user_id,
+                    }),
                     priority: event.priority.unwrap_or(DEFAULT_PRIORITY),
                     starts_at: event.starts_at,
                     linked_events: vec![],
@@ -229,30 +241,37 @@ impl From<Event> for Vec<EventOccurrence> {
                     description: event.description.clone(),
                     location: event.location.clone(),
                     uid: event.uid.clone(),
-                    occurrence_id: None
+                    occurrence_id: None,
                 };
                 vec![o]
-            },
-            Event::Remote(event, meta) => {
-                meta.into_iter().enumerate()
-            .map(|(i, (occurrence_id, starts_at, linked_local_events))| EventOccurrence {
-                id: EventId::Remote(event.id),
-                source: EventSource::Remote(SourceRemote { source_id: event.event_source_id }),
-                priority: event.priority.unwrap_or(DEFAULT_PRIORITY),
-                starts_at: from_timestamp(starts_at),
-                linked_events: linked_local_events.into_iter().map(|le| EventId::Local(le)).collect(), 
-                all_day: event.all_day,
-                duration: event.duration,
-                rrule: event.rrule.clone(),
-                from_rrule: event.rrule.is_some() && i > 0,
-                summary: event.summary.clone(),
-                description: event.description.clone(),
-                location: event.location.clone(),
-                uid: event.uid.clone(),
-                occurrence_id: Some(occurrence_id)
-            })
-            .collect()
-            },
+            }
+            Event::Remote(event, meta) => meta
+                .into_iter()
+                .enumerate()
+                .map(
+                    |(i, (occurrence_id, starts_at, linked_local_events))| EventOccurrence {
+                        id: EventId::Remote(event.id),
+                        source: EventSource::Remote(SourceRemote {
+                            source_id: event.event_source_id,
+                        }),
+                        priority: event.priority.unwrap_or(DEFAULT_PRIORITY),
+                        starts_at: from_timestamp(starts_at),
+                        linked_events: linked_local_events
+                            .into_iter()
+                            .map(|le| EventId::Local(le))
+                            .collect(),
+                        all_day: event.all_day,
+                        duration: event.duration,
+                        rrule: event.rrule.clone(),
+                        from_rrule: event.rrule.is_some() && i > 0,
+                        summary: event.summary.clone(),
+                        description: event.description.clone(),
+                        location: event.location.clone(),
+                        uid: event.uid.clone(),
+                        occurrence_id: Some(occurrence_id),
+                    },
+                )
+                .collect(),
         }
     }
 }
@@ -263,7 +282,7 @@ pub struct EventOccurrenceHuman {
     pub source: EventSource,
     pub priority: Priority,
     pub linked_events: Vec<EventId>,
-    
+
     // Event data
     pub starts_at_human: String,
     pub starts_at_seconds: i64,
@@ -371,7 +390,7 @@ where
             location: occurrence.location,
             uid: occurrence.uid,
 
-            occurrence_id: occurrence.occurrence_id
+            occurrence_id: occurrence.occurrence_id,
         }
     }
 }
@@ -434,7 +453,7 @@ mod tests {
             description: None,
             location: None,
             uid: "test".to_string(),
-            occurrence_id: None
+            occurrence_id: None,
         };
         let tz = Utc;
         let human = EventOccurrenceHuman::from((event, &tz));
@@ -479,7 +498,7 @@ mod tests {
     fn test_event_occurrence_span_multiday() {
         for tz in [chrono_tz::Etc::UTC, chrono_tz::Europe::Helsinki] {
             let event = EventOccurrence {
-            id: EventId::Local(1),
+                id: EventId::Local(1),
                 source: EventSource::Local(SourceLocal { user_id: 1 }),
                 priority: 5,
                 linked_events: vec![],
@@ -506,7 +525,7 @@ mod tests {
             );
 
             let event = EventOccurrence {
-            id: EventId::Local(1),
+                id: EventId::Local(1),
                 source: EventSource::Local(SourceLocal { user_id: 1 }),
                 priority: 5,
                 linked_events: vec![],

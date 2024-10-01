@@ -14,6 +14,7 @@ use olmonoko_common::{
     AppState, APP_NAVIGATION_ENTRIES_ADMIN, APP_NAVIGATION_ENTRIES_LOGGEDIN,
     APP_NAVIGATION_ENTRIES_LOGGEDOUT, APP_NAVIGATION_ENTRIES_PUBLIC,
 };
+use reqwest::cookie::Cookie;
 
 pub const SESSION_COOKIE_NAME: &str = "session_id";
 pub const RESPONSE_TYPE_HEADER: &str = "HX-Request";
@@ -101,6 +102,7 @@ pub(crate) async fn get_session_context(
 pub trait EnhancedRequest {
     fn get_referer(&self) -> Option<&str>;
     fn get_session_id(&self) -> Option<String>;
+    fn get_session_cookie<'a>(&self) -> Option<actix_web::cookie::Cookie<'a>>;
     async fn get_session_user(&self, data: &web::Data<AppState>) -> Option<User>;
     async fn get_session_context(&self, data: &web::Data<AppState>) -> SessionContext;
     fn is_frontend_request(&self) -> bool;
@@ -114,6 +116,9 @@ impl EnhancedRequest for HttpRequest {
     fn get_session_id(&self) -> Option<String> {
         let session_cookie = self.cookie(SESSION_COOKIE_NAME)?;
         Some(session_cookie.value().to_string())
+    }
+    fn get_session_cookie<'a>(&self) -> Option<actix_web::cookie::Cookie<'a>> {
+        self.get_session_id().map(|sid| create_session_cookie(sid))
     }
     async fn get_session_user(&self, data: &web::Data<AppState>) -> Option<User> {
         get_user_from_request(data, self).await
@@ -131,6 +136,14 @@ impl EnhancedRequest for HttpRequest {
     }
 }
 
+pub fn create_session_cookie<'a>(session_id: String) -> actix_web::cookie::Cookie<'a> {
+    actix_web::cookie::Cookie::build(SESSION_COOKIE_NAME, session_id)
+        .path("/")
+        .secure(true)
+        .http_only(true)
+        .expires(None) // Change later
+        .finish()
+}
 pub fn deauth(req: &HttpRequest) -> HttpResponse {
     let mut removal_cookie = actix_web::cookie::Cookie::build(SESSION_COOKIE_NAME, "").finish();
     removal_cookie.make_removal();

@@ -40,9 +40,7 @@ pub struct RemoteEvent {
     pub uid: String,
 }
 impl From<(RawRemoteEvent, Priority)> for RemoteEvent {
-    fn from(
-        (raw, event_source_priority): (RawRemoteEvent, Priority),
-    ) -> Self {
+    fn from((raw, event_source_priority): (RawRemoteEvent, Priority)) -> Self {
         let priority = if let Some(priority_override) = raw.priority_override {
             priority_override
         } else {
@@ -113,7 +111,7 @@ impl From<RawRemoteEventOccurrence> for RemoteEventOccurrence {
             id: raw.id,
             event_id: raw.event_id,
             from_rrule: raw.from_rrule,
-            starts_at: from_timestamp(raw.starts_at)
+            starts_at: from_timestamp(raw.starts_at),
         }
     }
 }

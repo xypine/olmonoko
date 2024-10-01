@@ -229,23 +229,6 @@ where
             .fetch_one(&mut *conn)
             .await?;
         idmap.push(inserted_id);
-
-        // update tags
-        //sqlx::query!(
-        //    "DELETE FROM event_tags WHERE remote_event_id = $1",
-        //    inserted_id
-        //)
-        //.execute(&mut *conn)
-        //.await?;
-        //for tag in &event.tags {
-        //    sqlx::query!(
-        //        "INSERT INTO event_tags (remote_event_id, tag) VALUES ($1, $2) ON CONFLICT DO NOTHING",
-        //        inserted_id,
-        //        tag
-        //    )
-        //    .execute(&mut *conn)
-        //    .await?;
-        //}
     }
     for i in 0..events_len {
         let inserted_id = idmap[i];
@@ -298,10 +281,10 @@ pub async fn sync_all() -> Result<(), anyhow::Error> {
     let mut tasks = vec![];
     for source in sources {
         let source_id = source.id;
-        let source_name = source.name;
-        let conn = conn.clone();
+        let source_name = source.name.clone();
+        let main_conn = conn.clone();
         tasks.push(tokio::spawn(async move {
-            let mut tx = conn.begin().await?;
+            let mut tx = main_conn.begin().await?;
             if let Err(e) = sync_source(&mut *tx, source_id)
                 .instrument(info_span!("sync_source", source_id, source_name))
                 .await
@@ -313,12 +296,39 @@ pub async fn sync_all() -> Result<(), anyhow::Error> {
             }
             Ok::<_, anyhow::Error>(())
         }));
+        let subscribers_with_templates = sqlx::query!(
+            r#"
+            SELECT * FROM ics_source_priorities WHERE ics_source_id = $1
+        "#,
+            source.id
+        )
+        .fetch_all(&conn)
+        .await
+        .expect("Failed to fetch templated subscribers for syncing");
+        for subscriber in subscribers_with_templates {
+            let client_conn = conn.clone();
+            let source_id = source.id;
+            let source_name = source.name.clone();
+            tasks.push(tokio::spawn(async move {
+                let mut tx = client_conn.begin().await?;
+                if let Err(e) = sync_source(&mut *tx, source_id)
+                    .instrument(info_span!("sync_source", source_id, source_name))
+                    .await
+                {
+                    tracing::error!(source_id, source_name, "Failed to sync subscriber: {e:?}");
+                    tx.rollback().await?;
+                } else {
+                    tx.commit().await?;
+                }
+                Ok::<_, anyhow::Error>(())
+            }));
+        }
     }
     for task in tasks {
         let res = task.await?;
         if let Err(e) = res {
             // do nothing
-            tracing::error!("Failed to sync source: {}", e);
+            tracing::error!("Error while syncing source: {}", e);
         }
     }
 
@@ -541,8 +551,10 @@ pub fn render_import_template(
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ImportTemplateDelta {
+    /// No event is created if true
     #[serde(default)]
     pub skip: bool,
+
     #[serde(default)]
     pub priority_override: Option<Priority>,
     #[serde(default)]

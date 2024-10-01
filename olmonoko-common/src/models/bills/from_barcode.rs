@@ -71,7 +71,7 @@ impl TryFrom<NewBillBarcodeFormWithUserId> for NewBillWithEvent {
             location: None,
             uid,
             attendance_planned: false,
-            attendance_actual: false
+            attendance_actual: false,
         };
         Ok((new_event, new_bill))
     }

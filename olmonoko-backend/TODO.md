@@ -17,11 +17,28 @@
 - [ ] add dedicated ui for attachments (bills etc)
 - [x] priority for events, default from source
 - [x] allow users to filter which events they want to see in their calendar / integrate with priority system
+- [x] privacy / sensitive information system
+  - [ ] features from the priority system
+    - Store as integer, allowing multiple levels
+    - Maybe the following:
+      1. [Encrypted/SA] Top secret
+      2. [Encrypted/SA] Private
+      3. Not included in calendar exports by default
+      4. no functional difference to 6 in normal ui, "busy"-level data in api and export links if not otherwise specified in export link / api key
+      5. default - private
+      6. no functional difference to 5
+      7. visible publicly as "busy"-block
+      8. visible publicly as "busy"-block, name shown to connections
+      9. visible publicly
+  - [ ] encryption / special access for private events
+    - client side or serverside with client supplying the key through POST request? Maybe allow for both and express this in UI and docs?
+    - not accessible through session or api key alone, needs encryption key
+    - would maybe need some partitioning so that all of the user's private events would not need to be decrypted and kept in memory for access to only this weeks private events?
 - [x] allow multiple export links
 - [x] add min_priority to export links
 - [-] keep track of uids so that we can present lately added / modified events
 - [-] import rules
-- [ ] change import templates to be per-user, don't modify original data
+- [-] change import templates to be per-user, don't modify original data
   - either at runtime (prob not worth it) or import
 - [ ] allow "pinning" of events / moving them to the local calendar
   - [ ] show modifications since pinning
@@ -64,3 +81,5 @@
 - [ ] automatic syncing between instances / per user
 - [ ] embeddable export links / public calendar views with privacy options
 - [ ] countdown pages / something more generic?
+- [ ] other parts of the ICalendar spec
+  - [ ] TODOs

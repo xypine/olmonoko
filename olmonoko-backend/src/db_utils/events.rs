@@ -194,7 +194,16 @@ async fn get_visible_remote_events(
     data: &web::Data<AppState>,
     user_id: Option<UserId>,
     filter: &EventFilter,
-) -> Vec<(RemoteEvent, RemoteEventOccurrenceId, i64, Vec<LocalEventId>, bool)> {
+) -> Vec<(
+    RemoteEvent,
+    RemoteEventOccurrenceId,
+    i64,
+    Vec<LocalEventId>,
+    bool,
+)> {
+    if filter.tags.is_some() {
+        return vec![];
+    }
     let min_priority = parse_priority(filter.min_priority);
     let max_priority = parse_priority(filter.max_priority);
 

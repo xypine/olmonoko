@@ -78,12 +78,14 @@ impl From<RawEventFilter> for EventFilter {
             max_priority: raw.max_priority.and_then(|s| s.parse().ok()),
             tags: raw.tags.map(|s| {
                 s.split(',')
+                    .map(str::trim)
                     .map(str::to_string)
                     .filter(|s| !s.is_empty())
                     .collect()
             }),
             exclude_tags: raw.exclude_tags.map(|s| {
                 s.split(',')
+                    .map(str::trim)
                     .map(str::to_string)
                     .filter(|s| !s.is_empty())
                     .collect()

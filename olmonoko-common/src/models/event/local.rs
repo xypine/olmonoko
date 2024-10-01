@@ -139,21 +139,9 @@ impl From<(RawLocalEvent, &str)> for LocalEvent {
     }
 }
 
-impl
-    From<(
-        RawLocalEvent,
-        Option<RawBill>,
-        bool,
-        Vec<String>,
-    )> for LocalEvent
-{
+impl From<(RawLocalEvent, Option<RawBill>, bool, Vec<String>)> for LocalEvent {
     fn from(
-        (raw, bill, autodescription, tags): (
-            RawLocalEvent,
-            Option<RawBill>,
-            bool,
-            Vec<String>,
-        ),
+        (raw, bill, autodescription, tags): (RawLocalEvent, Option<RawBill>, bool, Vec<String>),
     ) -> Self {
         let bill = bill.map(Bill::from);
         let description = if autodescription {
@@ -192,21 +180,9 @@ impl
         }
     }
 }
-impl
-    From<(
-        RawLocalEvent,
-        Option<RawBill>,
-        bool,
-        &str,
-    )> for LocalEvent
-{
+impl From<(RawLocalEvent, Option<RawBill>, bool, &str)> for LocalEvent {
     fn from(
-        (raw, bill, autodescription, tags_concat): (
-            RawLocalEvent,
-            Option<RawBill>,
-            bool,
-            &str,
-        ),
+        (raw, bill, autodescription, tags_concat): (RawLocalEvent, Option<RawBill>, bool, &str),
     ) -> Self {
         let tags: Vec<_> = tags_concat.split(',').map(|s| s.to_string()).collect();
         Self::from((raw, bill, autodescription, tags))
@@ -228,7 +204,7 @@ pub struct NewLocalEvent {
     pub uid: String,
     // Attendance
     pub attendance_planned: bool,
-    pub attendance_actual: bool
+    pub attendance_actual: bool,
 }
 
 use crate::models::ics_source::deserialize_checkbox;
@@ -280,7 +256,7 @@ pub struct LocalEventForm {
     )]
     pub attendance_actual: bool,
 
-    pub linked_occurrence_id: Option<RemoteEventOccurrenceId>
+    pub linked_occurrence_id: Option<RemoteEventOccurrenceId>,
 }
 
 pub type FormWithUser<'a> = (LocalEventForm, &'a UserPublic);
@@ -349,7 +325,7 @@ impl From<LocalEvent> for LocalEventForm {
             location: event.location,
             attendance_planned: event.attendance_planned,
             attendance_actual: event.attendance_actual,
-            linked_occurrence_id: None
+            linked_occurrence_id: None,
         }
     }
 }
@@ -386,7 +362,7 @@ pub mod tests {
             location: Some("Test".to_string()),
             attendance_planned: false,
             attendance_actual: false,
-            linked_occurrence_id: None
+            linked_occurrence_id: None,
         };
         let event = NewLocalEvent::from((form, &test_user()));
         assert_eq!(event.user_id, 1);
@@ -415,7 +391,7 @@ pub mod tests {
             location: Some("Test".to_string()),
             attendance_planned: false,
             attendance_actual: false,
-            linked_occurrence_id: None
+            linked_occurrence_id: None,
         };
         let event = NewLocalEvent::from((form, &test_user()));
         assert_eq!(event.user_id, 1);
@@ -442,7 +418,7 @@ pub mod tests {
             location: Some("Test".to_string()),
             attendance_planned: false,
             attendance_actual: false,
-            linked_occurrence_id: None
+            linked_occurrence_id: None,
         };
         let event = NewLocalEvent::from((form, &test_user()));
         assert_eq!(event.user_id, 1);

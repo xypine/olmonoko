@@ -13,9 +13,9 @@ use olmonoko_common::{
         event::{
             local::{LocalEvent, LocalEventForm, LocalEventId},
             remote::RemoteEventOccurrenceId,
-            EventId, EventOccurrenceHuman, Priority,
+            EventOccurrenceHuman, Priority,
         },
-        user::{RawUser, UnverifiedUser, UserPublic},
+        user::{RawUser, TimezoneEntity, UnverifiedUser, UserPublic},
     },
     utils::{
         event_filters::{EventFilter, RawEventFilter, RawEventFilterWithDate},
@@ -108,7 +108,6 @@ async fn local(
             None
         };
 
-        context.insert("filter", &filter);
         let filter_query = serde_urlencoded::to_string(query.filter.clone()).unwrap();
         context.insert("filter_query", &filter_query);
 
@@ -202,11 +201,12 @@ async fn admin(data: web::Data<AppState>, request: HttpRequest) -> impl Responde
 }
 
 #[get("/me")]
-async fn me(
+pub async fn me(
     data: web::Data<AppState>,
     request: HttpRequest,
 ) -> Result<impl Responder, InternalServerError<sqlx::Error>> {
     let (mut context, user) = request.get_session_context(&data).await;
+    let mut greeting = "Welcome";
     if let Some(user) = user {
         context.insert(
             "export_links",
@@ -218,7 +218,21 @@ async fn me(
             .map(|tz| tz.name())
             .collect::<Vec<_>>();
         context.insert("timezones", &all_timezones);
+
+        let user_local_time = user.get_current_local_time();
+        let hm = user_local_time.hour() * 100 + user_local_time.minute();
+        greeting = match hm {
+            0..500 => "Sleep tight",
+            500..1230 => "Good morning",
+            1230..1630 => "Good afternoon",
+            1630..2100 => "Good evening",
+            2100..2400 => "Good night",
+            2400.. => {
+                panic!("Greeting: Invalid time: {hm}");
+            }
+        };
     }
+    context.insert("greeting", &greeting);
 
     let content = data.templates.render("pages/me.html", &context).unwrap();
     Ok(remove_flash_cookie(HttpResponse::Ok()).body(content))
@@ -556,7 +570,7 @@ async fn calendar(
                     description: None,
                     location: None,
                     uid: "olmonoko::now".to_string(),
-                    occurrence_id: None
+                    occurrence_id: None,
                 })
             }
 

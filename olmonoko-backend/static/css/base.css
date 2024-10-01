@@ -307,7 +307,7 @@ iframe.escaped-content {
   display: none;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 800px) {
   .desktop-only {
     display: contents;
   }
@@ -317,7 +317,7 @@ iframe.escaped-content {
   display: contents;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 800px) {
   .mobile-only {
     display: none;
   }
