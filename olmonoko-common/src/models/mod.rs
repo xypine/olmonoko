@@ -1,3 +1,4 @@
+pub mod api_key;
 pub mod bills;
 pub mod event;
 pub mod ics_source;

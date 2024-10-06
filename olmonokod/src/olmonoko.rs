@@ -1,46 +1,18 @@
-use std::collections::HashMap;
-
 use reqwest::header::{HeaderMap, HeaderValue};
 
 use olmonoko_common::models::{event::EventOccurrenceHuman, user::UserPublic};
 
-pub async fn create_session(
-    instance_url: &str,
-    email: &str,
-    password: &str,
-) -> Result<Option<String>, reqwest::Error> {
-    let path = format!("{instance_url}/api/user/login");
-    //println!("calling {path}");
-    let client = reqwest::Client::builder().build()?;
-
-    let mut form = HashMap::new();
-    form.insert("email", email);
-    form.insert("password", password);
-
-    let request = client.post(&path).form(&form).build()?;
-    let response = client.execute(request).await?;
-
-    if !response.status().is_success() {
-        println!("login was not a success: {}", response.status());
-        return Ok(None);
-    }
-
-    let session_id = response.text().await?;
-
-    Ok(Some(session_id))
-}
-
 pub async fn get_user_details(
     instance_url: &str,
-    session_id: &str,
+    api_key: &str,
 ) -> Result<Option<UserPublic>, reqwest::Error> {
     let path = format!("{instance_url}/api/user/me");
     //println!("calling {path}");
 
     let mut headers = HeaderMap::new();
     headers.insert(
-        "cookie",
-        HeaderValue::from_str(&format!("session_id={session_id}")).unwrap(),
+        "X-OLMONOKO-API-KEY",
+        HeaderValue::from_str(api_key).unwrap(),
     );
 
     let client = reqwest::Client::builder()
@@ -65,15 +37,15 @@ pub async fn get_user_details(
 
 pub async fn get_upcoming_events(
     instance_url: &str,
-    session_id: &str,
+    api_key: &str,
 ) -> Result<Option<Vec<EventOccurrenceHuman>>, reqwest::Error> {
     let path = format!("{instance_url}/api/event/occurrences/planning_to_attend");
     //println!("calling {path}");
 
     let mut headers = HeaderMap::new();
     headers.insert(
-        "cookie",
-        HeaderValue::from_str(&format!("session_id={session_id}")).unwrap(),
+        "X-OLMONOKO-API-KEY",
+        HeaderValue::from_str(api_key).unwrap(),
     );
 
     let client = reqwest::Client::builder()

@@ -21,7 +21,6 @@ enum Commands {
     Login {
         /// Server url, eg. https://olmonoko.example.com
         host: String,
-        email: String,
     },
 
     /// Get user details, if logged in
@@ -44,25 +43,23 @@ async fn main() {
             }
             println!("Hello, world!");
         }
-        Commands::Login { host, email } => {
-            let password = rpassword::prompt_password("password: ").unwrap();
+        Commands::Login { host } => {
+            let api_key = rpassword::prompt_password("API Key: ").unwrap();
 
-            let login_result = olmonoko::create_session(&host, &email, &password)
-                .await
-                .unwrap();
-            if let Some(session_id) = login_result {
-                println!("Login successful! Session created.");
+            let user_details = olmonoko::get_user_details(&host, &api_key).await.unwrap();
+            if let Some(user) = user_details {
+                println!("API Key is valid. Hello {}!", user.email);
                 let mut keyring = get_os_keyring("olmonokod").expect("acquiring os keyring");
                 keyring
                     .set_secret("host", &host)
                     .expect("saving host url into keyring");
                 keyring
-                    .set_secret("session_id", &session_id)
-                    .expect("saving session id into keyring");
+                    .set_secret("api_key", &api_key)
+                    .expect("saving api key into keyring");
 
                 println!("credentials saved");
             } else {
-                println!("WAH WAH");
+                println!("Could not get user info?");
             }
         }
         Commands::AuthStatus => {
@@ -74,16 +71,14 @@ async fn main() {
                     .to_vec(),
             )
             .expect("decoding host from keyring");
-            let session_id = String::from_utf8(
+            let api_key = String::from_utf8(
                 keyring
-                    .get_secret("session_id")
-                    .expect("getting session id from keyring")
+                    .get_secret("api_key")
+                    .expect("getting api key from keyring")
                     .to_vec(),
             )
-            .expect("decoding session_id from keyring");
-            let result = olmonoko::get_user_details(&host, &session_id)
-                .await
-                .unwrap();
+            .expect("decoding api key from keyring");
+            let result = olmonoko::get_user_details(&host, &api_key).await.unwrap();
             if let Some(details) = result {
                 println!("{}", serde_json::to_string_pretty(&details).unwrap());
             } else {
@@ -99,14 +94,14 @@ async fn main() {
                     .to_vec(),
             )
             .expect("decoding host from keyring");
-            let session_id = String::from_utf8(
+            let api_key = String::from_utf8(
                 keyring
-                    .get_secret("session_id")
-                    .expect("getting session id from keyring")
+                    .get_secret("api_key")
+                    .expect("getting api key from keyring")
                     .to_vec(),
             )
-            .expect("decoding session_id from keyring");
-            let result = olmonoko::get_upcoming_events(&host, &session_id)
+            .expect("decoding api key from keyring");
+            let result = olmonoko::get_upcoming_events(&host, &api_key)
                 .await
                 .unwrap();
             if let Some(details) = result {

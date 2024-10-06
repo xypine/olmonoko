@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT * FROM ics_source_priorities",
+  "query": "\n            SELECT * FROM ics_source_priorities WHERE ics_source_id = $1\n        ",
   "describe": {
     "columns": [
       {
@@ -40,7 +40,9 @@
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Int4"
+      ]
     },
     "nullable": [
       false,
@@ -52,5 +54,5 @@
       true
     ]
   },
-  "hash": "85fa4775afb4137062666f93efa307c10ab22ac630386e2901a8b58e567efbbf"
+  "hash": "414361ce1539b5622ab72b82f44c5f1dfeba1062583481e74cbce5477528f87a"
 }

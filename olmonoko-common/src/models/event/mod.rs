@@ -470,6 +470,7 @@ mod tests {
     fn test_event_occurrence_span_whole() {
         let event = EventOccurrence {
             id: EventId::Local(1),
+            occurrence_id: None,
             source: EventSource::Local(SourceLocal { user_id: 1 }),
             priority: 5,
             linked_events: vec![],
@@ -499,6 +500,7 @@ mod tests {
         for tz in [chrono_tz::Etc::UTC, chrono_tz::Europe::Helsinki] {
             let event = EventOccurrence {
                 id: EventId::Local(1),
+                occurrence_id: None,
                 source: EventSource::Local(SourceLocal { user_id: 1 }),
                 priority: 5,
                 linked_events: vec![],
@@ -526,6 +528,7 @@ mod tests {
 
             let event = EventOccurrence {
                 id: EventId::Local(1),
+                occurrence_id: None,
                 source: EventSource::Local(SourceLocal { user_id: 1 }),
                 priority: 5,
                 linked_events: vec![],
@@ -554,6 +557,7 @@ mod tests {
     fn test_event_occurrence_span_no_duration() {
         let event = EventOccurrence {
             id: EventId::Local(1),
+            occurrence_id: None,
             source: EventSource::Local(SourceLocal { user_id: 1 }),
             priority: 5,
             linked_events: vec![],

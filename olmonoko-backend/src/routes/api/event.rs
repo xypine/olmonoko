@@ -1,5 +1,5 @@
 use actix_web::{
-    get, post, put,
+    get, post,
     web::{self, Path},
     HttpRequest, HttpResponse, Responder, Scope,
 };
@@ -12,7 +12,6 @@ use olmonoko_common::{
         },
         event::{
             local::{LocalEvent, LocalEventForm, LocalEventId, NewLocalEvent, RawLocalEvent},
-            remote::RemoteEventId,
             EventOccurrenceHuman, DEFAULT_PRIORITY,
         },
         user::UserPublic,

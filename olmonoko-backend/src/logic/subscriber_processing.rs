@@ -1,4 +1,7 @@
-use olmonoko_common::models::{ics_source::{IcsSource, RawIcsSource}, subscription::Subscription};
+use olmonoko_common::models::{
+    ics_source::{IcsSource, RawIcsSource},
+    subscription::Subscription,
+};
 use sqlx::{Executor, Postgres};
 
 #[derive(Debug, thiserror::Error)]
