@@ -36,7 +36,7 @@ async fn new(
                 "Failed to fetch api keys from db after inserting a new one",
             )?
             .into_iter()
-            .map(|raw| ApiKey::try_from(raw).map(|key| ApiKeyForm::from(key)))
+            .map(|raw| ApiKey::try_from(raw).map(ApiKeyForm::from))
             .collect::<Result<Vec<_>, _>>()?;
 
             context.insert("api_keys", &api_keys);
@@ -90,7 +90,7 @@ async fn revoke(
                 "Failed to fetch api keys from db after inserting a new one",
             )?
             .into_iter()
-            .map(|raw| ApiKey::try_from(raw).map(|key| ApiKeyForm::from(key)))
+            .map(|raw| ApiKey::try_from(raw).map(ApiKeyForm::from))
             .collect::<Result<Vec<_>, _>>()?;
 
             context.insert("api_keys", &api_keys);

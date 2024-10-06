@@ -2,12 +2,12 @@ use actix_web::{delete, get, patch, post, web, HttpRequest, HttpResponse, Respon
 use uuid::Uuid;
 
 use crate::db_utils::errors::TemplateOrDatabaseError;
-use crate::db_utils::events::{get_user_local_events, get_visible_event_occurrences};
+use crate::db_utils::events::get_visible_event_occurrences;
 use crate::db_utils::request::{
     deauth, EnhancedRequest, InternalServerError, IntoInternalServerError, OrInternalServerError,
 };
 use crate::db_utils::user::get_user_export_links;
-use olmonoko_common::models::event::{Event, EventOccurrence, Priority};
+use olmonoko_common::models::event::Priority;
 use olmonoko_common::models::public_link::{PublicLink, RawPublicLink};
 use olmonoko_common::utils::event_filters::EventFilter;
 use olmonoko_common::AppState;

@@ -1,4 +1,5 @@
 use std::collections::BTreeSet;
+use std::fmt::Display;
 
 use chrono::Utc;
 use uuid::Uuid;
@@ -13,27 +14,35 @@ use super::user::UserId;
 
 pub type ApiKeyId = Uuid;
 
-const AUTHSCOPE_RF_UPCOMING_EVENTS: &str = "upcoming_events:r";
+const AUTHSCOPE_FEATURE_UPCOMING_EVENTS: &str = "upcoming_events";
+const AUTHSCOPE_RESOURCE_ATTENDANCE_READ: &str = "attendance:r";
+const AUTHSCOPE_RESOURCE_ATTENDANCE_WRITE: &str = "attendance:w";
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
 pub enum AuthScope {
-    ReadFeatureUpcomingEvents,
+    UpcomingEventsFeature,
+    AttendanceRead,
+    AttendanceWrite,
 }
 impl TryFrom<&str> for AuthScope {
     type Error = &'static str;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         match value {
-            AUTHSCOPE_RF_UPCOMING_EVENTS => return Ok(Self::ReadFeatureUpcomingEvents),
-            _ => {}
+            AUTHSCOPE_FEATURE_UPCOMING_EVENTS => Ok(Self::UpcomingEventsFeature),
+            AUTHSCOPE_RESOURCE_ATTENDANCE_READ => Ok(Self::AttendanceRead),
+            AUTHSCOPE_RESOURCE_ATTENDANCE_WRITE => Ok(Self::AttendanceWrite),
+            _ => Err("Not a valid AuthScope"),
         }
-        Err("Not a valid AuthScope")
     }
 }
-impl ToString for AuthScope {
-    fn to_string(&self) -> String {
-        match self {
-            AuthScope::ReadFeatureUpcomingEvents => AUTHSCOPE_RF_UPCOMING_EVENTS.to_owned(),
-        }
+impl Display for AuthScope {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let as_str = match self {
+            AuthScope::UpcomingEventsFeature => AUTHSCOPE_FEATURE_UPCOMING_EVENTS,
+            AuthScope::AttendanceRead => AUTHSCOPE_RESOURCE_ATTENDANCE_READ,
+            AuthScope::AttendanceWrite => AUTHSCOPE_RESOURCE_ATTENDANCE_WRITE,
+        };
+        f.write_str(as_str)
     }
 }
 

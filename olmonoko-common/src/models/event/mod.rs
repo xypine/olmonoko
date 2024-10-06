@@ -258,7 +258,7 @@ impl From<Event> for Vec<EventOccurrence> {
                         starts_at: from_timestamp(starts_at),
                         linked_events: linked_local_events
                             .into_iter()
-                            .map(|le| EventId::Local(le))
+                            .map(EventId::Local)
                             .collect(),
                         all_day: event.all_day,
                         duration: event.duration,

@@ -224,7 +224,7 @@ pub async fn me(
         .await
         .or_internal_server_error("Failed to fetch api keys for /me")?
         .into_iter()
-        .map(|raw| ApiKey::try_from(raw).map(|key| ApiKeyForm::from(key)))
+        .map(|raw| ApiKey::try_from(raw).map(ApiKeyForm::from))
         .collect::<Result<Vec<_>, _>>()
         .expect("invalid api keys returned from db for /me");
         context.insert("api_keys", &api_keys);
@@ -515,7 +515,7 @@ async fn calendar(
                 olmonoko_common::models::event::EventId::Remote(_) => {
                     e.linked_events.is_empty()
                         || e.linked_events.iter().any(|linked| {
-                            if let Some(result) = linked_local_events_map.get(&linked) {
+                            if let Some(result) = linked_local_events_map.get(linked) {
                                 if result.starts_at != e.starts_at_utc {
                                     tracing::warn!("starts_at do not match {}, {}", linked, e.id);
                                     return true;

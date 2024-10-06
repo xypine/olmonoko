@@ -33,8 +33,7 @@ pub fn arrange(starts_at: &[i64], durations: &[i32]) -> Vec<Arrangement> {
         let mut occupied_lanes = BTreeSet::new();
         let mut width = 1;
         let mut lane = 0;
-        for si in 0..seen.len() {
-            let s = seen[si];
+        for s in &seen {
             let seen_s = s.0;
             let seen_e = s.1;
             if start < seen_e && end > seen_s {
@@ -55,7 +54,7 @@ pub fn arrange(starts_at: &[i64], durations: &[i32]) -> Vec<Arrangement> {
         arrangements[i].width = width;
         arrangements[i].lane = lane;
     }
-    return arrangements;
+    arrangements
 }
 
 #[cfg(test)]

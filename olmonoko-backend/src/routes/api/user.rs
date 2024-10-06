@@ -4,7 +4,6 @@ use actix_web::{delete, get, patch, post, web, HttpResponse, Responder, Scope};
 use uuid::Uuid;
 
 use crate::db_utils::request::{deauth, redirect, reload, EnhancedRequest, SESSION_COOKIE_NAME};
-use crate::routes::ui;
 use olmonoko_common::models::session::{NewSession, SessionRaw};
 use olmonoko_common::models::user::{NewUser, RawUser, UserForm, UserId, UserPublic};
 use olmonoko_common::utils::flash::{FlashMessage, WithFlashMessage};
@@ -216,7 +215,7 @@ async fn login(
             .with_flash_message(FlashMessage::error("Invalid email or password"))
             .finish();
     }
-    return HttpResponse::Forbidden().body("Invalid email or password");
+    HttpResponse::Forbidden().body("Invalid email or password")
 }
 
 #[post("/logout")]

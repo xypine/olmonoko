@@ -102,5 +102,5 @@ pub fn get_version() -> String {
             .clone()
             .unwrap_or_else(|| "eeeeeee".to_string())
     );
-    return version;
+    version
 }

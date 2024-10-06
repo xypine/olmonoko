@@ -12,7 +12,7 @@ use olmonoko_common::{
         bills::RawBill,
         event::{
             local::{LocalEventId, RawLocalEvent},
-            remote::{RawRemoteEvent, RawRemoteEventOccurrence, RemoteEventId},
+            remote::{RawRemoteEvent, RawRemoteEventOccurrence},
             Priority,
         },
         ics_source::{IcsSourceId, RawIcsSource},
@@ -171,7 +171,7 @@ async fn clone_instance(
         }
         return Ok(HttpResponse::BadRequest().body("Invalid instance_url"));
     }
-    return Ok(deauth(&req));
+    Ok(deauth(&req))
 }
 
 async fn restore(
@@ -424,7 +424,7 @@ ORDER BY sequence_namespace.nspname, class_sequence.relname;"#)
     tracing::info!("Committing transaction");
     txn.commit().await.expect("Failed to commit transaction");
     tracing::info!("Restore complete!");
-    return Ok(true);
+    Ok(true)
 }
 
 #[post("/restore.json")]

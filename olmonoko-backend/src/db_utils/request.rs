@@ -126,7 +126,7 @@ pub(crate) async fn get_session_context(
     let user_with_key = get_user_from_request(data, request)
         .await
         .map(|(u, k)| (UserPublic::from(u), k));
-    let api_key = user_with_key.clone().map(|(_, k)| k).flatten();
+    let api_key = user_with_key.clone().and_then(|(_, k)| k);
     let user = user_with_key.map(|(u, _)| u);
     let path = request.path();
     let root_path = request.path().split('/').nth(1).unwrap_or("");
@@ -181,7 +181,7 @@ impl EnhancedRequest for HttpRequest {
         Some(session_cookie.value().to_string())
     }
     fn get_session_cookie<'a>(&self) -> Option<actix_web::cookie::Cookie<'a>> {
-        self.get_session_id().map(|sid| create_session_cookie(sid))
+        self.get_session_id().map(create_session_cookie)
     }
     async fn get_session_user(&self, data: &web::Data<AppState>) -> Option<User> {
         get_user_from_request(data, self).await.map(|(u, _k)| u)
