@@ -645,7 +645,7 @@ async fn calendar(
             &["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
         );
 
-        context.insert("selected_year", &pivot.year());
+        context.insert("selected_year", &pivot.iso_week().year());
         context.insert("selected_week", &pivot.iso_week().week());
         let content = data
             .templates
