@@ -82,7 +82,7 @@
                     {% endif %}
                 </td>
                 <td>
-                    <iframe class="escaped-content" srcdoc="{{ event.description | default(value="no description") | replace(from="\n", to="<br>") | linebreaksbr | escape | safe }}" width=600 allowtransparency="true"></iframe>
+                    <iframe class="escaped-content" loading="lazy" srcdoc="{{ event.description | default(value="no description") | replace(from="\n", to="<br>") | linebreaksbr | escape | safe }}" width=600 allowtransparency="true"></iframe>
                 </td>
                 <td>{{ event.location }}</td>
             </tr>

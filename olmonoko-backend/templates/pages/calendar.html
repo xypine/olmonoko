@@ -3,25 +3,27 @@
 {% block content_nav %}
 {% if link_owner %}
     <div id="shared-calendar-notice">
-        <p class="btn border-only variant-brand" style="flex: 1; color: inherit;">
+        <p class="btn border-only variant-brand" style="flex-grow: 1; flex-basis: max-content; color: inherit;">
             Viewing calendar of {{ link_owner.email }}
         </p>
-        <div style="display: flex; gap: 0.5rem;">
-            <a class="btn" href="https://www.google.com/calendar/render?cid={{ site_url }}/api/export/{{ link_id }}.ics">
-                Google Calendar
-            </a>
-            <a class="btn" href="{{ site_url|replace(from='http://', to='https://')|replace(from='https://', to='webcal://') }}/api/export/{{ link_id }}.ics">
-                other calendars
-            </a>
+        <div style="display: flex; gap: 1rem;">
+            <div style="display: flex; gap: 0.5rem;">
+                <a class="btn" href="https://www.google.com/calendar/render?cid={{ site_url }}/api/export/{{ link_id }}.ics">
+                    GCal
+                </a>
+                <a class="btn" href="{{ site_url|replace(from='http://', to='https://')|replace(from='https://', to='webcal://') }}/api/export/{{ link_id }}.ics">
+                    Other
+                </a>
+            </div>
+            <button
+                id="copy-export-link-{{ link_id }}"
+                class="btn"
+                title="Copy Link"
+                onclick="navigator.clipboard.writeText('{{ site_url }}/api/export/{{ link_id }}.ics');document.querySelector('#copy-export-link-{{ link_id }}').innerHTML = 'Link Copied!';"
+            >
+                .ics
+            </button>
         </div>
-        <button
-            id="copy-export-link-{{ link_id }}"
-            class="btn"
-            title="Copy Link"
-            onclick="navigator.clipboard.writeText('{{ site_url }}/api/export/{{ link_id }}.ics');document.querySelector('#copy-export-link-{{ link_id }}').innerHTML = 'Link Copied!';"
-        >
-            .ics
-        </button>
     </div>
 {% endif %}
 {% if user or link_owner %}
@@ -88,6 +90,7 @@
     }
     #shared-calendar-notice {
         display: flex;
+        flex-wrap: wrap;
         justify-content: center;
         align-items: center;
         gap: 1rem;
@@ -186,7 +189,7 @@
                     {% endif %}
                 </td>
                 <td>
-                    <iframe class="escaped-content" srcdoc="<link rel='stylesheet' href='/static/css/base.css' />{{ event.description | default(value="no description") | replace(from="\n", to="<br>") | linebreaksbr | escape | safe }}" width=600 allowtransparency="true"></iframe>
+                    <iframe class="escaped-content" loading="lazy" srcdoc="<link rel='stylesheet' href='/static/css/base.css' />{{ event.description | default(value="no description") | replace(from="\n", to="<br>") | linebreaksbr | escape | safe }}" width=600 allowtransparency="true"></iframe>
                 </td>
                 <td>
                     {{ event.location }}
