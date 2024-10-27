@@ -1,6 +1,5 @@
 mod utils;
 
-use std::collections::HashMap;
 
 use actix_web::{
     cookie::SameSite,
@@ -22,7 +21,6 @@ use olmonoko_common::{
         event_filters::{EventFilter, RawEventFilter, RawEventFilterWithDate},
         flash::FLASH_COOKIE_NAME,
         time::{from_timestamp, get_current_time},
-        ui::arrange,
     },
     AppState,
 };

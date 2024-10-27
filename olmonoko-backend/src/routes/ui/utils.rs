@@ -4,7 +4,7 @@ use actix_web::web::Data;
 use chrono::{DateTime, Datelike, NaiveTime, Timelike, Utc};
 use chrono_tz::Tz;
 use itertools::Itertools;
-use olmonoko_common::{models::{event::{EventOccurrence, EventOccurrenceHuman}, user::UserId}, utils::{event_filters::EventFilter, ui::arrange}, AppState};
+use olmonoko_common::{models::{event::EventOccurrenceHuman, user::UserId}, utils::{event_filters::EventFilter, ui::arrange}, AppState};
 
 use crate::db_utils::events::get_visible_event_occurrences;
 
@@ -67,7 +67,7 @@ pub async fn build_calendar(data: &Data<AppState>, user_id: UserId, pivot: DateT
     let to = (pivot + chrono::Duration::days(7)).timestamp();
     filter.after = Some(from);
     filter.before = Some(to);
-    let events = get_visible_event_occurrences(&data, Some(user_id), true, &filter).await;
+    let events = get_visible_event_occurrences(data, Some(user_id), true, &filter).await;
     let linked_local_events: Vec<_> = events
         .iter()
         .flat_map(|e| e.linked_events.clone())
