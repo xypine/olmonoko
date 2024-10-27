@@ -136,6 +136,10 @@ a:hover {
   --variant-color: var(--tertiary);
 }
 
+.btn.variant-brand {
+  --variant-color: var(--brand);
+}
+
 .btn.variant-plain {
   background-color: transparent;
   color: inherit;

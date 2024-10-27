@@ -1,10 +1,33 @@
 {% extends "layouts/base.html" %}
 {% block title %}Calendar{% endblock title %}
 {% block content_nav %}
-{% if user %}
+{% if link_owner %}
+    <div id="shared-calendar-notice">
+        <p class="btn border-only variant-brand" style="flex: 1; color: inherit;">
+            Viewing calendar of {{ link_owner.email }}
+        </p>
+        <div style="display: flex; gap: 0.5rem;">
+            <a class="btn" href="https://www.google.com/calendar/render?cid={{ site_url }}/api/export/{{ link_id }}.ics">
+                Google Calendar
+            </a>
+            <a class="btn" href="{{ site_url|replace(from='http://', to='https://')|replace(from='https://', to='webcal://') }}/api/export/{{ link_id }}.ics">
+                other calendars
+            </a>
+        </div>
+        <button
+            id="copy-export-link-{{ link_id }}"
+            class="btn"
+            title="Copy Link"
+            onclick="navigator.clipboard.writeText('{{ site_url }}/api/export/{{ link_id }}.ics');document.querySelector('#copy-export-link-{{ link_id }}').innerHTML = 'Link Copied!';"
+        >
+            .ics
+        </button>
+    </div>
+{% endif %}
+{% if user or link_owner %}
     <div id="top-menu">
         <div id="top-menu-left">
-            {% set reset_link = site_url ~ "/#today" %}
+            {% set reset_link = site_url ~ path ~ "#today" %}
             <a id="calendar-reset" class="btn variant-tertiary" href="{{ reset_link | safe }}">
                 Reset
             </a>
@@ -16,7 +39,7 @@
                 <a
                     id="week-prev"
                     class="btn"
-                    href="{{ site_url | safe }}?year={{ prev_year }}&week={{ prev_week }}"
+                    href="{{ site_url ~ path | safe }}?year={{ prev_year }}&week={{ prev_week }}"
                     hx-on:click="this.outerHTML = `<button class=\'btn\' disabled>${this.innerHTML}</button>`"
                 >
                     Prev
@@ -24,21 +47,23 @@
                 <a
                     id="week-next"
                     class="btn"
-                    href="{{ site_url | safe }}?year={{ next_year }}&week={{ next_week }}"
+                    href="{{ site_url ~ path | safe }}?year={{ next_year }}&week={{ next_week }}"
                     hx-on:click="this.outerHTML = `<button class=\'btn\' disabled>${this.innerHTML}</button>`"
                 >
                     Next
                 </a>
             </div>
         </div>
-        <div id="top-menu-right">
-            <p>
-                Calendar view
-            </p>
-            <a href="{{ site_url | safe }}/timeline">
-                Timeline view
-            </a>
-        </div>
+        {% if not link_owner %}
+            <div id="top-menu-right">
+                <p>
+                    Calendar view
+                </p>
+                <a href="{{ site_url | safe }}/timeline">
+                    Timeline view
+                </a>
+            </div>
+        {% endif %}
     </div>
 {% endif %}
 {% endblock content_nav %}
@@ -60,7 +85,13 @@
             align-items: center;
             min-height: 200px;
         }
-
+    }
+    #shared-calendar-notice {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 1rem;
+        padding: .5rem;
     }
     #top-menu {
         display: flex;
@@ -122,7 +153,7 @@
 </style>
 {% include "components/calendar/week.html" %}
 <section id="page-home">
-    {% if user %}
+    {% if user and not link_owner %}
         {% if events %}
             <table>
             <tr>

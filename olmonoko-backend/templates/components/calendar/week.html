@@ -22,9 +22,11 @@
 </div>
 #}
 <div id="calendar-week">
-	<div>
-		{% include "components/event_filter.html" %}
-	</div>
+	{% if not link_owner %}
+		<div>
+			{% include "components/event_filter.html" %}
+		</div>
+	{% endif %}
 	{% for day in [0, 1, 2, 3, 4, 5, 6] %}
 	{% set date = week_dates[day] %}
 	{% set day_name = day_names[day] %}
@@ -79,7 +81,7 @@
 	#calendar {
 		padding-inline: 1rem;
 		padding-bottom: 1rem;
-		margin-bottom: 1rem;
+		/*margin-bottom: 1rem;*/
 		display: flex;
 		justify-content: center;
 		align-items: center;

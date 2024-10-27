@@ -1,3 +1,5 @@
+mod utils;
+
 use std::collections::HashMap;
 
 use actix_web::{
@@ -10,13 +12,11 @@ use chrono::{Datelike, NaiveTime, Timelike};
 use itertools::Itertools;
 use olmonoko_common::{
     models::{
-        api_key::{ApiKey, ApiKeyForm, RawApiKey},
-        event::{
+        api_key::{ApiKey, ApiKeyForm, RawApiKey}, event::{
             local::{LocalEvent, LocalEventForm, LocalEventId},
             remote::RemoteEventOccurrenceId,
             EventOccurrenceHuman, Priority,
-        },
-        user::{RawUser, TimezoneEntity, UnverifiedUser, UserPublic},
+        }, public_link::{PublicLink, RawPublicLink}, user::{RawUser, TimezoneEntity, UnverifiedUser, User, UserPublic}
     },
     utils::{
         event_filters::{EventFilter, RawEventFilter, RawEventFilterWithDate},
@@ -348,6 +348,8 @@ struct CalendarPositionGoto {
 }
 
 use serde_with::rust::deserialize_ignore_any;
+use utils::build_calendar;
+use uuid::Uuid;
 
 use crate::db_utils::{
     events::{
@@ -466,7 +468,6 @@ async fn calendar(
         context.insert("filter_set", &query.filter.is_defined());
         let query = query.into_inner();
         let chosen_position: Option<CalendarPosition> = query.position.into();
-        let mut filter = EventFilter::from(query.filter);
         // pivot is the first day of the shown week at 00:00 UTC
         let pivot = if let Some(position) = chosen_position {
             chrono::NaiveDate::from_isoywd_opt(position.year, position.week, chrono::Weekday::Mon)
@@ -482,171 +483,8 @@ async fn calendar(
                 .and_time(NaiveTime::MIN)
                 .and_utc()
         };
-        let pivot_local = pivot
-            .with_timezone(&user.interface_timezone_parsed)
-            .with_time(NaiveTime::MIN)
-            .earliest()
-            .expect("Failed to convert pivot to local time");
-
-        // after yesterday (from today)
-        let from = (pivot - chrono::Duration::milliseconds(1)).timestamp();
-        // before next week
-        let to = (pivot + chrono::Duration::days(7)).timestamp();
-        filter.after = Some(from);
-        filter.before = Some(to);
-        let events = get_visible_event_occurrences(&data, Some(user.id), true, &filter).await;
-        let linked_local_events: Vec<_> = events
-            .iter()
-            .flat_map(|e| e.linked_events.clone())
-            .collect();
-        let mut linked_local_events_map = HashMap::new();
-        for linked in linked_local_events {
-            let res = events.iter().find(|e| e.id == linked);
-            if let Some(event) = res {
-                linked_local_events_map.insert(linked, event.clone());
-            }
-        }
-        // humanize dates etc
-        let events = events
-            .into_iter()
-            .map(|e| EventOccurrenceHuman::from((e, &user.interface_timezone_parsed)))
-            .filter(|e| match e.id {
-                olmonoko_common::models::event::EventId::Local(_) => true,
-                olmonoko_common::models::event::EventId::Remote(_) => {
-                    e.linked_events.is_empty()
-                        || e.linked_events.iter().any(|linked| {
-                            if let Some(result) = linked_local_events_map.get(linked) {
-                                if result.starts_at != e.starts_at_utc {
-                                    tracing::warn!("starts_at do not match {}, {}", linked, e.id);
-                                    return true;
-                                }
-                                if result.duration != e.duration {
-                                    tracing::warn!("duration do not match {}, {}", linked, e.id);
-                                    return true;
-                                }
-                                return false;
-                            }
-                            tracing::warn!("Linked local event {} not found for {}", linked, e.id);
-                            true
-                        })
-                }
-            })
-            .collect::<Vec<_>>();
-        context.insert("events", &events);
-
-        let current_day: Option<usize> = if now.iso_week() == pivot.iso_week() {
-            Some(now.weekday().number_from_monday() as usize - 1)
-        } else {
-            None
-        };
-        context.insert("current_day", &current_day);
-        let current_time = now.time();
-        let current_time_seconds = current_time.hour() * 3600 + current_time.minute() * 60;
-        context.insert("current_time_seconds", &current_time_seconds);
-        let mut events_by_day: [Vec<_>; 7] = Default::default();
-        for day in 0..7 {
-            let mut day_events = events
-                .iter()
-                .filter_map(|event| {
-                    let mut event = event.clone();
-                    let today_ts = pivot_local.timestamp() + (day * 24 * 3600) as i64;
-                    let tomorrow_ts = today_ts + (24 * 3600) - 1;
-                    if let Some((starts_at_s, duration)) =
-                        event.interface_span(today_ts, tomorrow_ts)
-                    {
-                        event.starts_at_seconds = starts_at_s;
-                        event.duration = duration;
-                        return Some(event);
-                    }
-                    None
-                })
-                .sorted_by_key(|event| event.priority)
-                .collect::<Vec<_>>();
-
-            let is_today = current_day == Some(day as usize);
-            if is_today {
-                day_events.push(EventOccurrenceHuman {
-                    id: olmonoko_common::models::event::EventId::Local(-1),
-                    source: olmonoko_common::models::event::EventSource::Local(
-                        olmonoko_common::models::event::SourceLocal { user_id: -1 },
-                    ),
-                    linked_events: vec![],
-                    priority: 1,
-                    starts_at_utc: now.with_timezone(&chrono::Utc),
-                    starts_at_human: "".to_string(),
-                    starts_at_seconds: current_time_seconds as i64,
-                    overlap_total: 0,
-                    overlap_index: 0,
-                    all_day: false,
-                    duration: None,
-                    duration_human: None,
-                    rrule: None,
-                    from_rrule: false,
-                    summary: "".to_string(),
-                    description: None,
-                    location: None,
-                    uid: "olmonoko::now".to_string(),
-                    occurrence_id: None,
-                })
-            }
-
-            for event in &mut day_events {
-                // normalize all day events to start at 00:00 and last the default amount
-                if event.all_day {
-                    event.starts_at_seconds = 0;
-                    event.duration = None;
-                }
-                // set event duration to be at least 1 hour
-                if event.duration.unwrap_or(0) < INTERFACE_MIN_EVENT_LENGTH {
-                    event.duration = Some(INTERFACE_MIN_EVENT_LENGTH);
-                }
-            }
-
-            // find overlapping events and adjust event overlap_count and overlap_index
-            let starts_at: Vec<_> = day_events.iter().map(|e| e.starts_at_seconds).collect();
-            let durations: Vec<_> = day_events
-                .iter()
-                .map(|e| e.duration.unwrap_or_default())
-                .collect();
-            let arrangements = arrange(starts_at.as_slice(), durations.as_slice());
-            for (i, a) in arrangements.iter().enumerate() {
-                day_events[i].overlap_index = a.lane as usize;
-                day_events[i].overlap_total = a.width as usize;
-            }
-
-            events_by_day[day as usize] = day_events;
-        }
-        context.insert("events_by_day", &events_by_day);
-
-        // generate data for the year and month selectors
-        let before = pivot - chrono::Duration::weeks(1);
-        let after = pivot + chrono::Duration::weeks(1);
-        let week_before = before.iso_week();
-        let week_after = after.iso_week();
-        let year_before = week_before.year();
-        let year_after = week_after.year();
-        context.insert("prev_year", &year_before);
-        context.insert("prev_week", &week_before.week());
-        context.insert("next_year", &year_after);
-        context.insert("next_week", &week_after.week());
-        // generate dates for the current week
-        let mut week_dates = vec![];
-        for (i, day) in (0..7)
-            .map(|i| pivot + chrono::Duration::days(i))
-            .enumerate()
-        {
-            let formatted = day.format("%d.%-m.").to_string();
-            week_dates.push(formatted.clone());
-            context.insert(format!("week_date_{}", i), &formatted);
-        }
-        context.insert("week_dates", &week_dates);
-        context.insert(
-            "day_names",
-            &["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-        );
-
-        context.insert("selected_year", &pivot.iso_week().year());
-        context.insert("selected_week", &pivot.iso_week().week());
+        let calendar_data = build_calendar(&data, user.id, pivot, user.interface_timezone_parsed, EventFilter::from(query.filter)).await;
+        calendar_data.insert_into_context(&mut context);
         let content = data
             .templates
             .render("pages/calendar.html", &context)
@@ -656,6 +494,83 @@ async fn calendar(
 
     let content = data.templates.render("pages/index.html", &context).unwrap();
     remove_flash_cookie(HttpResponse::Ok()).body(content)
+}
+#[get("/shared/{id}")]
+async fn calendar_shared(
+    data: web::Data<AppState>,
+    request: HttpRequest,
+    query: Query<CalendarQuery>,
+    path: web::Path<Uuid>,
+) -> Result<impl Responder, InternalServerError<sqlx::Error>> {
+    let (mut context, user, _key) = request.get_session_context(&data).await;
+    let id = path.into_inner().to_string();
+    context.insert("link_id", &id);
+    tracing::info!("Fetching calendar for id {id}");
+    let opt = sqlx::query!(
+        "SELECT public_calendar_links.*, users.interface_timezone, users.email, users.admin, users.created_at AS user_created_at FROM public_calendar_links INNER JOIN users ON public_calendar_links.user_id = users.id WHERE public_calendar_links.id = $1",
+        id
+    )
+    .fetch_optional(&data.conn)
+    .await
+    .or_internal_server_error("Failed to fetch public calendar link from the database")?
+    .map(|row| {
+        let link = PublicLink::from(RawPublicLink{
+            user_id: row.user_id,
+            created_at: row.created_at,
+            id: row.id,
+            min_priority: row.min_priority,
+            max_priority: row.max_priority,
+        });
+        let user = UserPublic::from(User::from(RawUser{
+            id: row.user_id,
+            interface_timezone: row.interface_timezone,
+            email: row.email,
+            password_hash: "INTENTIONALLY_NOT_FILLED".to_string(),
+            created_at: row.user_created_at,
+            admin: row.admin
+        }));
+
+        (link, user)
+    });
+    if let Some((link, link_owner)) = opt {
+        context.insert("link_owner", &link_owner);
+
+        let tz = user.map(|u| u.interface_timezone_parsed).unwrap_or(link_owner.interface_timezone_parsed);
+        let now = chrono::Utc::now().with_timezone(&tz);
+
+        context.insert("filter", &query.filter);
+        context.insert("filter_set", &query.filter.is_defined());
+        let query = query.into_inner();
+        let chosen_position: Option<CalendarPosition> = query.position.into();
+        // pivot is the first day of the shown week at 00:00 UTC
+        let pivot = if let Some(position) = chosen_position {
+            chrono::NaiveDate::from_isoywd_opt(position.year, position.week, chrono::Weekday::Mon)
+                .expect("Failed to construct pivot")
+                .and_time(NaiveTime::MIN)
+                .and_utc()
+        } else {
+            let year = now.year();
+            // get monday of the current week
+            let week = now.iso_week().week();
+            chrono::NaiveDate::from_isoywd_opt(year, week, chrono::Weekday::Mon)
+                .expect("Failed to construct pivot")
+                .and_time(NaiveTime::MIN)
+                .and_utc()
+        };
+        let mut filter = EventFilter::from(query.filter);
+        filter.min_priority = link.min_priority;
+        filter.max_priority = link.max_priority;
+        let calendar_data = build_calendar(&data, link.user_id, pivot, tz, filter).await;
+        calendar_data.insert_into_context(&mut context);
+        let content = data
+            .templates
+            .render("pages/calendar.html", &context)
+            .unwrap();
+        return Ok(remove_flash_cookie(HttpResponse::Ok()).body(content));
+    }
+
+    let content = data.templates.render("pages/index.html", &context).unwrap();
+    Ok(remove_flash_cookie(HttpResponse::Ok()).body(content))
 }
 
 #[derive(Debug, serde::Deserialize)]
@@ -746,6 +661,7 @@ pub fn routes() -> Scope {
         .service(me)
         .service(list)
         .service(calendar)
+        .service(calendar_shared)
         .service(timeline)
         .service(admin)
 }
