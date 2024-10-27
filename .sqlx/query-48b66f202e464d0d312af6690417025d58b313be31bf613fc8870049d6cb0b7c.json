@@ -1,0 +1,70 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT public_calendar_links.*, users.interface_timezone, users.email, users.admin, users.created_at AS user_created_at FROM public_calendar_links INNER JOIN users ON public_calendar_links.user_id = users.id WHERE public_calendar_links.id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "created_at",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "min_priority",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "max_priority",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "interface_timezone",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "email",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 7,
+        "name": "admin",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "user_created_at",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "48b66f202e464d0d312af6690417025d58b313be31bf613fc8870049d6cb0b7c"
+}
