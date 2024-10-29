@@ -121,7 +121,7 @@ async fn change_filters(
     request: HttpRequest,
 ) -> Result<impl Responder, InternalServerError<TemplateOrDatabaseError>> {
     let id = path.into_inner().to_string();
-    let (mut context, user_opt, _key) = request.get_session_context(&data).await;
+    let (mut context, user_opt, _key, _timer) = request.get_session_context(&data).await;
     if let Some(user) = user_opt {
         sqlx::query!(
             "UPDATE public_calendar_links SET min_priority = $1, max_priority = $2 WHERE id = $3 AND user_id = $4",
@@ -156,7 +156,7 @@ async fn new_link(
     data: web::Data<AppState>,
     request: HttpRequest,
 ) -> Result<impl Responder, InternalServerError<TemplateOrDatabaseError>> {
-    let (mut context, user_opt, _key) = request.get_session_context(&data).await;
+    let (mut context, user_opt, _key, _timer) = request.get_session_context(&data).await;
     if let Some(user) = user_opt {
         let new_id = Uuid::new_v4().to_string();
         sqlx::query!(

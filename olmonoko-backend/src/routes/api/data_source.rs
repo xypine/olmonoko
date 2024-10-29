@@ -119,7 +119,7 @@ async fn change_priority(
     form: web::Form<ChangePriorityForm>,
     request: HttpRequest,
 ) -> impl Responder {
-    let (mut context, user_opt, _key) = request.get_session_context(&data).await;
+    let (mut context, user_opt, _key, _timer) = request.get_session_context(&data).await;
     if let Some(user) = user_opt {
         let id = path.into_inner();
         let form = form.into_inner();
@@ -185,7 +185,7 @@ async fn change_persist_events(
     form: web::Form<ChangeEventPersistenceForm>,
     request: HttpRequest,
 ) -> impl Responder {
-    let (mut context, user_opt, _key) = request.get_session_context(&data).await;
+    let (mut context, user_opt, _key, _timer) = request.get_session_context(&data).await;
     if let Some(user) = user_opt {
         let id = path.into_inner();
         let form = form.into_inner();
@@ -238,7 +238,7 @@ async fn change_all_as_allday(
     form: web::Form<ChangeAllAsAlldayForm>,
     request: HttpRequest,
 ) -> impl Responder {
-    let (mut context, user_opt, _key) = request.get_session_context(&data).await;
+    let (mut context, user_opt, _key, _timer) = request.get_session_context(&data).await;
     if let Some(user) = user_opt {
         let id = path.into_inner();
         let form = form.into_inner();
@@ -295,7 +295,7 @@ async fn change_import_template(
     form: web::Form<ChangeImportTemplateForm>,
     request: HttpRequest,
 ) -> impl Responder {
-    let (mut context, user_opt, _key) = request.get_session_context(&data).await;
+    let (mut context, user_opt, _key, _timer) = request.get_session_context(&data).await;
     if let Some(user) = user_opt {
         let id = path.into_inner();
         let form = form.into_inner();

@@ -1,0 +1,106 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT sessions.*, \n                    users.email AS user_email,\n                    users.password_hash AS user_password_hash,\n                    users.admin AS user_admin,\n                    users.created_at AS user_created_at,\n                    users.interface_timezone AS user_interface_timezone,\n                    timers.id AS \"timer_id?\",\n                    timers.template AS \"timer_template?\",\n                    timers.summary AS \"timer_summary?\",\n                    timers.details AS \"timer_details?\",\n                    timers.location AS \"timer_location?\",\n                    timers.created_at AS \"timer_created_at?\"\n                FROM sessions\n                    INNER JOIN users \n                        ON users.id = sessions.user_id \n                    LEFT JOIN timers \n                        ON timers.user_id = users.id \n                WHERE sessions.id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "expires_at",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "created_at",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "user_email",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "user_password_hash",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "user_admin",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 7,
+        "name": "user_created_at",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 8,
+        "name": "user_interface_timezone",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "timer_id?",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 10,
+        "name": "timer_template?",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 11,
+        "name": "timer_summary?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "timer_details?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 13,
+        "name": "timer_location?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 14,
+        "name": "timer_created_at?",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "92e5c4ef84fa4afd8db9a221f79fde94b6b9c59bd090848440c878443c4561ee"
+}

@@ -1,0 +1,95 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT * FROM local_events WHERE user_id = $1 AND id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "created_at",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "updated_at",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "starts_at",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "duration",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "summary",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "location",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "uid",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "all_day",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 11,
+        "name": "priority",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 12,
+        "name": "rrule",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "568644af79344fa4cf0ead77904de45f8baa074f4f005051f4cc204dba75564b"
+}

@@ -12,7 +12,7 @@ async fn new(
     data: web::Data<AppState>,
     request: HttpRequest,
 ) -> Result<impl Responder, AnyInternalServerError> {
-    let (mut context, user_opt, key) = request.get_session_context(&data).await;
+    let (mut context, user_opt, key, _timer) = request.get_session_context(&data).await;
 
     if key.is_some() {
         return Ok(
@@ -60,7 +60,7 @@ async fn revoke(
     path: web::Path<ApiKeyId>,
     request: HttpRequest,
 ) -> Result<impl Responder, AnyInternalServerError> {
-    let (mut context, user_opt, key) = request.get_session_context(&data).await;
+    let (mut context, user_opt, key, _timer) = request.get_session_context(&data).await;
 
     if key.is_some() {
         return Ok(HttpResponse::BadRequest().body("API keys are not allowed to revoke API keys"));

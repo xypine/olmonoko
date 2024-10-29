@@ -7,6 +7,7 @@ pub(crate) mod export;
 pub(crate) mod key;
 pub(crate) mod meta;
 pub(crate) mod user;
+pub(crate) mod timer;
 
 pub fn routes() -> Scope {
     web::scope("/api")
@@ -17,4 +18,5 @@ pub fn routes() -> Scope {
         .service(event::routes())
         .service(backup::routes())
         .service(key::routes())
+        .service(timer::routes())
 }

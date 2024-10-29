@@ -15,53 +15,53 @@
       },
       {
         "ordinal": 2,
-        "name": "remote_event_id",
-        "type_info": "Int4"
-      },
-      {
-        "ordinal": 3,
         "name": "payee_account_number",
         "type_info": "Text"
       },
       {
-        "ordinal": 4,
+        "ordinal": 3,
         "name": "amount",
         "type_info": "Int4"
       },
       {
-        "ordinal": 5,
+        "ordinal": 4,
         "name": "reference",
         "type_info": "Text"
       },
       {
-        "ordinal": 6,
+        "ordinal": 5,
         "name": "payee_name",
         "type_info": "Text"
       },
       {
-        "ordinal": 7,
+        "ordinal": 6,
         "name": "payee_email",
         "type_info": "Text"
       },
       {
-        "ordinal": 8,
+        "ordinal": 7,
         "name": "payee_address",
         "type_info": "Text"
       },
       {
-        "ordinal": 9,
+        "ordinal": 8,
         "name": "payee_phone",
         "type_info": "Text"
       },
       {
-        "ordinal": 10,
+        "ordinal": 9,
         "name": "created_at",
         "type_info": "Int8"
       },
       {
-        "ordinal": 11,
+        "ordinal": 10,
         "name": "updated_at",
         "type_info": "Int8"
+      },
+      {
+        "ordinal": 11,
+        "name": "remote_event_id",
+        "type_info": "Int4"
       }
     ],
     "parameters": {
@@ -70,7 +70,6 @@
     "nullable": [
       false,
       true,
-      true,
       false,
       false,
       false,
@@ -79,7 +78,8 @@
       true,
       true,
       false,
-      false
+      false,
+      true
     ]
   },
   "hash": "f1977973ac975f98a0429552514310a738d72bbd6b9b857344794147b18211a6"

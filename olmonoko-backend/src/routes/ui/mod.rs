@@ -48,7 +48,7 @@ fn admin_check(user: Option<UserPublic>) -> Option<HttpResponse> {
 
 #[get("/remote")]
 async fn sources(data: web::Data<AppState>, request: HttpRequest) -> impl Responder {
-    let (mut context, user, _key) = request.get_session_context(&data).await;
+    let (mut context, user, _key, _timer) = request.get_session_context(&data).await;
     let all_sources = get_visible_sources_with_event_count(&data, user.map(|u| u.id)).await;
     context.insert("sources", &all_sources);
 
@@ -71,7 +71,7 @@ async fn local(
     request: HttpRequest,
     query: Query<LocalQuery>,
 ) -> impl Responder {
-    let (mut context, user, _key) = request.get_session_context(&data).await;
+    let (mut context, user, _key, _timer) = request.get_session_context(&data).await;
     if let Some(user) = user {
         context.insert("filter", &query.filter);
         context.insert("filter_set", &query.filter.is_defined());
@@ -141,7 +141,7 @@ async fn source(
     path: web::Path<i32>,
     request: HttpRequest,
 ) -> impl Responder {
-    let (mut context, user, _key) = request.get_session_context(&data).await;
+    let (mut context, user, _key, _timer) = request.get_session_context(&data).await;
     let id = path.into_inner();
     let (source, events, occurrences) =
         get_source_as_user_with_event_count(&data, user.map(|u| u.id), id).await;
@@ -157,7 +157,7 @@ async fn source(
 
 #[get("/admin")]
 async fn admin(data: web::Data<AppState>, request: HttpRequest) -> impl Responder {
-    let (mut context, user, _key) = request.get_session_context(&data).await;
+    let (mut context, user, _key, _timer) = request.get_session_context(&data).await;
     if let Some(response) = admin_check(user) {
         return response;
     }
@@ -181,7 +181,7 @@ async fn me(
     data: web::Data<AppState>,
     request: HttpRequest,
 ) -> Result<impl Responder, InternalServerError<sqlx::Error>> {
-    let (mut context, user, _key) = request.get_session_context(&data).await;
+    let (mut context, user, _key, _timer) = request.get_session_context(&data).await;
     if let Some(user) = user {
         context.insert(
             "export_links",
@@ -226,7 +226,7 @@ async fn list(
     request: HttpRequest,
     filter: Query<IndexQuery>,
 ) -> impl Responder {
-    let (mut context, user, _key) = request.get_session_context(&data).await;
+    let (mut context, user, _key, _timer) = request.get_session_context(&data).await;
     if let Some(user) = user {
         let pivot = if let Some(month) = filter.month {
             if let Some(year) = filter.year {
@@ -411,7 +411,7 @@ async fn calendar(
     request: HttpRequest,
     query: Query<CalendarQuery>,
 ) -> impl Responder {
-    let (mut context, user, _key) = request.get_session_context(&data).await;
+    let (mut context, user, _key, _timer) = request.get_session_context(&data).await;
     if let Some(user) = user {
         let now = chrono::Utc::now().with_timezone(&user.interface_timezone_parsed);
 
@@ -607,7 +607,7 @@ pub async fn timeline(
     request: HttpRequest,
     query: web::Query<TimelineQuery>,
 ) -> impl Responder {
-    let (mut context, user_opt, _key) = request.get_session_context(&data).await;
+    let (mut context, user_opt, _key, _timer) = request.get_session_context(&data).await;
     if let Some(user) = user_opt {
         tracing::info!(user.id, user.email, "User requested timeline");
 
