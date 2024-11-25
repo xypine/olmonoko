@@ -10,18 +10,18 @@
       },
       {
         "ordinal": 1,
+        "name": "remote_event_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
         "name": "tag",
         "type_info": "Text"
       },
       {
-        "ordinal": 2,
+        "ordinal": 3,
         "name": "created_at",
         "type_info": "Int8"
-      },
-      {
-        "ordinal": 3,
-        "name": "remote_event_id",
-        "type_info": "Int4"
       }
     ],
     "parameters": {
@@ -29,9 +29,9 @@
     },
     "nullable": [
       true,
+      true,
       false,
-      false,
-      true
+      false
     ]
   },
   "hash": "893d2b4de906b3af1769cf5a75ae291eb27f55235af582eb1a6afb6444f1a7f9"

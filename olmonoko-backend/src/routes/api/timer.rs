@@ -71,7 +71,7 @@ async fn stop(
         let duration = ends_at - timer.created_at.timestamp();
         let (summary, details, location, priority, tags) = {
             let template = sqlx::query_as!(RawLocalEvent, "SELECT * FROM local_events WHERE user_id = $1 AND id = $2", user.id, timer.template).fetch_one(&data.conn).await.or_any_internal_server_error("Failed to fetch timer template")?;
-            (timer.summary.unwrap(), timer.details.or(template.description), timer.location.or(template.location), template.priority.or(Some(DEFAULT_TIMER_PRIORITY)), vec!["olmonoko::timer".to_owned()])
+            (timer.summary.unwrap_or(template.summary), timer.details.or(template.description), timer.location.or(template.location), template.priority.or(Some(DEFAULT_TIMER_PRIORITY)), vec!["olmonoko::timer".to_owned()])
         };
 
         let new = NewLocalEvent {
