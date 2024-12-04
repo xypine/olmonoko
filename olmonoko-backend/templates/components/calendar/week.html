@@ -181,7 +181,8 @@
 		--max-event-length: min(var(--time-till-midnight), var(--event-length-local));
 		--event-height-clipped: calc(var(--hour-height) * var(--max-event-length));
 		height: var(--event-height-clipped);
-		line-height: max(var(--event-height-clipped), 1.5em);
+		/*line-height: max(var(--event-height-clipped), 1.5em);*/
+		align-content: center;
 
 		--border-strength: calc(calc(9 - var(--event-priority)) / 9);
 		border-top: 1px solid color-mix(in oklab, var(--primary) calc(100% * var(--border-strength)), transparent);
