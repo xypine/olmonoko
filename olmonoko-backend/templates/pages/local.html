@@ -63,8 +63,8 @@
         </div>
         <div>
             {% include 'components/local/event.html' %}
-            {% if not selected %}
-            {% include 'components/local/new_bill_from_barcode.html' %}
+            {% if not selected_id %}
+                {% include 'components/local/new_bill_from_barcode.html' %}
             {% endif %}
         </div>
     </div>

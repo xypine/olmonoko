@@ -98,7 +98,7 @@ async fn new_local_event(
         // commit transaction
         txn.commit().await.expect("Failed to commit transaction");
 
-        return reload(&request)
+        return reload(&request, false)
             .with_flash_message(FlashMessage::info(&format!(
                 "Event {} created",
                 inserted.id
@@ -177,7 +177,7 @@ async fn delete_local_event(
         } else {
             FlashMessage::info(&format!("Deleted {} event(s)", deleted.len()))
         };
-        return reload(&request).with_flash_message(message).finish();
+        return reload(&request, false).with_flash_message(message).finish();
     }
     HttpResponse::Unauthorized().finish()
 }
@@ -249,7 +249,7 @@ async fn update_local_event(
         // commit transaction
         txn.commit().await.expect("Failed to commit transaction");
 
-        return reload(&request)
+        return reload(&request, true)
             .with_flash_message(FlashMessage::info(&format!("Event {} updated", id)))
             .finish();
     }
@@ -394,7 +394,7 @@ async fn new_bill_from_barcode(
 
         txn.commit().await.expect("Failed to commit transaction");
 
-        return reload(&request)
+        return reload(&request, false)
             .with_flash_message(FlashMessage::info(&format!(
                 "Event {} created",
                 inserted_event.id
