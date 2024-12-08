@@ -9,7 +9,7 @@ use itertools::Itertools;
 use olmonoko_common::{
     models::{
         api_key::{ApiKey, ApiKeyForm, RawApiKey},
-        attendance::{Attendance, RawAttendance},
+        attendance::{Attendance, AttendanceForm, RawAttendance},
         event::{
             local::{LocalEventForm, LocalEventId},
             EventOccurrenceHuman, Priority,
@@ -62,6 +62,8 @@ async fn sources(data: web::Data<AppState>, request: HttpRequest) -> impl Respon
 #[derive(Debug, serde::Deserialize)]
 struct LocalQuery {
     selected: Option<LocalEventId>,
+    #[serde(alias = "nl")]
+    natural_language_input: Option<String>,
     #[serde(flatten)]
     filter: RawEventFilterWithDate,
 }
@@ -120,6 +122,7 @@ async fn local(
             None
         };
 
+
         context.insert("filter", &filter);
         let filter_query = serde_urlencoded::to_string(query.filter.clone()).unwrap();
         context.insert("filter_query", &filter_query);
@@ -128,7 +131,34 @@ async fn local(
         context.insert("available_tags", &available_tags);
         context.insert("events_grouped_by_priority", &events_grouped_by_priority);
         context.insert("selected_id", &selected.clone().map(|(id, _)| id));
-        context.insert("selected", &selected.map(|(_, form)| form));
+        context.insert("event_form", &selected.map(|(_, form)| form));
+
+        // Handle natural language input, eg. "Go swimming next thursday 18:00"
+        if query.selected.is_none() {
+            if let Some(nl_input) = &query.natural_language_input {
+                if let Ok(parsed) = nl_input.parse::<nlcep::NewEvent>() {
+                    let stub_event = LocalEventForm {
+                        summary: parsed.summary,
+                        starts_at: parsed.time.to_string(),
+                        starts_at_tz: None,
+                        location: parsed.location,
+                        all_day: false,
+
+                        description: None,
+                        tags: None,
+                        priority: None,
+                        duration_h: None,
+                        duration_m: None,
+                        duration_s: None,
+                        attendance: AttendanceForm {
+                            attend_plan: true,
+                            attend_actual: false,
+                        }
+                    };
+                    context.insert("event_form", &stub_event);
+                }
+            }
+        }
         let content = data.templates.render("pages/local.html", &context).unwrap();
         return remove_flash_cookie(HttpResponse::Ok()).body(content);
     }

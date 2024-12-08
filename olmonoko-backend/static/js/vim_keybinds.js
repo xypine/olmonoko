@@ -6,6 +6,8 @@ var oono_vk_max_mode_length = Math.max(...oono_vk_all_modes.map(m => m.length));
 var oono_vk_buffer = "";
 var oono_vk_buffer_history = [];
 
+var oono_vk_hint = "";
+
 /**
  * @param {string} signal name of the signal to emit
  * @param {string} [data] data to send with the signal
@@ -31,6 +33,54 @@ function vk_reset_mode(mode = "normal") {
 	oono_vk_mode = mode;
 	oono_vk_buffer = "";
 	oono_vk_buffer_history = [];
+	oono_vk_hint = "";
+}
+
+
+async function vk_update_insert_preview() {
+	if(!oono_vk_buffer.length || oono_vk_mode !== "insert") {
+		oono_vk_hint = "";
+		return;
+	}
+	const input_used = `${oono_vk_buffer}`;
+	if(!oono_vk_hint.endsWith("...")) {
+		oono_vk_hint += " >> Loading...";
+	}
+	try {
+		const preview_result = await fetch(
+			`${window.location.origin}/api/ui_utils/nlcep?nl=${input_used}`
+		);
+		let summary = "?";
+		let time = "?";
+		let location = "?";
+		let duration = "?";
+		let extra = " ";
+		if(preview_result.ok) {
+			const json = await preview_result.json();
+			console.info({json});
+			summary = json.summary;
+			time = json.time;
+			if(json.location) {
+				location = json.location;
+			}
+			if(json.duration) {
+				duration = json.duration;
+			}
+		} else {
+			const text = await preview_result.text();
+			summary = input_used;
+			extra = `Hint: ${text}`;
+		}
+		if(oono_vk_mode === "insert") {
+			oono_vk_hint = `What: ${summary}\nWhen: ${time}\nWhere: ${location}\nFor how long: ${duration}\n${extra}`;
+		}
+	} catch(e) {
+		console.error(e);
+		if(oono_vk_mode === "insert") {
+			oono_vk_hint = `Error: ${e}`;
+		}
+	}
+	vk_render();
 }
 
 /**
@@ -50,6 +100,7 @@ function vk_modify_buffer(e) {
 		oono_vk_buffer += e.key;
 	}
 	console.log("Buffer:", oono_vk_buffer);
+	vk_update_insert_preview();
 	return true; // this keypress was handled
 }
 
@@ -179,6 +230,16 @@ function vk_render() {
 	else {
 		overlay.classList = [];
 	}
+
+	let hintbox = document.getElementById("vk_hint");
+	if(hintbox) {
+		hintbox.innerText = oono_vk_hint;
+		if (oono_vk_mode !== "normal" && oono_vk_hint.length) {
+			hintbox.classList = ["open"];
+		} else {
+			hintbox.classList = [];
+		}
+	}
 }
 
 document.onkeydown = function(e) {
@@ -224,6 +285,10 @@ function vk_handle_event(e) {
 		else if (data == "right") {
 			document.getElementById("week-next")?.click();
 		}
+	}
+	else if (e.detail.signal == "insert") {
+		console.log("Received insert signal:", e.detail.data);
+		window.location.href = `${window.location.origin}/local?nl=${e.detail.data}`;
 	}
 }
 

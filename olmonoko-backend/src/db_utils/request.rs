@@ -245,8 +245,14 @@ pub fn redirect(location: &str) -> HttpResponseBuilder {
     builder.insert_header((actix_web::http::header::LOCATION, location));
     builder
 }
-pub fn reload(req: &HttpRequest) -> HttpResponseBuilder {
-    let location = req.get_referer().unwrap_or("/");
+pub fn reload(req: &HttpRequest, persist_queryparams: bool) -> HttpResponseBuilder {
+    let mut location = req.get_referer().unwrap_or("/");
+    if !persist_queryparams {
+        location = location
+            .split('?')
+            .next()
+            .unwrap_or(location);
+    }
     redirect(location)
 }
 

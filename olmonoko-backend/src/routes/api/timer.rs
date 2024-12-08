@@ -145,7 +145,7 @@ async fn stop(
         txn.commit().await.expect("Failed to commit transaction");
 
         if request.is_frontend_request() {
-            return Ok(reload(&request).finish());
+            return Ok(reload(&request, true).finish());
         } else {
             return Ok(HttpResponse::Ok().json(inserted));
         }

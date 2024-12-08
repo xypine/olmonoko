@@ -39,7 +39,7 @@ async fn create_source(
     request: HttpRequest,
 ) -> impl Responder {
     if source.name.len() < MIN_NAME_LENGTH {
-        return reload(&request)
+        return reload(&request, true)
             .with_flash_message(FlashMessage::error(
                 format!("Name must be at least {} characters", MIN_NAME_LENGTH).as_str(),
             ))
@@ -70,14 +70,14 @@ async fn create_source(
             txn.rollback()
                 .await
                 .expect("Failed to rollback transaction");
-            return reload(&request)
+            return reload(&request, true)
                 .with_flash_message(FlashMessage::error(
                     format!("Failed to sync: {}", e).as_str(),
                 ))
                 .finish();
         }
         txn.commit().await.expect("Failed to commit transaction");
-        return reload(&request)
+        return reload(&request, false)
             .with_flash_message(FlashMessage::info("Source added"))
             .finish();
     }
@@ -368,7 +368,7 @@ async fn force_sync(
         .expect("Failed to sync source");
     txn.commit().await.expect("Failed to commit transaction");
 
-    reload(&request)
+    reload(&request, true)
         .with_flash_message(FlashMessage::info("Synced successfully"))
         .finish()
 }

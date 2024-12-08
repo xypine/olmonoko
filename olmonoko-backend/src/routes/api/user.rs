@@ -37,7 +37,7 @@ async fn register(
 ) -> impl Responder {
     let user = user.into_inner();
     if user.password.len() < MIN_PASSWORD_LENGTH {
-        return reload(&req)
+        return reload(&req, false)
             .with_flash_message(FlashMessage::error(
                 format!(
                     "Password must be at least {} characters",
@@ -67,7 +67,7 @@ async fn register(
     }
     let result = crate::auth::create_unverified_user(&data, active_user).await;
     if result.is_ok() {
-        return reload(&req)
+        return reload(&req, false)
             .with_flash_message(FlashMessage::info(
                 "Check your email to verify your account",
             ))
@@ -177,7 +177,7 @@ async fn login(
         if !bcrypt::verify(&user_input.password, &user.password_hash).unwrap() {
             tracing::warn!("Failed login attempt for {}", user.email);
             if req.is_frontend_request() {
-                return reload(&req)
+                return reload(&req, false)
                     .with_flash_message(FlashMessage::error("Invalid email or password"))
                     .finish();
             }
@@ -211,7 +211,7 @@ async fn login(
         return HttpResponse::Ok().cookie(cookie).body(created.id.clone());
     }
     if req.is_frontend_request() {
-        return reload(&req)
+        return reload(&req, false)
             .with_flash_message(FlashMessage::error("Invalid email or password"))
             .finish();
     }
@@ -229,7 +229,7 @@ async fn logout(data: web::Data<AppState>, req: HttpRequest) -> impl Responder {
     let mut removal_cookie = Cookie::build(SESSION_COOKIE_NAME, "").finish();
     removal_cookie.make_removal();
     if req.is_frontend_request() {
-        return reload(&req)
+        return reload(&req, false)
             .with_flash_message(FlashMessage::info("Goodbye!"))
             .cookie(removal_cookie)
             .finish();

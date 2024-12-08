@@ -1,11 +1,11 @@
-{% if selected %}
+{% if selected_id %}
 	{% set container_id = 'local-event-edit-' ~ selected_id %}
 	{% set action = '/api/event/local/' ~ selected_id ~ '/update' %}
 	{% set method = 'POST' %}
 	{% set title = 'Update Event' %}
 	{% set action_id = 'update-event-' ~ selected_id %}
 	{% set action_name = 'Update' %}
-	{% set event = selected %}
+	{% set event = event_form %}
 	{% set event_id = selected_id %}
 {% else %}
 	{% set container_id = 'create-local-event' %}
@@ -14,11 +14,12 @@
 	{% set title = 'New Event' %}
 	{% set action_id = 'create-event' %}
 	{% set action_name = 'Create' %}
+	{% set event = event_form %}
 {% endif %}
 <div id="{{ container_id }}">
-	{% if selected %}
+	{% if selected_id %}
 		<form action="{{ site_url | safe }}/api/event/local/delete?id={{ selected_id }}" method="POST" style="align-items: end;">
-			<button class="btn variant-danger border-only" type="submit" id="delete-{{ selected_id }}">Delete {{ selected.summary }}</button>
+			<button class="btn variant-danger border-only" type="submit" id="delete-{{ selected_id }}">Delete {{ event.summary }}</button>
 		</form>
 	{% endif %}
 	<form id="local-event-form" action="{{ site_url | safe }}{{ action }}" method="{{ method }}" hx-disabled-elt="#{{ action_id }}">
@@ -28,13 +29,13 @@
 				<span>
 					Summary:
 				</span>
-				<input type="text" name="summary" value="{{ selected.summary|default(value='') }}" required>
+				<input type="text" name="summary" value="{{ event_form.summary|default(value='') }}" required>
 			</label>
 			<label>
 				<span>
 					Description:
 				</span>
-				<textarea type="text" name="description">{{ selected.description|default(value='') }}</textarea>
+				<textarea type="text" name="description">{{ event_form.description|default(value='') }}</textarea>
 			</label>
 			<label>
 				<span>
@@ -43,7 +44,7 @@
 				<input
 					type="number"
 					name="starts_at_tz"
-					value="{{ selected.starts_at_tz|default(value='') }}"
+					value="{{ event_form.starts_at_tz|default(value='') }}"
 					placeholder="{{ user.interface_timezone_h }}"
 				>
 			</label>
@@ -51,14 +52,14 @@
 				<span>
 					Starts at:
 				</span>
-				<input type="datetime-local" name="starts_at"  value="{{ selected.starts_at|default(value='') }}" required>
+				<input type="datetime-local" name="starts_at"  value="{{ event_form.starts_at|default(value='') }}" required>
 			</label>
 			<label>
 				<span>
 					All day:
 				</span>
 				<input type="checkbox" name="all_day" 
-					{% if selected.all_day and selected.all_day == "on" %}
+					{% if event_form.all_day and event_form.all_day == "on" %}
 						checked
 					{% endif %}
 				>
@@ -68,26 +69,26 @@
 					Duration
 				</legend>
 				<label style="gap:0.25em;">
-					<input type="number" name="duration_h" value="{{ selected.duration_h|default(value='') }}" style="max-width: 5em;">
+					<input type="number" name="duration_h" value="{{ event_form.duration_h|default(value='') }}" style="max-width: 5em;">
 					<span>
 						h
 					</span>
 				</label>
 				<label style="gap:0.25em;">
-					<input type="number" name="duration_m" value="{{ selected.duration_m|default(value='') }}" style="max-width: 5em;">
+					<input type="number" name="duration_m" value="{{ event_form.duration_m|default(value='') }}" style="max-width: 5em;">
 					<span>
 						m
 					</span>
 				</label>
 				<label style="gap:0.25em;">
-					<input type="number" name="duration_s" value="{{ selected.duration_s|default(value='') }}" style="max-width: 5em;">
+					<input type="number" name="duration_s" value="{{ event_form.duration_s|default(value='') }}" style="max-width: 5em;">
 					<span>
 						s
 					</span>
 				</label>
 			</fieldset>
 			<details
-				{% if selected and (selected.attend_plan == "on" or selected.attend_actual == "on") %}
+				{% if event_form and (event_form.attend_plan == "on" or event_form.attend_actual == "on") %}
 					open
 				{% endif %}
 			>
@@ -100,10 +101,10 @@
 				<span>
 					Location:
 				</span>
-				<input type="text" name="location" value="{{ selected.location|default(value='') }}">
+				<input type="text" name="location" value="{{ event_form.location|default(value='') }}">
 			</label>
-			{% if selected %}
-				{% set priority = selected.priority | as_str %}
+			{% if event_form %}
+				{% set priority = event_form.priority | as_str %}
 			{% else %}
 				{% set priority = '' %}
 			{% endif %}
@@ -148,10 +149,10 @@
 				<span>
 					Tags:
 				</span>
-				<input type="text" name="tags" value="{{ selected.tags|default(value='') }}">
+				<input type="text" name="tags" value="{{ event_form.tags|default(value='') }}">
 			</label>
 			<div style="display: flex; gap: 1rem;">
-				{% if selected %}
+				{% if selected_id %}
 					<a href="{{ site_url | safe }}/local" class="btn variant-plain" style="flex: 1;">Back</a>
 				{% endif %}
 				<button id="{{ action_id }}" type="submit" class="btn" style="flex: 1;">{{ action_name }}</button>
