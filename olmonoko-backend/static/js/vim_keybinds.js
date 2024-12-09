@@ -59,7 +59,7 @@ async function vk_update_insert_preview() {
 			const json = await preview_result.json();
 			console.info({json});
 			summary = json.summary;
-			time = json.time;
+			time = `${json.date} ${json.time ? json.time : ""}`;
 			if(json.location) {
 				location = json.location;
 			}

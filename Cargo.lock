@@ -2426,9 +2426,9 @@ dependencies = [
 
 [[package]]
 name = "nlcep"
-version = "0.6.0"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "425f849e4a040436f967c919dab0f46dcd4300c6b90476321ba8d09a6af8f1eb"
+checksum = "e49c9eabd49c317c60ffe4ae5ae452aa0a7c3319169264fc83ab1aa76c0f005f"
 dependencies = [
  "jiff",
  "lazy-regex",
