@@ -1,0 +1,225 @@
+<div id="calendarFlow">
+	{#
+	<div class="calendar-week-day" id="week-legend">
+		<div class="calendar-week-header">
+			<div class="calendar-week-header-day">Day</div>
+		</div>
+		<div class="calendar-week-subheader">
+			<div class="calendar-week-subheader-date">
+				Date
+			</div>
+		</div>
+		<div class="calendar-week-events">
+			{% for hour in [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23] %}
+			{% set hourstr = hour | as_str %}
+			{% if hour < 10 %} {% set hourstr="0" ~ hour %} {% endif %} <div class="calendar-week-event"
+				style="--event-start: {{ hour }};">
+				{{ hourstr }}
+		</div>
+		{% endfor %}
+	</div>
+</div>
+#}
+<div id="sidebar-container">
+  {% include "components/event_filter.html" %}
+  {% include "components/timer.html" %}
+</div>
+<div id="calendar-week">
+	{% for day in [0, 1, 2, 3, 4, 5, 6] %}
+	{% set date = week_dates[day] %}
+	{% set day_name = day_names[day] %}
+	<div class="calendar-week-day"
+		{% if current_day is defined and day == current_day %}
+			id="today"
+		{% endif %}
+	>
+		<div class="calendar-week-header">
+			<div class="calendar-week-header-day">{{ day_name }}</div>
+			<div class="calendar-week-subheader-date">
+				{{ date }}
+			</div>
+		</div>
+		<div class="calendar-week-events">
+			{% for hour in [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23] %}
+			{% set hourstr = hour | as_str %}
+			{% if hour < 10 %} {% set hourstr="0" ~ hour %} {% endif %} <div aria-hidden="true"
+				class="calendar-week-event ghost" style="--event-start: {{ hour }}; --event-priority: 1;">
+				{{ hourstr }}
+		</div>
+		{% endfor %}
+		{% set events = events_by_day[day] %}
+		{% for event in events %}
+		{% set duration = event.duration|default(value="3600") %}
+		{% set length_s = duration|float %}
+		{% set length_h = length_s / 3600 %}
+		{% set start_s = event.starts_at_seconds|default(value="0") %}
+		{% set start_h = start_s / 3600 %}
+		{% if event.id == -1 %}
+		<div id="now" class="calendar-week-event"
+			style="--event-start: {{ start_h }}; --event-length: {{ length_h }};--overlap-total: {{ event.overlap_total }};--overlap-index: {{ event.overlap_index }}; --event-priority: 1;">
+			Now
+		</div>
+		{% else %}
+		<a class="calendar-week-event"
+			style="--event-start: {{ start_h }}; --event-length: {{ length_h }};--overlap-total: {{ event.overlap_total }};--overlap-index: {{ event.overlap_index }}; --event-priority: {{ event.priority }};"
+			href="#event-{{ event.id }}" title="{{ event.summary }}">
+			{{ event.summary }}
+		</a>
+		{% endif %}
+		{% endfor %}
+	</div>
+</div>
+{% endfor %}
+</div>
+</div>
+<style>
+	#calendarFlow {
+		padding-inline: 1rem;
+		padding-bottom: 1rem;
+		margin-bottom: 1rem;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		gap: 1rem;
+
+		--day-events-total-height: max(65svh, 650px);
+		--hour-height: calc(var(--day-events-total-height) / 24);
+		--day-event-base-width: 150px;
+
+    --total-width: 89vw;
+    --hour-width: calc(var(--total-width) / 25);
+		--day-event-base-height: calc(var(--day-events-total-height) / 7);
+	}
+
+	#calendar-week {
+		flex: 1;
+		display: flex;
+		overflow-x: auto;
+		/* flex-wrap: wrap; */
+    flex-direction: column;
+		gap: 1rem;
+	}
+	#sidebar-container {
+		display: flex;
+		flex-direction: column;
+		gap: .25rem;
+	}
+	@media (max-width: 550px) {
+		#calendar-week {
+			flex-direction: column;
+			gap: 0;
+		}
+	}
+
+	.calendar-week-day {
+		border: 1px solid var(--surface-variant);
+		padding-top: .5em;
+
+		display: flex;
+		flex-direction: row;
+		gap: 0.5rem;
+
+		&#today {
+			--border-color: color-mix(in oklab, var(--surface-variant), var(--brand) 50%);
+			border-color: var(--border-color);
+		}
+	}
+
+	#week-legend {
+		flex: 0;
+		border: none;
+		padding-inline: 0;
+		font-family: monospace;
+
+		& .calendar-week-event {
+			display: flex;
+			justify-content: center;
+			align-items: center;
+		}
+	}
+
+  .calendar-week-header {
+		text-align: center;
+    width: 5rem;
+
+    position: sticky;
+    left: 0;
+    background: var(--surface);
+    z-index: 1;
+    /*border: 1px solid var(--surface-variant);*/
+    /*border-right: none;*/
+	}
+
+	.calendar-week-header-day {
+		font-weight: bold;
+		font-size: 1.2rem;
+	}
+
+	.calendar-week-subheader-date {
+		font-size: 1rem;
+	}
+
+	.calendar-week-events {
+		height: calc(var(--day-event-base-height) + 2px);
+    width: var(--total-width);
+
+		position: relative;
+	}
+
+	.calendar-week-event {
+		position: absolute;
+		--event-padding: 0.1em;
+    width: var(--hour-width);
+
+		--event-start-local: var(--event-start, 0);
+		--event-length-local: var(--event-length, 1);
+
+		--height-share: calc(var(--day-event-base-height) / var(--overlap-total, 1));
+		height: calc(var(--height-share) - calc(var(--event-padding) * 2));
+		--top-offset: calc(var(--height-share) * var(--overlap-index, 0));
+		top: calc(var(--top-offset) + var(--event-padding));
+
+		/* --event-start-bumped: min(var(--event-start-local), 23); */
+		--event-start-bumped: var(--event-start-local);
+		/*top: calc(var(--hour-height) * var(--event-start-bumped));*/
+
+		--time-till-midnight: calc(24 - var(--event-start-bumped, 0));
+		--max-event-length: min(var(--time-till-midnight), var(--event-length-local));
+		--event-height-clipped: calc(var(--hour-height) * var(--max-event-length));
+		/*height: var(--event-height-clipped);*/
+		/*line-height: max(var(--event-height-clipped), 1.5em);*/
+		align-content: center;
+
+		--event-width-clipped: calc(var(--hour-width) * var(--max-event-length));
+		--width-share: calc(var(--total-width) / var(--max-event-length, 1));
+		width: var(--event-width-clipped);
+		left: calc(var(--hour-width) * var(--event-start-bumped));
+
+		--border-strength: calc(calc(9 - var(--event-priority)) / 9);
+		border-right: 1px solid color-mix(in oklab, var(--primary) calc(100% * var(--border-strength)), transparent);
+
+		text-overflow: ellipsis;
+		overflow: hidden;
+
+		color: var(--contrast);
+		background: var(--surface-variant);
+		padding-inline: .5rem;
+	}
+
+	.calendar-week-event.ghost {
+		background: transparent;
+		border-color: color-mix(in oklab, var(--contrast), transparent 50%);
+		opacity: .3;
+		pointer-events: none;
+
+		pointer-events: none;
+		user-select: none;
+		-webkit-user-select: none;
+    text-align: center;
+	}
+
+	#now {
+		border-color: var(--brand);
+		/* background: var(--brand); */
+	}
+</style>

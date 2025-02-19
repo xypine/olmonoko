@@ -122,7 +122,6 @@ async fn local(
             None
         };
 
-
         context.insert("filter", &filter);
         let filter_query = serde_urlencoded::to_string(query.filter.clone()).unwrap();
         context.insert("filter_query", &filter_query);
@@ -137,9 +136,10 @@ async fn local(
         if query.selected.is_none() {
             if let Some(nl_input) = &query.natural_language_input {
                 if let Ok(parsed) = nl_input.parse::<nlcep::NewEvent>() {
+                    let starts_at = parsed.datetime().to_string();
                     let stub_event = LocalEventForm {
                         summary: parsed.summary,
-                        starts_at: parsed.time.to_string(),
+                        starts_at,
                         starts_at_tz: None,
                         location: parsed.location,
                         all_day: false,
@@ -153,7 +153,7 @@ async fn local(
                         attendance: AttendanceForm {
                             attend_plan: true,
                             attend_actual: false,
-                        }
+                        },
                     };
                     context.insert("event_form", &stub_event);
                 }
@@ -609,6 +609,177 @@ async fn calendar(
     let content = data.templates.render("pages/index.html", &context).unwrap();
     remove_flash_cookie(HttpResponse::Ok()).body(content)
 }
+#[get("/flow")]
+async fn calendar_flow(
+    data: web::Data<AppState>,
+    request: HttpRequest,
+    query: Query<CalendarQuery>,
+) -> impl Responder {
+    let (mut context, user, _key, _timer) = request.get_session_context(&data).await;
+    if let Some(user) = user {
+        let now = chrono::Utc::now().with_timezone(&user.interface_timezone_parsed);
+
+        context.insert("filter", &query.filter);
+        context.insert("filter_set", &query.filter.is_defined());
+        let query = query.into_inner();
+        let chosen_position: Option<CalendarPosition> = query.position.into();
+        let mut filter = EventFilter::from(query.filter);
+        // pivot is the first day of the shown week at 00:00 UTC
+        let pivot = if let Some(position) = chosen_position {
+            chrono::NaiveDate::from_isoywd_opt(position.year, position.week, chrono::Weekday::Mon)
+                .expect("Failed to construct pivot")
+                .and_time(NaiveTime::MIN)
+                .and_utc()
+        } else {
+            let year = now.year();
+            // get monday of the current week
+            let week = now.iso_week().week();
+            chrono::NaiveDate::from_isoywd_opt(year, week, chrono::Weekday::Mon)
+                .expect("Failed to construct pivot")
+                .and_time(NaiveTime::MIN)
+                .and_utc()
+        };
+        let pivot_local = pivot
+            .with_timezone(&user.interface_timezone_parsed)
+            .with_time(NaiveTime::MIN)
+            .earliest()
+            .expect("Failed to convert pivot to local time");
+
+        // after yesterday (from today)
+        let from = (pivot - chrono::Duration::milliseconds(1)).timestamp();
+        // before next week
+        let to = (pivot + chrono::Duration::days(7)).timestamp();
+        filter.after = Some(from);
+        filter.before = Some(to);
+        let events = get_visible_event_occurrences(&data, Some(user.id), true, &filter).await;
+        // humanize dates etc
+        let events = events
+            .into_iter()
+            .map(|e| EventOccurrenceHuman::from((e, &user.interface_timezone_parsed)))
+            .collect::<Vec<_>>();
+        context.insert("events", &events);
+
+        let current_day: Option<usize> = if now.iso_week() == pivot.iso_week() {
+            Some(now.weekday().number_from_monday() as usize - 1)
+        } else {
+            None
+        };
+        context.insert("current_day", &current_day);
+        let current_time = now.time();
+        let current_time_seconds = current_time.hour() * 3600 + current_time.minute() * 60;
+        context.insert("current_time_seconds", &current_time_seconds);
+        let mut events_by_day: [Vec<_>; 7] = Default::default();
+        for day in 0..7 {
+            let mut day_events = events
+                .iter()
+                .filter_map(|event| {
+                    let mut event = event.clone();
+                    let today_ts = pivot_local.timestamp() + (day * 24 * 3600) as i64;
+                    let tomorrow_ts = today_ts + (24 * 3600) - 1;
+                    if let Some((starts_at_s, duration)) =
+                        event.interface_span(today_ts, tomorrow_ts)
+                    {
+                        event.starts_at_seconds = starts_at_s;
+                        event.duration = duration;
+                        return Some(event);
+                    }
+                    None
+                })
+                .sorted_by_key(|event| event.priority)
+                .collect::<Vec<_>>();
+
+            let is_today = current_day == Some(day as usize);
+            if is_today {
+                day_events.push(EventOccurrenceHuman {
+                    id: -1,
+                    source: olmonoko_common::models::event::EventSource::Local(
+                        olmonoko_common::models::event::SourceLocal { user_id: -1 },
+                    ),
+                    tags: vec![],
+                    attendance: None,
+                    attendance_form: None,
+                    priority: 1,
+                    starts_at_utc: now.with_timezone(&chrono::Utc),
+                    starts_at_human: "".to_string(),
+                    starts_at_seconds: current_time_seconds as i64,
+                    overlap_total: 0,
+                    overlap_index: 0,
+                    all_day: false,
+                    duration: None,
+                    duration_human: None,
+                    rrule: None,
+                    from_rrule: false,
+                    summary: "".to_string(),
+                    description: None,
+                    location: None,
+                    uid: "olmonoko::now".to_string(),
+                })
+            }
+
+            for event in &mut day_events {
+                // normalize all day events to start at 00:00 and last the default amount
+                if event.all_day {
+                    event.starts_at_seconds = 0;
+                    event.duration = None;
+                }
+                // set event duration to be at least 1 hour
+                if event.duration.unwrap_or(0) < INTERFACE_MIN_EVENT_LENGTH {
+                    event.duration = Some(INTERFACE_MIN_EVENT_LENGTH);
+                }
+            }
+
+            // find overlapping events and adjust event overlap_count and overlap_index
+            let starts_at: Vec<_> = day_events.iter().map(|e| e.starts_at_seconds).collect();
+            let durations: Vec<_> = day_events
+                .iter()
+                .map(|e| e.duration.unwrap_or_default())
+                .collect();
+            let arrangements = arrange(starts_at.as_slice(), durations.as_slice());
+            for (i, a) in arrangements.iter().enumerate() {
+                day_events[i].overlap_index = a.lane as usize;
+                day_events[i].overlap_total = a.width as usize;
+            }
+
+            events_by_day[day as usize] = day_events;
+        }
+        context.insert("events_by_day", &events_by_day);
+
+        // generate data for the year and month selectors
+        let before = pivot - chrono::Duration::weeks(1);
+        let after = pivot + chrono::Duration::weeks(1);
+        let week_before = before.iso_week();
+        let week_after = after.iso_week();
+        let year_before = week_before.year();
+        let year_after = week_after.year();
+        context.insert("prev_year", &year_before);
+        context.insert("prev_week", &week_before.week());
+        context.insert("next_year", &year_after);
+        context.insert("next_week", &week_after.week());
+        // generate dates for the current week
+        let mut week_dates = vec![];
+        for (i, day) in (0..7)
+            .map(|i| pivot + chrono::Duration::days(i))
+            .enumerate()
+        {
+            let formatted = day.format("%d.%-m.").to_string();
+            week_dates.push(formatted.clone());
+            context.insert(format!("week_date_{}", i), &formatted);
+        }
+        context.insert("week_dates", &week_dates);
+        context.insert(
+            "day_names",
+            &["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        );
+
+        context.insert("selected_year", &pivot.year());
+        context.insert("selected_week", &pivot.iso_week().week());
+        let content = data.templates.render("pages/flow.html", &context).unwrap();
+        return remove_flash_cookie(HttpResponse::Ok()).body(content);
+    }
+
+    let content = data.templates.render("pages/index.html", &context).unwrap();
+    remove_flash_cookie(HttpResponse::Ok()).body(content)
+}
 
 #[derive(Debug, serde::Deserialize)]
 struct TimelineQuery {
@@ -698,6 +869,7 @@ pub fn routes() -> Scope {
         .service(me)
         .service(list)
         .service(calendar)
+        .service(calendar_flow)
         .service(timeline)
         .service(admin)
 }
