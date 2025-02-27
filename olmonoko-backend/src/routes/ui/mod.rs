@@ -136,13 +136,13 @@ async fn local(
         if query.selected.is_none() {
             if let Some(nl_input) = &query.natural_language_input {
                 if let Ok(parsed) = nl_input.parse::<nlcep::NewEvent>() {
-                    let starts_at = parsed.datetime().to_string();
+                    let dt = parsed.datetime();
                     let stub_event = LocalEventForm {
                         summary: parsed.summary,
-                        starts_at,
+                        starts_at: dt.to_string(),
                         starts_at_tz: None,
                         location: parsed.location,
-                        all_day: false,
+                        all_day: parsed.time.is_none(),
 
                         description: None,
                         tags: None,

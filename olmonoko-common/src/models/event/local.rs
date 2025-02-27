@@ -279,7 +279,11 @@ pub struct LocalEventForm {
 pub type FormWithUser<'a> = (LocalEventForm, &'a UserPublic);
 impl<'a> From<FormWithUser<'a>> for NewLocalEvent {
     fn from((form, user): FormWithUser) -> Self {
-        let raw_tz = form.starts_at_tz.unwrap_or(user.interface_timezone_h);
+        let raw_tz = if form.all_day {
+            0
+        } else {
+            form.starts_at_tz.unwrap_or(user.interface_timezone_h)
+        };
         let mut tags = vec![];
         if let Some(tags_str) = form.tags.as_ref() {
             tags = tags_str
