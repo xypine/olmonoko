@@ -48,6 +48,40 @@ async fn get_calendar(
         Ok(HttpResponse::NotFound().body("link not found"))
     }
 }
+#[get("/{id}.rss")]
+async fn get_calendar_rss(
+    data: web::Data<AppState>,
+    path: web::Path<Uuid>,
+) -> Result<impl Responder, InternalServerError<sqlx::Error>> {
+    let id = path.into_inner().to_string();
+    tracing::info!("Fetching calendar for id {id}");
+    let opt = sqlx::query_as!(
+        RawPublicLink,
+        "SELECT * FROM public_calendar_links WHERE id = $1",
+        id
+    )
+    .fetch_optional(&data.conn)
+    .await
+    .or_internal_server_error("Failed to fetch public calendar link from the database")?
+    .map(PublicLink::from);
+    if let Some(public_link) = opt {
+        let events = get_visible_event_occurrences(
+            &data,
+            Some(public_link.user_id),
+            true,
+            &EventFilter {
+                min_priority: public_link.min_priority,
+                max_priority: public_link.max_priority,
+                ..Default::default()
+            },
+        )
+        .await;
+        let ics = crate::logic::compose_rss(events).expect("Failed to compose rss");
+        return Ok(HttpResponse::Ok().content_type("application/xml").body(ics));
+    } else {
+        Ok(HttpResponse::NotFound().body("link not found"))
+    }
+}
 
 #[get("/local.ics")]
 async fn get_local_calendar(
@@ -205,4 +239,5 @@ pub fn routes() -> Scope {
         .service(get_mine)
         .service(get_local_calendar)
         .service(get_calendar)
+        .service(get_calendar_rss)
 }

@@ -1,7 +1,8 @@
 use icalendar::{Component, EventLike};
 
+use itertools::Itertools;
 use olmonoko_common::{
-    models::event::EventOccurrence,
+    models::event::{EventOccurrence, EventOccurrenceHuman},
     utils::time::{from_timestamp, get_current_time},
 };
 
@@ -73,4 +74,51 @@ pub(crate) async fn compose_ics(
     let ics = calendar.to_string();
 
     Ok(ics)
+}
+
+use rss::{ChannelBuilder, ItemBuilder};
+pub(crate) fn compose_rss(
+    events: Vec<EventOccurrence>,
+) -> Result<String, Box<dyn std::error::Error>> {
+    fn clean_text(input: &str) -> String {
+        input
+            .replace("\n", "<br />")
+            .chars()
+            .filter(|c| !c.is_control())
+            .collect()
+    }
+    let items: Vec<_> = events
+        .into_iter()
+        .sorted_by_key(|event| -event.starts_at.timestamp())
+        .map(|event| {
+            let humanized = EventOccurrenceHuman::from((event.clone(), &chrono::offset::Utc));
+            let title = format!("New event: {}", event.summary);
+            let mut body = format!("Date: {}", event.starts_at);
+
+            if let Some(duration) = humanized.duration_human {
+                body = format!("{body}<br />Duration: {duration}",);
+            }
+            if let Some(location) = event.location {
+                body = format!("{body}<br />Location: {location}",);
+            }
+            body = format!(
+                "{body}<hr /><br />{}",
+                clean_text(&event.description.unwrap_or_default())
+            );
+            ItemBuilder::default()
+                .title(title)
+                .content(body)
+                .guid(rss::GuidBuilder::default().value(event.uid).build())
+                .build()
+        })
+        .collect();
+
+    let channel = ChannelBuilder::default()
+        .title("OLMONOKO Events")
+        .link("https://olmonoko.ruta.fi/")
+        .description("Notifies you of new events in your calendar")
+        .items(items)
+        .build();
+
+    Ok(channel.to_string())
 }
