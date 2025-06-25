@@ -1,4 +1,5 @@
 mod olmonoko;
+mod renderer;
 
 use clap::{Parser, Subcommand};
 use cryptex::{get_os_keyring, KeyRing};
@@ -20,7 +21,7 @@ enum Commands {
     /// Log In to an olmonoko server
     Login {
         /// Server url, eg. https://olmonoko.example.com
-        host: String
+        host: String,
     },
 
     /// Get user details, if logged in
@@ -78,9 +79,7 @@ async fn main() {
                     .to_vec(),
             )
             .expect("decoding api key from keyring");
-            let result = olmonoko::get_user_details(&host, &api_key)
-                .await
-                .unwrap();
+            let result = olmonoko::get_user_details(&host, &api_key).await.unwrap();
             if let Some(details) = result {
                 println!("{}", serde_json::to_string_pretty(&details).unwrap());
             } else {
