@@ -19,7 +19,6 @@ FROM clux/muslrust:nightly AS builder
 WORKDIR /app
 COPY . .
 COPY --from=cacher /app/target target
-COPY --from=cacher /root/.cargo /root/.cargo
 RUN cargo build --release --target x86_64-unknown-linux-musl
 
 FROM gcr.io/distroless/static AS runtime
