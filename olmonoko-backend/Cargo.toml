@@ -1,11 +1,11 @@
 [package]
 name = "olmonoko-backend"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 build = "build.rs"
 
 [build-dependencies]
-built = { version = "0.7", features = ["chrono", "git2"] }
+built = { version = "0.8", features = ["chrono", "git2"] }
 
 [dependencies]
 olmonoko-common = { path = "../olmonoko-common" }
@@ -27,17 +27,17 @@ chrono = { version = "0.4", features = ["serde"] }
 tera = "1.20"
 actix-cors = "0.7"
 actix-files = "0.6"
-bcrypt = "0.16"
+bcrypt = "0.17"
 reqwest = { version = "0.12", default-features = false, features = [
 	"rustls-tls",
 	"cookies",
 ] }
 anyhow = "1.0"
 serde_json = "1.0"
-itertools = "0.13"
+itertools = "0.14"
 icalendar = { version = "0.16", features = ["serde", "chrono-tz"] }
 chrono-tz = "0.10"
-rrule = { version = "0.13", features = ["by-easter"] }
+rrule = { version = "0.14", features = ["by-easter"] }
 sqlx = { version = "0.8", default-features = false, features = [
 	"runtime-tokio",
 	"tls-rustls",
@@ -51,11 +51,11 @@ sqlx = { version = "0.8", default-features = false, features = [
 time = { version = "0.3", features = ["serde"] }
 serde_with = "3.11"
 uuid = { version = "1.11", features = ["serde"] }
-tokio-cron-scheduler = { version = "0.13", features = ["signal"] }
-built = { version = "0.7", features = ["chrono", "git2"] }
+tokio-cron-scheduler = { version = "0.14", features = ["signal"] }
+built = { version = "0.8", features = ["chrono", "git2"] }
 chrono-humanize = "0.2"
 serde_urlencoded = "0.7"
-resend-rs = { version = "0.9", default-features = false, features = [
+resend-rs = { version = "0.15", default-features = false, features = [
 	"rustls-tls",
 ] }
 pin-project = "1.1"

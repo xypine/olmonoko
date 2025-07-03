@@ -3,9 +3,9 @@ use actix_web::{get, post, web, HttpResponse, Responder, Scope};
 use olmonoko_common::AppState;
 use tracing::warn;
 
-use crate::db_utils::request::{deauth, get_user_from_request, reload, EnhancedRequest};
-use crate::db_utils::sources::{get_source_as_user, get_visible_sources};
-use crate::logic::source_processing::{sync_source, test_import_template};
+use crate::calendar_io::source_processing::{sync_source, test_import_template};
+use crate::db::request::{deauth, get_user_from_request, reload, EnhancedRequest};
+use crate::db::sources::{get_source_as_user, get_visible_sources};
 use olmonoko_common::models::event::remote::RemoteSourceId;
 use olmonoko_common::models::event::Priority;
 use olmonoko_common::models::ics_source::{IcsSource, IcsSourceForm, NewIcsSource};

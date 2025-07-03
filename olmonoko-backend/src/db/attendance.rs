@@ -4,7 +4,7 @@ use olmonoko_common::models::attendance::{
 use sqlx::{Executor, Postgres};
 
 #[allow(async_fn_in_trait)]
-pub trait DBWrite {
+pub(crate) trait DBWrite {
     async fn write<C>(&self, conn: &mut C) -> Result<Option<Attendance>, sqlx::Error>
     where
         for<'e> &'e mut C: Executor<'e, Database = Postgres>;

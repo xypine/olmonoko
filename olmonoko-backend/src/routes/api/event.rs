@@ -25,7 +25,7 @@ use olmonoko_common::{
     AppState,
 };
 
-use crate::db_utils::{
+use crate::db::{
     attendance::DBWrite,
     events::{get_visible_event_occurrences, parse_priority},
     request::{reload, EnhancedRequest},

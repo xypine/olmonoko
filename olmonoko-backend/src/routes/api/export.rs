@@ -1,12 +1,12 @@
 use actix_web::{delete, get, patch, post, web, HttpRequest, HttpResponse, Responder, Scope};
 use uuid::Uuid;
 
-use crate::db_utils::errors::TemplateOrDatabaseError;
-use crate::db_utils::events::{get_user_local_events, get_visible_event_occurrences};
-use crate::db_utils::request::{
+use crate::db::errors::TemplateOrDatabaseError;
+use crate::db::events::{get_user_local_events, get_visible_event_occurrences};
+use crate::db::request::{
     deauth, EnhancedRequest, InternalServerError, IntoInternalServerError, OrInternalServerError,
 };
-use crate::db_utils::user::get_user_export_links;
+use crate::db::user::get_user_export_links;
 use olmonoko_common::models::event::{Event, EventOccurrence, Priority};
 use olmonoko_common::models::public_link::{PublicLink, RawPublicLink};
 use olmonoko_common::utils::event_filters::EventFilter;
@@ -40,7 +40,7 @@ async fn get_calendar(
             },
         )
         .await;
-        let ics = crate::logic::compose_ics(events)
+        let ics = crate::calendar_io::compose_ics(events)
             .await
             .expect("Failed to compose ics");
         return Ok(HttpResponse::Ok().content_type("text/calendar").body(ics));
@@ -76,7 +76,7 @@ async fn get_calendar_rss(
             },
         )
         .await;
-        let ics = crate::logic::compose_rss(events).expect("Failed to compose rss");
+        let ics = crate::calendar_io::compose_rss(events).expect("Failed to compose rss");
         return Ok(HttpResponse::Ok().content_type("application/xml").body(ics));
     } else {
         Ok(HttpResponse::NotFound().body("link not found"))
@@ -107,7 +107,7 @@ async fn get_local_calendar(
             o
         })
         .collect();
-        let ics = crate::logic::compose_ics(events)
+        let ics = crate::calendar_io::compose_ics(events)
             .await
             .expect("Failed to compose ics");
         return Ok(HttpResponse::Ok().content_type("text/calendar").body(ics));

@@ -1,7 +1,7 @@
 use actix_web::{get, post, web, HttpRequest, HttpResponse, Responder, Scope};
 
 use crate::{
-    db_utils::request::{
+    db::request::{
         deauth, AnyInternalServerError, EnhancedRequest, IntoInternalServerError,
         OrInternalServerError, SESSION_COOKIE_NAME,
     },
@@ -441,7 +441,7 @@ ORDER BY sequence_namespace.nspname, class_sequence.relname;"#)
     }
 
     tracing::info!("Scheduling post-restore sync");
-    crate::logic::scheduler::schedule_sync_oneoff(&data.scheduler)
+    crate::calendar_io::scheduler::schedule_sync_oneoff(&data.scheduler)
         .await
         .expect("Failed to schedule post-restore sync!");
 

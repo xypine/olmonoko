@@ -2,8 +2,8 @@ use actix_web::HttpRequest;
 use actix_web::{delete, post, web, HttpResponse, Responder, Scope};
 use olmonoko_common::models::api_key::{ApiKey, ApiKeyForm, ApiKeyId, NewApiKey, RawApiKey};
 
-use crate::db_utils::errors::TemplateOrDatabaseError;
-use crate::db_utils::request::{AnyInternalServerError, EnhancedRequest, OrInternalServerError};
+use crate::db::errors::TemplateOrDatabaseError;
+use crate::db::request::{AnyInternalServerError, EnhancedRequest, OrInternalServerError};
 use olmonoko_common::AppState;
 
 #[post("")]

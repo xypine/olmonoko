@@ -6,9 +6,9 @@ use olmonoko_common::models::event::Priority;
 use olmonoko_common::models::timer::{NewTimer, RawTimer, Timer, TimerForm, TimerId};
 use olmonoko_common::utils::time::timestamp;
 
-use crate::db_utils::attendance::DBWrite;
-use crate::db_utils::errors::TemplateOrDatabaseError;
-use crate::db_utils::request::{reload, AnyInternalServerError, EnhancedRequest, OrInternalServerError};
+use crate::db::attendance::DBWrite;
+use crate::db::errors::TemplateOrDatabaseError;
+use crate::db::request::{reload, AnyInternalServerError, EnhancedRequest, OrInternalServerError};
 use olmonoko_common::AppState;
 
 #[post("")]
@@ -23,18 +23,17 @@ async fn start(
         let details = NewTimer::from(form.into_inner());
         let result_raw = sqlx::query_as!(RawTimer, r#"INSERT INTO timers (user_id, template, summary, details, location, created_at) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *"#, user.id, details.template, details.summary, details.details, details.location, details.created_at).fetch_one(&data.conn).await;
         let result = match result_raw {
-            Ok(result_raw) => {
-                Timer::from(result_raw)
-            },
+            Ok(result_raw) => Timer::from(result_raw),
             Err(sqlx::Error::Database(e)) => {
                 let msg = e.message();
                 if msg == "olmonoko.timer.forbidden-template" {
-                    return Ok(HttpResponse::Forbidden().body("You are not authorized to use that event as a timer template"));
+                    return Ok(HttpResponse::Forbidden()
+                        .body("You are not authorized to use that event as a timer template"));
                 }
                 println!("{msg}");
                 Err(e).or_any_internal_server_error("Failed to insert new timer into db")?
-            },
-            Err(e) => Err(e).or_any_internal_server_error("Failed to insert new timer into db")?
+            }
+            Err(e) => Err(e).or_any_internal_server_error("Failed to insert new timer into db")?,
         };
         if request.is_frontend_request() {
             context.insert("timer_active", &result);
@@ -67,11 +66,34 @@ async fn stop(
         let timer_id = path.into_inner();
         let ends_at = timestamp();
 
-        let timer = sqlx::query_as!(RawTimer, "SELECT * FROM timers WHERE user_id = $1 AND id = $2", user.id, timer_id).fetch_one(&data.conn).await.or_any_internal_server_error("Failed to fetch timer").map(Timer::from)?;
+        let timer = sqlx::query_as!(
+            RawTimer,
+            "SELECT * FROM timers WHERE user_id = $1 AND id = $2",
+            user.id,
+            timer_id
+        )
+        .fetch_one(&data.conn)
+        .await
+        .or_any_internal_server_error("Failed to fetch timer")
+        .map(Timer::from)?;
         let duration = ends_at - timer.created_at.timestamp();
         let (summary, details, location, priority, tags) = {
-            let template = sqlx::query_as!(RawLocalEvent, "SELECT * FROM local_events WHERE user_id = $1 AND id = $2", user.id, timer.template).fetch_one(&data.conn).await.or_any_internal_server_error("Failed to fetch timer template")?;
-            (timer.summary.unwrap_or(template.summary), timer.details.or(template.description), timer.location.or(template.location), template.priority.or(Some(DEFAULT_TIMER_PRIORITY)), vec!["olmonoko::timer".to_owned()])
+            let template = sqlx::query_as!(
+                RawLocalEvent,
+                "SELECT * FROM local_events WHERE user_id = $1 AND id = $2",
+                user.id,
+                timer.template
+            )
+            .fetch_one(&data.conn)
+            .await
+            .or_any_internal_server_error("Failed to fetch timer template")?;
+            (
+                timer.summary.unwrap_or(template.summary),
+                timer.details.or(template.description),
+                timer.location.or(template.location),
+                template.priority.or(Some(DEFAULT_TIMER_PRIORITY)),
+                vec!["olmonoko::timer".to_owned()],
+            )
         };
 
         let new = NewLocalEvent {
@@ -138,8 +160,14 @@ async fn stop(
             .await
             .expect("Failed to insert attendance");
 
-
-        sqlx::query!("DELETE FROM timers WHERE user_id = $1 AND id = $2", user.id, timer_id).execute(&mut *txn).await.or_any_internal_server_error("Failed to delete timer")?;
+        sqlx::query!(
+            "DELETE FROM timers WHERE user_id = $1 AND id = $2",
+            user.id,
+            timer_id
+        )
+        .execute(&mut *txn)
+        .await
+        .or_any_internal_server_error("Failed to delete timer")?;
 
         // commit transaction
         txn.commit().await.expect("Failed to commit transaction");
