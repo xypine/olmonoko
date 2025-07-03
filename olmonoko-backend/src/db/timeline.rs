@@ -4,7 +4,7 @@ use actix_web::web;
 
 use olmonoko_common::{models::user::UserId, utils::event_filters::EventFilter, AppState};
 
-use crate::db_utils::events::get_visible_event_occurrences;
+use crate::db::events::get_visible_event_occurrences;
 
 #[derive(Debug, sqlx::FromRow, serde::Serialize)]
 pub struct Timeline {

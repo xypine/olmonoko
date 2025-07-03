@@ -338,7 +338,7 @@ struct CalendarPositionGoto {
 
 use serde_with::rust::deserialize_ignore_any;
 
-use crate::db_utils::{
+use crate::db::{
     events::{get_user_local_events, get_visible_event_occurrences},
     request::{deauth, redirect, EnhancedRequest, InternalServerError, OrInternalServerError},
     sources::{get_source_as_user_with_event_count, get_visible_sources_with_event_count},

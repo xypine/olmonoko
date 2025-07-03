@@ -27,7 +27,7 @@ use olmonoko_common::models::ics_source::IcsSource;
 use olmonoko_common::models::ics_source::RawIcsSource;
 use olmonoko_common::utils::time::timestamp;
 
-use crate::db_utils::ical::EnhancedIcalendarEvent;
+use crate::db::ical::EnhancedIcalendarEvent;
 
 #[derive(Debug, Clone, PartialEq, Hash)]
 pub struct ProcessedData {
@@ -52,17 +52,12 @@ pub(crate) fn process_events(source: &IcsSource, events: Vec<VEvent>, tz: Tz) ->
             let rrule = event.property_value("RRULE").map(|v| v.to_string());
             let dt_stamp = event.get_timestamp().map(|dt| dt.timestamp());
             let dt_start = event.get_start().and_then(flatten_ts_with_tz);
-            let dt_end = event
-                .get_end_auto()
-                .map(|dt| dt.with_timezone(&tz).timestamp());
-            let duration = match (dt_start, dt_end) {
+            let dt_end = event.get_end_auto(tz).map(|dt| dt.timestamp());
+            let duration_ms = match (dt_start, dt_end) {
                 (Some(dt_start), Some(dt_end)) => Some(dt_end - dt_start),
                 (_, _) => None,
             };
-            let all_day = event
-                .get_start()
-                .map(|dt| matches!(dt, DatePerhapsTime::Date(_)))
-                .unwrap_or(false);
+            let all_day = event.is_all_day();
             let summary = event.get_summary().map(|s| s.to_string());
             let location = event.get_location().map(|s| s.to_string());
             let description = event.get_description().map(|s| s.to_string());
@@ -76,7 +71,7 @@ pub(crate) fn process_events(source: &IcsSource, events: Vec<VEvent>, tz: Tz) ->
                 uid: uid.clone(),
                 dt_stamp,
                 all_day,
-                duration: duration.map(|d| d as i32),
+                duration: duration_ms.map(|d| d as i32),
                 summary,
                 location,
                 description,
@@ -345,8 +340,11 @@ fn get_event_occurrences(event: VEvent, start: Option<i64>) -> Vec<NewRemoteEven
     const MAX_OCCURRENCES: u16 = 10_000;
     // +- 10 years
     let max_delta = chrono::Duration::days(365 * 10);
-    let rrule_min = (chrono::offset::Utc::now() - max_delta).with_timezone(&rrule::Tz::UTC);
-    let rrule_max = (chrono::offset::Utc::now() + max_delta).with_timezone(&rrule::Tz::UTC);
+    let now = chrono::offset::Utc::now();
+
+    let rrule_min = (now - max_delta).with_timezone(&rrule::Tz::UTC);
+    let rrule_max = (now + max_delta).with_timezone(&rrule::Tz::UTC);
+
     let mut events: Vec<NewRemoteEventOccurrence> = vec![];
     if let Some(dt_start) = event.properties().get("DTSTART") {
         if let Some(start) = start {
@@ -576,7 +574,7 @@ pub fn test_import_template(template: &str) -> Result<(), ImportTemplateError> {
         tags: vec![],
     };
     let _result =
-        crate::logic::source_processing::render_import_template(template, &event, vec![])?;
+        crate::calendar_io::source_processing::render_import_template(template, &event, vec![])?;
     //    .context("Template didn't return anything")?;
     //assert_eq!(
     //    result,
@@ -619,7 +617,7 @@ mod tests {
             tags: vec![],
         };
         let result =
-            crate::logic::source_processing::render_import_template(template, &event, vec![])
+            crate::calendar_io::source_processing::render_import_template(template, &event, vec![])
                 .unwrap()
                 .unwrap();
         assert_eq!(
@@ -667,7 +665,7 @@ mod tests {
             tags: vec![],
         };
         let result =
-            crate::logic::source_processing::render_import_template(template, &event, vec![])
+            crate::calendar_io::source_processing::render_import_template(template, &event, vec![])
                 .unwrap()
                 .unwrap();
         assert_eq!(

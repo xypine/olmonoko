@@ -9,7 +9,7 @@
 {
   # https://devenv.sh/basics/
   env = {
-    DATABASE_URL = "postgres://postgres:example@localhost/olmonoko";
+    DATABASE_URL = "postgres://postgres:example@localhost:5488/olmonoko";
     SITE_URL = "http://localhost:8080";
   };
   dotenv.enable = true;
@@ -34,7 +34,10 @@
   ];
 
   # https://devenv.sh/languages/
-  languages.rust.enable = true;
+  languages.rust = {
+    enable = true;
+    channel = "stable";
+  };
 
   # https://devenv.sh/processes/
   # processes.cargo-watch.exec = "cargo-watch";

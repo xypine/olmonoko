@@ -2,15 +2,18 @@ use actix_web::{get, web, HttpRequest, HttpResponse, Responder, Scope};
 use olmonoko_common::AppState;
 use serde::Deserialize;
 
-use crate::db_utils::request::{deauth, EnhancedRequest};
-
+use crate::db::request::{deauth, EnhancedRequest};
 
 #[derive(Debug, Deserialize)]
 pub struct NLCEPRequest {
-    nl: String
+    nl: String,
 }
 #[get("/nlcep")]
-async fn nlcep_route(data: web::Data<AppState>, query: web::Query<NLCEPRequest>, req: HttpRequest) -> impl Responder {
+async fn nlcep_route(
+    data: web::Data<AppState>,
+    query: web::Query<NLCEPRequest>,
+    req: HttpRequest,
+) -> impl Responder {
     let user = req.get_session_user(&data).await;
     if user.is_some() {
         let query = query.into_inner();
@@ -23,6 +26,5 @@ async fn nlcep_route(data: web::Data<AppState>, query: web::Query<NLCEPRequest>,
 }
 
 pub fn routes() -> Scope {
-    web::scope("/ui_utils")
-        .service(nlcep_route)
+    web::scope("/ui_utils").service(nlcep_route)
 }
