@@ -1,6 +1,6 @@
 mod auth;
-mod db_utils;
-mod logic;
+mod calendar_io;
+mod db;
 mod middleware;
 mod routes;
 
@@ -44,7 +44,7 @@ async fn main() -> Result<(), AppError> {
     tracing::info!("Migrations complete");
 
     tracing::info!("Starting scheduler");
-    let scheduler = logic::scheduler::init()
+    let scheduler = calendar_io::scheduler::init()
         .await
         .expect("Failed to start scheduler");
     tracing::info!("Scheduler started");

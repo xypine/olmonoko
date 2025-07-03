@@ -27,7 +27,7 @@ use olmonoko_common::models::ics_source::IcsSource;
 use olmonoko_common::models::ics_source::RawIcsSource;
 use olmonoko_common::utils::time::timestamp;
 
-use crate::db_utils::ical::EnhancedIcalendarEvent;
+use crate::db::ical::EnhancedIcalendarEvent;
 
 #[derive(Debug, Clone, PartialEq, Hash)]
 pub struct ProcessedData {
@@ -576,7 +576,7 @@ pub fn test_import_template(template: &str) -> Result<(), ImportTemplateError> {
         tags: vec![],
     };
     let _result =
-        crate::logic::source_processing::render_import_template(template, &event, vec![])?;
+        crate::calendar_io::source_processing::render_import_template(template, &event, vec![])?;
     //    .context("Template didn't return anything")?;
     //assert_eq!(
     //    result,
@@ -619,7 +619,7 @@ mod tests {
             tags: vec![],
         };
         let result =
-            crate::logic::source_processing::render_import_template(template, &event, vec![])
+            crate::calendar_io::source_processing::render_import_template(template, &event, vec![])
                 .unwrap()
                 .unwrap();
         assert_eq!(
@@ -667,7 +667,7 @@ mod tests {
             tags: vec![],
         };
         let result =
-            crate::logic::source_processing::render_import_template(template, &event, vec![])
+            crate::calendar_io::source_processing::render_import_template(template, &event, vec![])
                 .unwrap()
                 .unwrap();
         assert_eq!(

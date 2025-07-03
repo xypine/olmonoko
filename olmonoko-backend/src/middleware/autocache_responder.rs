@@ -7,7 +7,7 @@ use actix_web::{
 
 use olmonoko_common::get_site_url;
 
-use crate::db_utils::request::EnhancedRequest;
+use crate::db::request::EnhancedRequest;
 
 use super::autocacher::AUTOCACHE_DISALLOWED_PATHS;
 

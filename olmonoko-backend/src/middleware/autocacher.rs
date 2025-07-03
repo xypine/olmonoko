@@ -17,7 +17,7 @@ use actix_web::{
 
 use olmonoko_common::get_site_url;
 
-use crate::db_utils::request::{EnhancedRequest, SESSION_COOKIE_NAME};
+use crate::db::request::{EnhancedRequest, SESSION_COOKIE_NAME};
 
 #[derive(Debug, Clone, Copy, Default)]
 pub struct AutoCacher;
