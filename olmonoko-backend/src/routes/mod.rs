@@ -13,7 +13,7 @@ use crate::middleware::autocache_responder;
 use crate::middleware::autocacher::PREDICTIVE_CACHE_ENABLED;
 use crate::middleware::AutoCacher;
 use crate::{get_source_commit, get_version};
-use actix_web::middleware::from_fn;
+use actix_web::middleware::{from_fn, DefaultHeaders};
 
 pub async fn run_server(conn: DatabaseConnection, scheduler: JobScheduler) -> std::io::Result<()> {
     let templates = tera::Tera::new("templates/**/*").unwrap();
@@ -63,6 +63,7 @@ pub async fn run_server(conn: DatabaseConnection, scheduler: JobScheduler) -> st
                             .add(("Cache-Control", "max-age=31536000")),
                     ),
             )
+            .wrap(DefaultHeaders::new().add(("Content-Type", "text/html")))
             .service(ui::routes())
     })
     .bind(("0.0.0.0", 8080))?
