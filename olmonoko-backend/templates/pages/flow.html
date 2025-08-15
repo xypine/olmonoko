@@ -4,7 +4,7 @@
 {% if user %}
     <div id="top-menu">
         <div id="top-menu-left">
-            {% set reset_link = site_url ~ "/#today" %}
+            {% set reset_link = site_url ~ "/flow#today" %}
             <a id="calendar-reset" class="btn variant-tertiary" href="{{ reset_link | safe }}">
                 Reset
             </a>
@@ -16,7 +16,7 @@
                 <a
                     id="week-prev"
                     class="btn"
-                    href="{{ site_url | safe }}?year={{ prev_year }}&week={{ prev_week }}"
+                    href="{{ site_url | safe }}/flow?year={{ prev_year }}&week={{ prev_week }}"
                     hx-on:click="this.outerHTML = `<button class=\'btn\' disabled>${this.innerHTML}</button>`"
                 >
                     Prev
@@ -24,7 +24,7 @@
                 <a
                     id="week-next"
                     class="btn"
-                    href="{{ site_url | safe }}?year={{ next_year }}&week={{ next_week }}"
+                    href="{{ site_url | safe }}/flow?year={{ next_year }}&week={{ next_week }}"
                     hx-on:click="this.outerHTML = `<button class=\'btn\' disabled>${this.innerHTML}</button>`"
                 >
                     Next

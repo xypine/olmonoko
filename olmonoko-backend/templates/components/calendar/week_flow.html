@@ -60,7 +60,13 @@
 			Now
 		</div>
 		{% else %}
-		<a class="calendar-week-event"
+		<div
+			class="calendar-week-event-bg"
+			style="--event-start: {{ start_h }}; --event-length: {{ length_h }};--overlap-total: {{ event.overlap_total }};--overlap-index: {{ event.overlap_index }}; --event-priority: {{ event.priority }};"
+			title="{{ event.summary }}"
+		></div>
+		<a
+			class="calendar-week-event"
 			style="--event-start: {{ start_h }}; --event-length: {{ length_h }};--overlap-total: {{ event.overlap_total }};--overlap-index: {{ event.overlap_index }}; --event-priority: {{ event.priority }};"
 			href="#event-{{ event.id }}" title="{{ event.summary }}">
 			{{ event.summary }}
@@ -166,7 +172,7 @@
 		position: relative;
 	}
 
-	.calendar-week-event {
+	.calendar-week-event-bg {
 		position: absolute;
 		--event-padding: 0.1em;
     width: var(--hour-width);
@@ -196,19 +202,56 @@
 		left: calc(var(--hour-width) * var(--event-start-bumped));
 
 		--border-strength: calc(calc(9 - var(--event-priority)) / 9);
-		border-left: 1px solid color-mix(in oklab, var(--primary) calc(100% * var(--border-strength)), transparent);
+		outline: 1px solid color-mix(in oklab, var(--primary) calc(100% * var(--border-strength)), transparent);
+
+		backdrop-filter: blur(2px);
+		border-radius: 0.125rem;
+	}
+
+	.calendar-week-event {
+		position: absolute;
+		--event-padding: 0.1em;
+    min-width: var(--hour-width);
+
+		--event-start-local: var(--event-start, 0);
+		--event-length-local: var(--event-length, 1);
+
+		--height-share: calc(var(--day-event-base-height) / var(--overlap-total, 1));
+		height: calc(var(--height-share) - calc(var(--event-padding) * 2));
+		--top-offset: calc(var(--height-share) * var(--overlap-index, 0));
+		top: calc(var(--top-offset) + var(--event-padding));
+
+		/* --event-start-bumped: min(var(--event-start-local), 23); */
+		--event-start-bumped: var(--event-start-local);
+		/*top: calc(var(--hour-height) * var(--event-start-bumped));*/
+
+		--time-till-midnight: calc(24 - var(--event-start-bumped, 0));
+		--max-event-length: min(var(--time-till-midnight), var(--event-length-local));
+		--event-height-clipped: calc(var(--hour-height) * var(--max-event-length));
+		/*height: var(--event-height-clipped);*/
+		/*line-height: max(var(--event-height-clipped), 1.5em);*/
+		align-content: center;
+
+		--event-width-clipped: calc(var(--hour-width) * var(--max-event-length));
+		--width-share: calc(var(--total-width) / var(--max-event-length, 1));
+		min-width: var(--event-width-clipped);
+		max-width: max(var(--event-width-clipped), 300px);
+		left: calc(var(--hour-width) * var(--event-start-bumped));
 
 		text-overflow: ellipsis;
 		overflow: hidden;
 
 		color: var(--contrast);
-		background: var(--surface-variant);
 		padding-inline: .5rem;
+
+		background: color-mix(in oklab, var(--surface-variant) calc(100% * 0.5), transparent);
 	}
 
 	.calendar-week-event.ghost {
 		background: transparent;
 		border-color: color-mix(in oklab, var(--contrast), transparent 50%);
+		--border-strength: 0.333;
+		border-left: 1px solid color-mix(in oklab, var(--primary) calc(100% * var(--border-strength)), transparent);
 		opacity: .3;
 		pointer-events: none;
 
@@ -219,6 +262,8 @@
 	}
 
 	#now {
+		--border-strength: 1;
+		border-left: 1px solid color-mix(in oklab, var(--primary) calc(100% * var(--border-strength)), transparent);
 		border-color: var(--brand);
 		/* background: var(--brand); */
 	}

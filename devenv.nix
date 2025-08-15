@@ -9,7 +9,7 @@
 {
   # https://devenv.sh/basics/
   env = {
-    DATABASE_URL = "postgres://postgres:example@localhost:5488/olmonoko";
+    DATABASE_URL = "postgres://postgres:example@localhost:5488/postgres";
     SITE_URL = "http://localhost:8080";
   };
   dotenv.enable = true;
