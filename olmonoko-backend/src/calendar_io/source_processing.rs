@@ -118,7 +118,11 @@ pub enum SyncError {
     #[error("Failed to insert events: {0}")]
     InsertEventsError(#[from] sqlx::Error),
 }
-pub(crate) async fn sync_source<C>(conn: &mut C, source_id: i32) -> Result<bool, SyncError>
+pub(crate) async fn sync_source<C>(
+    conn: &mut C,
+    source_id: i32,
+    force: bool,
+) -> Result<bool, SyncError>
 where
     for<'e> &'e mut C: Executor<'e, Database = Postgres>,
 {
@@ -133,10 +137,21 @@ where
     .map(IcsSource::from)
     .map_err(|_| SyncError::SourceNotFound)?;
 
+    if force {
+        tracing::info!("Forced update");
+    }
+
     // Fetch new events
     let fetched_at = timestamp();
-    let (events, tz, new_hash) = if let FetchResult::Updated(data) =
-        fetch_source(&source.url, source.file_hash.clone()).await?
+    let (events, tz, new_hash) = if let FetchResult::Updated(data) = fetch_source(
+        &source.url,
+        if force {
+            None
+        } else {
+            source.file_hash.clone()
+        },
+    )
+    .await?
     {
         data
     } else {
@@ -152,7 +167,7 @@ where
     if source.object_hash.is_some_and(|hash| hash == object_hash)
         && source
             .object_hash_version
-            .is_some_and(|version| version == current_object_hash_version)
+            .is_some_and(|version| !force && version == current_object_hash_version)
     {
         tracing::info!("No new events (object hash match)");
         sqlx::query!(
@@ -297,7 +312,7 @@ pub async fn sync_all() -> Result<(), anyhow::Error> {
         let conn = conn.clone();
         tasks.push(tokio::spawn(async move {
             let mut tx = conn.begin().await?;
-            if let Err(e) = sync_source(&mut *tx, source_id)
+            if let Err(e) = sync_source(&mut *tx, source_id, false)
                 .instrument(info_span!("sync_source", source_id, source_name))
                 .await
             {

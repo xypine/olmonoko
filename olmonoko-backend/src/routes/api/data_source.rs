@@ -1,6 +1,7 @@
 use actix_web::{delete, patch, HttpRequest};
 use actix_web::{get, post, web, HttpResponse, Responder, Scope};
 use olmonoko_common::AppState;
+use serde::Deserialize;
 use tracing::warn;
 
 use crate::calendar_io::source_processing::{sync_source, test_import_template};
@@ -66,7 +67,7 @@ async fn create_source(
             .fetch_one(&mut *txn)
             .await
             .expect("Failed to insert source");
-        if let Err(e) = sync_source(&mut *txn, inserted_id).await {
+        if let Err(e) = sync_source(&mut *txn, inserted_id, false).await {
             txn.rollback()
                 .await
                 .expect("Failed to rollback transaction");
@@ -348,10 +349,16 @@ async fn change_import_template(
     deauth(&request)
 }
 
+#[derive(Deserialize)]
+struct SyncParams {
+    force: Option<bool>,
+}
+
 #[post("/{id}/sync")]
 async fn force_sync(
     data: web::Data<AppState>,
     path: web::Path<RemoteSourceId>,
+    params: web::Query<SyncParams>,
     request: HttpRequest,
 ) -> impl Responder {
     if (get_user_from_request(&data, &request).await).is_none() {
@@ -363,7 +370,7 @@ async fn force_sync(
         .begin()
         .await
         .expect("Failed to start transaction");
-    sync_source(&mut *txn, id)
+    sync_source(&mut *txn, id, params.force.unwrap_or_default())
         .await
         .expect("Failed to sync source");
     txn.commit().await.expect("Failed to commit transaction");
