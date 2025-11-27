@@ -51,7 +51,7 @@ impl FlashMessage {
     pub fn from_cookie(cookie: &Cookie) -> Self {
         Self::from(cookie.value())
     }
-    pub fn to_cookie(&self) -> Cookie {
+    pub fn to_cookie(&self) -> Cookie<'_> {
         Cookie::build(
             FLASH_COOKIE_NAME,
             format!("{}:{}", self.level, self.message),

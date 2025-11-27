@@ -1,5 +1,4 @@
 mod olmonoko;
-// mod renderer;
 
 use clap::{Parser, Subcommand};
 use cryptex::{get_os_keyring, KeyRing};
