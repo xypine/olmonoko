@@ -337,14 +337,9 @@ pub async fn sync_all() -> Result<(), anyhow::Error> {
 
 fn flatten_ts(dt: DatePerhapsTime, tz: Tz) -> Option<i64> {
     Some(match dt {
-        DatePerhapsTime::Date(date) => {
-            let dt = match NaiveDateTime::new(date, NaiveTime::MIN).and_local_timezone(tz) {
-                chrono::offset::LocalResult::Single(dt) => dt,
-                chrono::offset::LocalResult::Ambiguous(earliest, _latest) => earliest,
-                chrono::offset::LocalResult::None => return None,
-            };
-            dt.timestamp()
-        }
+        DatePerhapsTime::Date(date) => NaiveDateTime::new(date, NaiveTime::MIN)
+            .and_utc()
+            .timestamp(),
         DatePerhapsTime::DateTime(datetime) => {
             datetime.try_into_utc()?.with_timezone(&tz).timestamp()
         }
